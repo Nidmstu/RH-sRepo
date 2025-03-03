@@ -366,8 +366,29 @@
           console.log("Response status:", response.status);
           return response.text();
         })
-        .then(markdown => {
-          console.log("Received content:", markdown.substring(0, 100) + "...");
+        .then(responseText => {
+          console.log("Received content:", responseText.substring(0, 100) + "...");
+          
+          // Try to parse as JSON first
+          let markdown;
+          try {
+            const responseJson = JSON.parse(responseText);
+            // If it's JSON, extract the text content from the appropriate field
+            if (responseJson.text) {
+              markdown = responseJson.text;
+            } else if (responseJson.content) {
+              markdown = responseJson.content;
+            } else if (responseJson.markdown) {
+              markdown = responseJson.markdown;
+            } else {
+              // If no known field, use the whole JSON as string
+              markdown = JSON.stringify(responseJson, null, 2);
+            }
+          } catch (e) {
+            // If not JSON, use the text directly
+            markdown = responseText;
+          }
+
           if (!markdown.includes('#')) {
             markdown = "# " + window.currentTopic.title + "\n\n" + markdown;
           }
@@ -392,6 +413,31 @@
               <p>URL: ${url}</p>
             `;
           }
+
+          // Try to make a direct GET request as fallback
+          console.log("Trying fallback GET request...");
+          fetch(url, { method: "GET" })
+            .then(response => response.text())
+            .then(fallbackText => {
+              console.log("Fallback GET received:", fallbackText.substring(0, 100) + "...");
+              
+              if (markdownDiv && fallbackText) {
+                let processedText;
+                try {
+                  const json = JSON.parse(fallbackText);
+                  processedText = json.text || json.content || json.markdown || JSON.stringify(json, null, 2);
+                } catch (e) {
+                  processedText = fallbackText;
+                }
+                
+                markdownDiv.innerHTML = marked.parse(processedText);
+                if (spinner) spinner.classList.add("hidden");
+                markdownDiv.classList.remove("hidden");
+              }
+            })
+            .catch(fallbackError => {
+              console.error("Fallback request also failed:", fallbackError);
+            });
         });
     }
 
