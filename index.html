@@ -187,6 +187,11 @@
     window.currentDay = null;
     let currentTasks = [];
 
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log("Page loaded, initializing...");
+    });
+
     const professionTasks = {
       "prompt-engineer": {
         1: [
@@ -458,25 +463,25 @@
       };
 
           function useFallbackContent(url, reject, resolve) {
-            // Предоставляем резервное содержимое на основе URL
-            if (url.includes("IterationMethods")) {
-              console.log("Using backup content for IterationMethods");
-              resolve(getBackupContentForIterationMethods());
-            } else if (url.includes("FiveStepFramework")) {
-              console.log("Using backup content for FiveStepFramework");
-              resolve(getBackupContentForFiveStepFramework());
-            } else if (url.includes("PersonasInPrompting")) {
-              console.log("Using backup content for PersonasInPrompting");
-              resolve(getBackupContentForPersonasInPrompting());
-            } else if (url.includes("WhatPromptingIs")) {
-              console.log("Using backup content for WhatPromptingIs");
-              resolve(getBackupContentForWhatPromptingIs());
-            } else if (url.includes("Vocabulary")) {
-              console.log("Using backup content for Vocabulary");
-              resolve(getBackupContentForVocabulary());
-            } else if (url.includes("MultimodalPrompting")) {
-              console.log("Using backup content for MultimodalPrompting");
-              resolve(`# Multimodal Prompting
+        // Предоставляем резервное содержимое на основе URL
+        if (url.includes("IterationMethods")) {
+          console.log("Using backup content for IterationMethods");
+          resolve("# Iteration Methods\n\nThis is fallback content for Iteration Methods.");
+        } else if (url.includes("FiveStepFramework")) {
+          console.log("Using backup content for FiveStepFramework");
+          resolve("# Five-Step Framework\n\nThis is fallback content for Five-Step Framework.");
+        } else if (url.includes("PersonasInPrompting")) {
+          console.log("Using backup content for PersonasInPrompting");
+          resolve("# Personas in Prompting\n\nThis is fallback content for Personas in Prompting.");
+        } else if (url.includes("WhatPromptingIs")) {
+          console.log("Using backup content for WhatPromptingIs");
+          resolve("# What Prompting Is\n\nThis is fallback content for What Prompting Is.");
+        } else if (url.includes("Vocabulary")) {
+          console.log("Using backup content for Vocabulary");
+          resolve("# Vocabulary\n\nThis is fallback content for Vocabulary.");
+        } else if (url.includes("MultimodalPrompting")) {
+          console.log("Using backup content for MultimodalPrompting");
+          resolve(`# Multimodal Prompting
 
 Multimodal prompting is an advanced technique that involves providing inputs in multiple formats or modalities (such as text, images, audio, or video) to AI systems and receiving responses that may also span different modalities.
 
