@@ -300,6 +300,9 @@
       const guideTitle = document.getElementById("guide-title");
       if (guideTitle) guideTitle.innerText = "Guide: " + window.currentTopic.title;
       hideAllAudio();
+      // Показываем аудио для Vocabulary после загрузки контента
+      const audioVocabulary = document.getElementById("audio-vocabulary");
+      if (audioVocabulary) audioVocabulary.classList.remove("hidden");
       // Скрываем кнопку теста для словаря
       document.getElementById("test-button").classList.add("hidden");
       showSection("guide");
@@ -414,7 +417,7 @@
             `;
           }
 
-          // Just load some hardcoded text for the "What Prompting is" topic
+          // Just load some hardcoded text for specific topics
           if (window.currentTopic && window.currentTopic.title === "What prompting is") {
             const defaultContent = `# What prompting is
 
@@ -479,6 +482,84 @@ The following lessons will explore these concepts in more detail and provide pra
             markdownDiv.innerHTML = createCollapsibleBlocks(defaultContent);
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
+          } else if (window.currentTopic && window.currentTopic.title === "Prompt Engineering Vocabulary") {
+            const vocabularyContent = `# Prompt Engineering Vocabulary
+
+## Core Concepts
+
+### Prompt
+A text input given to an AI model that guides its response. This can include questions, instructions, examples, or constraints.
+
+### Large Language Model (LLM)
+An AI system trained on vast amounts of text data that can generate human-like text, understand context, and follow instructions.
+
+### Prompt Engineering
+The practice of designing and refining prompts to effectively communicate with AI models to get desired outputs.
+
+### Token
+The basic unit of text that LLMs process. A token can be a word, part of a word, or a character, depending on the model's tokenization method.
+
+### Context Window
+The maximum amount of text (measured in tokens) that an AI model can consider at once, including both the prompt and the generated response.
+
+## Prompting Techniques
+
+### Zero-shot Prompting
+Asking an AI to perform a task without providing any examples.
+Example: "Translate this sentence to French: 'Hello, how are you?'"
+
+### Few-shot Prompting
+Providing the AI with a few examples within the prompt to guide its response format or style.
+Example: "English: Hello, French: Bonjour, English: Thank you, French: ?"
+
+### Chain-of-Thought (CoT)
+Prompting technique that encourages the AI to show its reasoning process step-by-step.
+Example: "Think step by step to solve this math problem."
+
+### Tree of Thoughts
+An extension of Chain-of-Thought that explores multiple reasoning paths before arriving at a final answer.
+
+### Role Prompting
+Instructing the AI to assume a specific role or persona.
+Example: "As an experienced chef, provide feedback on this recipe."
+
+### Retrieval-Augmented Generation (RAG)
+Combining an LLM with the ability to retrieve information from an external knowledge base during generation.
+
+## Best Practices
+
+### Specificity
+Being clear and detailed in what you're asking the AI to do.
+
+### Structured Format
+Organizing prompts with clear sections like "Context," "Instructions," and "Format."
+
+### Constraints
+Setting boundaries on what the AI should or shouldn't include in its response.
+
+### Iteration
+The process of refining prompts based on the AI's responses to improve results over time.
+
+## Common Challenges
+
+### Prompt Injection
+A security concern where malicious instructions are hidden within benign-looking prompts to manipulate the AI's behavior.
+
+### Hallucination
+When an AI confidently generates incorrect information that wasn't in its training data.
+
+### Model Alignment
+The degree to which an AI's outputs match human values, intentions, and expectations.
+
+### Context Truncation
+When a prompt is too long and exceeds the model's context window, causing information loss.`;
+            
+            markdownDiv.innerHTML = createCollapsibleBlocks(vocabularyContent);
+            if (spinner) spinner.classList.add("hidden");
+            markdownDiv.classList.remove("hidden");
+
+            // Показываем аудио для Vocabulary
+            document.getElementById("audio-vocabulary").classList.remove("hidden");
           }
         });
     }
