@@ -362,12 +362,32 @@
         body: JSON.stringify({}) // Send empty JSON object as body
       };
 
-      fetch(url, fetchOptions)
-        .then(response => {
-          console.log("Response status:", response.status);
-          return response.text();
-        })
+      // Retry mechanism for fetch
+      const fetchWithRetry = async (url, options, maxRetries = 3) => {
+        let retries = 0;
+        while (retries < maxRetries) {
+          try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return await response.text();
+          } catch (error) {
+            retries++;
+            console.log(`Attempt ${retries} failed. Retrying...`);
+            if (retries === maxRetries) {
+              throw error;
+            }
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+          }
+        }
+      };
+
+      // Try the fetch with retry mechanism
+      fetchWithRetry(url, fetchOptions)
         .then(responseText => {
+          console.log("Response status:", 200);
           console.log("Received content:", responseText.substring(0, 100) + "...");
           
           // Try to parse as JSON first
@@ -408,6 +428,89 @@
           }
           if (markdownDiv) {
             markdownDiv.classList.remove("hidden");
+            
+            // Load emergency content for the Five-step Framework
+            if (window.currentTopic && window.currentTopic.title === "Five-step Framework") {
+              const fiveStepContent = `# Five-step Framework for Prompt Engineering
+
+The Five-step Framework provides a structured approach to designing effective prompts for AI systems. Each step builds upon the previous one to create prompts that yield accurate, relevant, and useful responses.
+
+## Step 1: Define the Goal
+
+Before writing any prompt, clearly define what you want to achieve.
+
+**Key Questions:**
+- What specific output or information do you need?
+- What format should the response take?
+- Who is the end-user of this information?
+
+**Example:**
+Goal: "I need a comprehensive comparison of solar panel types for residential use that helps homeowners make an informed decision."
+
+## Step 2: Provide Context
+
+Give the AI relevant background information to ensure it understands the situation.
+
+**Key Elements:**
+- Relevant facts and data
+- Audience information
+- Domain-specific context
+- Any constraints or requirements
+
+**Example:**
+"I'm creating content for middle-aged homeowners in sunny Arizona who are considering installing solar panels. They have limited technical knowledge but are environmentally conscious and budget-aware."
+
+## Step 3: Specify Instructions
+
+Clearly state what you want the AI to do and how it should do it.
+
+**Key Components:**
+- Task description
+- Output format
+- Tone and style guidance
+- Length requirements
+
+**Example:**
+"Create a comparison table of the three most common residential solar panel types (monocrystalline, polycrystalline, and thin-film). Follow the table with 2-3 paragraphs explaining the key differences in layman's terms. Use a friendly but informative tone."
+
+## Step 4: Use Constraints
+
+Set boundaries to prevent unwanted content and guide the AI toward your desired outcome.
+
+**Types of Constraints:**
+- Content limitations
+- Style restrictions
+- Length parameters
+- Ethical guardrails
+
+**Example:**
+"Avoid technical jargon without explanation. Don't include DIY installation instructions, as these systems require professional installation. Limit the response to 500 words."
+
+## Step 5: Review and Refine
+
+Analyze the AI's response and iterate on your prompt to improve results.
+
+**Review Process:**
+1. Evaluate the response against your goal
+2. Identify missing or incorrect information
+3. Note areas where instructions weren't followed
+4. Adjust your prompt accordingly
+
+**Example:**
+"The information is good, but there's too much emphasis on cost and not enough on durability. Let me adjust my prompt to prioritize long-term value and performance in extreme weather conditions."
+
+## Putting It All Together
+
+A complete prompt using the Five-step Framework might look like:
+
+"I need a comparison of residential solar panel types (Goal). This is for middle-aged homeowners in Arizona with limited technical knowledge but environmental awareness (Context). Create a table comparing monocrystalline, polycrystalline, and thin-film panels, followed by 2-3 explanatory paragraphs in layman's terms (Instructions). Avoid unexplained jargon and DIY installation details, and prioritize information on durability and performance in hot climates. Limit to 500 words (Constraints)."
+
+By following this framework, you can systematically improve your prompts through each iteration, leading to increasingly accurate and useful AI responses.`;
+              
+              markdownDiv.innerHTML = createCollapsibleBlocks(fiveStepContent);
+              return;
+            }
+            
             markdownDiv.innerHTML = `
               <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
               <p>Детали ошибки: ${error.toString()}</p>
