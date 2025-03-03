@@ -366,13 +366,18 @@
         credentials: 'omit'
       };
 
-      // Simplified fetch with better error handling
+      // Enhanced fetch with better error handling and debugging
       const fetchContent = async (url, options) => {
         try {
           console.log("Fetching from:", url);
+          console.log("Fetch options:", JSON.stringify(options));
+          
           // Add a timeout to the fetch operation
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            console.error("Fetch timeout after 15 seconds");
+          }, 15000); // 15 second timeout
           
           const fetchOptions = {
             ...options,
@@ -382,12 +387,24 @@
           const response = await fetch(url, fetchOptions);
           clearTimeout(timeoutId);
           
+          console.log("Response status:", response.status);
+          console.log("Response headers:", JSON.stringify([...response.headers]));
+          
           if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const errorText = await response.text().catch(e => "Unable to read response body");
+            throw new Error(`HTTP error! Status: ${response.status}, Status Text: ${response.statusText}, Response: ${errorText.substring(0, 500)}`);
           }
-          return await response.text();
+          
+          const responseText = await response.text();
+          console.log("Response size:", responseText.length, "bytes");
+          return responseText;
         } catch (error) {
           console.error("Fetch error:", error.message || "Unknown fetch error");
+          console.error("Error object:", JSON.stringify({
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+          }));
           throw error; // Re-throw to be handled by the outer catch
         }
       };
@@ -396,29 +413,31 @@
       fetchContent(url, fetchOptions)
         .then(responseText => {
           console.log("Response received successfully!");
+          console.log("Raw response:", responseText.substring(0, 200));
           
-          // Treat all responses as plain text first
+          // Always treat responses as plain text
           let markdown = responseText;
           
-          // Only try to parse as JSON if it looks like JSON (starts with { or [)
+          // Only try to parse as JSON if it looks like JSON and we need to extract specific fields
           if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
             try {
               const responseJson = JSON.parse(responseText);
-              console.log("Successfully parsed response as JSON");
+              console.log("Response appears to be JSON format");
               
               // Extract markdown content from JSON if available
               if (responseJson.text) {
+                console.log("Using 'text' field from JSON");
                 markdown = responseJson.text;
               } else if (responseJson.content) {
+                console.log("Using 'content' field from JSON");
                 markdown = responseJson.content;
               } else if (responseJson.markdown) {
+                console.log("Using 'markdown' field from JSON");
                 markdown = responseJson.markdown;
-              } else {
-                // Otherwise, stringify the whole JSON
-                markdown = JSON.stringify(responseJson, null, 2);
               }
+              // If no specific fields are found, keep the original text
             } catch (e) {
-              console.log("Not valid JSON, using as plain text");
+              console.log("Not valid JSON or JSON parsing error:", e.message);
               // Continue using the raw text
             }
           }
@@ -524,15 +543,33 @@ By following this framework, you can systematically improve your prompts through
               return;
             }
 
+            // Get detailed error information
+            const errorStack = error.stack || '';
+            const errorName = error.name || 'Error';
+            const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+            
             markdownDiv.innerHTML = `
               <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
                 <h3>Ошибка загрузки контента</h3>
                 <p>Пожалуйста, обратитесь к руководителю команды.</p>
                 <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
+                <p><strong>Тип ошибки:</strong> ${errorName}</p>
                 <p><strong>URL:</strong> ${url}</p>
-                <p><small>Это может быть вызвано проблемами с сетевым подключением или недоступностью сервера.</small></p>
+                <details>
+                  <summary><strong>Технические детали ошибки (для разработчиков)</strong></summary>
+                  <pre style="background-color: #f8f8f8; padding: 10px; overflow: auto; max-height: 200px;">${errorDetails}</pre>
+                </details>
+                <p><small>Это может быть вызвано проблемами с CORS, сетевым подключением или недоступностью сервера.</small></p>
               </div>
             `;
+            
+            // Add console logging for debugging
+            console.error("Detailed error information:", {
+              message: error.message,
+              name: errorName,
+              url: url,
+              details: errorDetails
+            });
             console.error("Content loading error for URL:", url, error);
             
             // Check if we have a fallback for this content
