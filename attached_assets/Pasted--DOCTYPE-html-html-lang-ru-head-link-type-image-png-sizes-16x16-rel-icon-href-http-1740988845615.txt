@@ -118,12 +118,12 @@
           <option value="lead-generator">Lead Generator</option>
         </select>
       </p>
-
+      
       <div style="margin: 30px 0;">
         <p>Quick Reference:</p>
         <button onclick="openVocabulary()">Prompt Engineering Vocabulary</button>
       </div>
-
+      
       <div style="margin-top: 30px;">
         <p>Select Training Day:</p>
         <button onclick="selectDay(1)">Day 1</button>
@@ -144,7 +144,7 @@
       <div class="spinner"></div>
       <p>Loading, please wait...</p>
     </div>
-
+    
     <!-- Аудио-блок для первого урока -->
     <div id="audio-first-lesson" class="hidden center" style="margin-bottom: 20px;">
       <iframe width="100%" height="300" scrolling="no" frameborder="no" allow="autoplay"
@@ -154,7 +154,7 @@
         <a href="https://soundcloud.com/content-remote-helpers" title="Content Remote Helpers" target="_blank" style="color: #cccccc; text-decoration: none;">Content Remote Helpers</a> · <a href="https://soundcloud.com/content-remote-helpers/screen-recording-audio" title="First Lesson Audio" target="_blank" style="color: #cccccc; text-decoration: none;">First Lesson Audio</a>
       </div>
     </div>
-
+    
     <!-- Аудио-блок для Vocabulary -->
     <div id="audio-vocabulary" class="hidden center" style="margin-bottom: 20px;">
       <iframe width="100%" height="300" scrolling="no" frameborder="no" allow="autoplay"
@@ -167,10 +167,10 @@
           Prompt Engineering Vocabulary</a>
       </div>
     </div>
-
+    
     <!-- Контейнер для Markdown контента -->
     <div id="markdown-content" class="markdown-content hidden"></div>
-
+    
     <!-- Кнопка Test для выбранного модуля -->
     <div class="center" style="margin-top:20px;">
       <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
@@ -180,13 +180,13 @@
       <button onclick="goBackToTaskSelection()">Back</button>
     </div>
   </div>
-
+  
   <script>
     // Глобальные переменные для текущей темы и выбранного дня
     window.currentTopic = null;
     window.currentDay = null;
     let currentTasks = [];
-
+    
     const professionTasks = {
       "prompt-engineer": {
         1: [
@@ -225,14 +225,14 @@
         ]
       }
     };
-
+    
     // Отдельный объект для словаря
     const vocabularyTopic = {
       title: "Prompt Engineering Vocabulary",
       contentWebhook: "https://hook.eu1.make.com/f0to2h4r4kfzffkdx81v7o0igznlggp2",
       testWebhook: "placeholder-test-webhook-vocabulary"
     };
-
+    
     // Функция для обработки изменения профессии
     function handleProfessionChange() {
       const selectedProfession = document.getElementById("profession-select").value;
@@ -240,7 +240,7 @@
         window.location.href = "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n";
       }
     }
-
+    
     function selectDay(day) {
       window.currentDay = day;
       const selectedProfession = document.getElementById("profession-select").value;
@@ -263,14 +263,14 @@
         });
       }
     }
-
+    
     function goBackToDaySelection() {
       const taskSelection = document.getElementById("task-selection");
       if (taskSelection) taskSelection.classList.add("hidden");
       const daySelection = document.getElementById("day-selection");
       if (daySelection) daySelection.classList.remove("hidden");
     }
-
+    
     // Функция возврата к списку топиков – обновляет его через selectDay с сохранённым днем и сбрасывает выбранный топик
     function goBackToTaskSelection() {
       hideAllAudio();
@@ -285,7 +285,7 @@
       const guide = document.getElementById("guide");
       if (guide) guide.classList.add("hidden");
     }
-
+    
     window.goBack = function() {
       showSection("home");
       const daySelection = document.getElementById("day-selection");
@@ -293,7 +293,7 @@
       const taskSelection = document.getElementById("task-selection");
       if (taskSelection) taskSelection.classList.add("hidden");
     };
-
+    
     // Функция для открытия словаря
     function openVocabulary() {
       window.currentTopic = vocabularyTopic;
@@ -305,7 +305,7 @@
       showSection("guide");
       fetchMarkdownContent();
     }
-
+    
     function selectTask(index) {
       window.currentTopic = currentTasks[index];
       const guideTitle = document.getElementById("guide-title");
@@ -316,7 +316,7 @@
       showSection("guide");
       fetchMarkdownContent();
     }
-
+    
     function hideAllAudio() {
       const audioIds = [
         "audio-first-lesson",
@@ -327,7 +327,7 @@
         if (el) el.classList.add("hidden");
       });
     }
-
+    
     function showSection(id) {
       const home = document.getElementById("home");
       if (home) home.classList.add("hidden");
@@ -336,14 +336,14 @@
       const target = document.getElementById(id);
       if (target) target.classList.remove("hidden");
     }
-
+    
     function fetchMarkdownContent() {
       const url = window.currentTopic.contentWebhook;
       const spinner = document.getElementById("loading-spinner");
       if (spinner) spinner.classList.remove("hidden");
       const markdownDiv = document.getElementById("markdown-content");
       if (markdownDiv) markdownDiv.classList.add("hidden");
-
+    
       if (!url || url.startsWith("placeholder")) {
         if (spinner) spinner.classList.add("hidden");
         if (markdownDiv) {
@@ -352,12 +352,12 @@
         }
         return;
       }
-
+      
       let fetchOptions = {};
       if (window.currentTopic.title === "What prompting is") {
         fetchOptions = { method: "POST" };
       }
-
+    
       fetch(url, fetchOptions)
         .then(response => {
           if (!response.ok) throw new Error("Network error");
@@ -367,7 +367,7 @@
           if (!markdown.includes('#')) {
             markdown = "# " + window.currentTopic.title + "\n\n" + markdown;
           }
-
+          
           const collapsibleHTML = createCollapsibleBlocks(markdown);
           if (markdownDiv) {
             markdownDiv.innerHTML = collapsibleHTML;
@@ -380,20 +380,20 @@
           if (spinner) spinner.innerHTML = "<p>Error loading. Please contact team lead.</p>";
         });
     }
-
+    
     function createCollapsibleBlocks(markdown) {
       markdown = markdown.trim();
-
+      
       const lines = markdown.split("\n");
       let htmlOutput = "";
       let currentLevel1Title = "";
       let currentLevel1Content = [];
       let inLevel1 = false;
-
+      
       if (lines.length > 0 && !lines[0].match(/^#\s+/)) {
         lines.unshift("# " + (window.currentTopic ? window.currentTopic.title : "Content"));
       }
-
+    
       for (let line of lines) {
         let match = line.match(/^#(?!#)\s*(.+)/);
         if (match) {
@@ -416,7 +416,7 @@
       }
       return htmlOutput;
     }
-
+    
     function renderLevel1Block(title, content) {
       const lines = content.split("\n");
       let html = "";
@@ -425,7 +425,7 @@
       let currentSubContent = [];
       let hasSubHeader = false;
       let preambleLines = [];
-
+    
       for (let line of lines) {
         let subMatch = line.match(/^##(?!#)\s*(.+)/);
         if (subMatch) {
@@ -455,7 +455,7 @@
   <div>${html}</div>
 </details>`;
     }
-
+    
     function renderLevel2Block(title, content) {
       const lines = content.split("\n");
       let html = "";
@@ -464,7 +464,7 @@
       let currentSubContent = [];
       let hasSubHeader = false;
       let preambleLines = [];
-
+    
       for (let line of lines) {
         let subMatch = line.match(/^###(?!#)\s*(.+)/);
         if (subMatch) {
@@ -494,7 +494,7 @@
   <div>${html}</div>
 </details>`;
     }
-
+    
     function renderLevel3Block(title, content) {
       let parsedContent = marked.parse(content);
       return `<details style="margin-left:40px;">
