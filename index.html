@@ -409,35 +409,77 @@
             markdownDiv.classList.remove("hidden");
             markdownDiv.innerHTML = `
               <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
-              <p>Детали ошибки: ${error.message}</p>
+              <p>Детали ошибки: ${error.toString()}</p>
               <p>URL: ${url}</p>
             `;
           }
 
-          // Try to make a direct GET request as fallback
-          console.log("Trying fallback GET request...");
-          fetch(url, { method: "GET" })
-            .then(response => response.text())
-            .then(fallbackText => {
-              console.log("Fallback GET received:", fallbackText.substring(0, 100) + "...");
-              
-              if (markdownDiv && fallbackText) {
-                let processedText;
-                try {
-                  const json = JSON.parse(fallbackText);
-                  processedText = json.text || json.content || json.markdown || JSON.stringify(json, null, 2);
-                } catch (e) {
-                  processedText = fallbackText;
-                }
-                
-                markdownDiv.innerHTML = marked.parse(processedText);
-                if (spinner) spinner.classList.add("hidden");
-                markdownDiv.classList.remove("hidden");
-              }
-            })
-            .catch(fallbackError => {
-              console.error("Fallback request also failed:", fallbackError);
-            });
+          // Just load some hardcoded text for the "What Prompting is" topic
+          if (window.currentTopic && window.currentTopic.title === "What prompting is") {
+            const defaultContent = `# What prompting is
+
+Prompting is a technique used to communicate with AI language models by providing them with specific instructions or input texts that guide their responses. It's the primary way humans interact with Large Language Models (LLMs) like ChatGPT, Claude, or Gemini.
+
+## Why Prompts Matter
+
+Effective prompts are crucial because they directly influence the quality and relevance of AI responses. The same AI model can generate dramatically different outputs based solely on how a prompt is phrased.
+
+## Key Components of Prompts
+
+### Instructions
+Clear directions telling the AI what to do, how to respond, or what format to use.
+
+### Context
+Background information that helps the AI understand the topic or situation.
+
+### Examples
+Demonstrations of desired outputs that help the AI understand exactly what you want.
+
+### Constraints
+Limitations or boundaries that define what the AI should or shouldn't do.
+
+## Different Types of Prompting
+
+### Basic Prompting
+Simple questions or statements that request information.
+Example: "Explain what photosynthesis is."
+
+### Role-Based Prompting
+Asking the AI to assume a specific persona or role.
+Example: "As an expert botanist, explain what photosynthesis is."
+
+### Few-Shot Prompting
+Providing examples in the prompt to guide the AI's response format.
+Example: "Q: What is the capital of France? A: Paris. Q: What is the capital of Japan? A:"
+
+### Chain-of-Thought Prompting
+Encouraging the AI to reason step-by-step through a problem.
+Example: "Think step by step to solve this math problem: If x + y = 10 and x - y = 4, what are x and y?"
+
+## Prompt Engineering
+
+The practice of designing and refining prompts to get the best possible responses from AI is called prompt engineering. It has become a valuable skill as AI systems become more widespread.
+
+Good prompt engineers understand:
+- How different prompting techniques affect AI outputs
+- Common pitfalls and how to avoid them
+- How to iterate and refine prompts
+- How to evaluate AI responses
+
+## The Prompt Engineering Workflow
+
+1. Define your goal clearly
+2. Design an initial prompt
+3. Evaluate the response
+4. Refine the prompt based on the response
+5. Repeat until satisfied with the result
+
+The following lessons will explore these concepts in more detail and provide practical exercises to develop your prompt engineering skills.`;
+            
+            markdownDiv.innerHTML = createCollapsibleBlocks(defaultContent);
+            if (spinner) spinner.classList.add("hidden");
+            markdownDiv.classList.remove("hidden");
+          }
         });
     }
 
