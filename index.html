@@ -300,9 +300,7 @@
       const guideTitle = document.getElementById("guide-title");
       if (guideTitle) guideTitle.innerText = "Guide: " + window.currentTopic.title;
       hideAllAudio();
-      // Показываем аудио для Vocabulary после загрузки контента
-      const audioVocabulary = document.getElementById("audio-vocabulary");
-      if (audioVocabulary) audioVocabulary.classList.remove("hidden");
+      // Аудио для Vocabulary остается скрытым
       // Скрываем кнопку теста для словаря
       document.getElementById("test-button").classList.add("hidden");
       showSection("guide");
@@ -557,9 +555,6 @@ When a prompt is too long and exceeds the model's context window, causing inform
             markdownDiv.innerHTML = createCollapsibleBlocks(vocabularyContent);
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
-
-            // Показываем аудио для Vocabulary
-            document.getElementById("audio-vocabulary").classList.remove("hidden");
           }
         });
     }
