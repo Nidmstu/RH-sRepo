@@ -353,14 +353,16 @@
         return;
       }
 
-      let fetchOptions = {};
-      if (window.currentTopic.title === "What prompting is") {
-        fetchOptions = { method: "POST" };
-      }
+      let fetchOptions = {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
 
       fetch(url, fetchOptions)
         .then(response => {
-          if (!response.ok) throw new Error("Network error");
+          if (!response.ok) throw new Error("Network error: " + response.status);
           return response.text();
         })
         .then(markdown => {
@@ -377,7 +379,13 @@
         })
         .catch(error => {
           console.error("Loading error:", error);
-          if (spinner) spinner.innerHTML = "<p>Error loading. Please contact team lead.</p>";
+          if (spinner) {
+            spinner.classList.add("hidden");
+          }
+          if (markdownDiv) {
+            markdownDiv.classList.remove("hidden");
+            markdownDiv.innerHTML = "<p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>";
+          }
         });
     }
 
