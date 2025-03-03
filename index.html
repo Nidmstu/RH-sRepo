@@ -198,7 +198,7 @@
           { 
             title: "Five-step Framework",
             contentWebhook: "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/FiveStepFramework",
-            testWebhook: "https://hook.eu1.make.com/35zujy3zx8at4dmxuitwe37o53b2s2m4" 
+            testWebhook: "https://auto.crm-s.com/webhook/Oboarding/PromptEngineering/tests/FiveStepFramework" 
           },
           { 
             title: "Personas in prompting",
@@ -381,7 +381,7 @@
         .then(responseText => {
           console.log("Response status:", 200);
           console.log("Received content:", responseText.substring(0, 100) + "...");
-          
+
           // Try to parse as JSON first
           let markdown;
           try {
@@ -420,7 +420,7 @@
           }
           if (markdownDiv) {
             markdownDiv.classList.remove("hidden");
-            
+
             // Load emergency content for the Five-step Framework
             if (window.currentTopic && window.currentTopic.title === "Five-step Framework") {
               const fiveStepContent = `# Five-step Framework for Prompt Engineering
@@ -498,11 +498,11 @@ A complete prompt using the Five-step Framework might look like:
 "I need a comparison of residential solar panel types (Goal). This is for middle-aged homeowners in Arizona with limited technical knowledge but environmental awareness (Context). Create a table comparing monocrystalline, polycrystalline, and thin-film panels, followed by 2-3 explanatory paragraphs in layman's terms (Instructions). Avoid unexplained jargon and DIY installation details, and prioritize information on durability and performance in hot climates. Limit to 500 words (Constraints)."
 
 By following this framework, you can systematically improve your prompts through each iteration, leading to increasingly accurate and useful AI responses.`;
-              
+
               markdownDiv.innerHTML = createCollapsibleBlocks(fiveStepContent);
               return;
             }
-            
+
             markdownDiv.innerHTML = `
               <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
               <p>Детали ошибки: ${error.message || error.toString()}</p>
@@ -572,7 +572,7 @@ Good prompt engineers understand:
 5. Repeat until satisfied with the result
 
 The following lessons will explore these concepts in more detail and provide practical exercises to develop your prompt engineering skills.`;
-            
+
             markdownDiv.innerHTML = createCollapsibleBlocks(defaultContent);
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
@@ -647,7 +647,7 @@ The degree to which an AI's outputs match human values, intentions, and expectat
 
 ### Context Truncation
 When a prompt is too long and exceeds the model's context window, causing information loss.`;
-            
+
             markdownDiv.innerHTML = createCollapsibleBlocks(vocabularyContent);
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
