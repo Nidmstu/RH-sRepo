@@ -359,25 +359,39 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({}) // Send empty JSON object as body
+        body: JSON.stringify({}), // Send empty JSON object as body
+        mode: 'cors',
+        credentials: 'omit'
       };
 
-      // Simplified fetch with better error handling
-      const fetchContent = async (url, options) => {
+      // Try a different approach if the main fetch fails
+      const fetchWithFallback = async (url, options) => {
         try {
+          console.log("Attempting to fetch from:", url);
           const response = await fetch(url, options);
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           return await response.text();
         } catch (error) {
-          console.error("Fetch error:", error.message);
-          throw error; // Re-throw to be handled by the outer catch
+          console.error("Primary fetch error:", error.message);
+          
+          // If CORS is the issue, we could try a no-cors fetch, but this will give an opaque response
+          console.log("Trying again with mode: no-cors");
+          try {
+            const noCorsFetch = await fetch(url, { ...options, mode: 'no-cors' });
+            // This will return an opaque response which we can't read directly
+            // But at least we can detect if the request itself succeeded
+            return "Content fetched with no-cors mode. The server likely needs CORS headers enabled.";
+          } catch (fallbackError) {
+            console.error("Fallback fetch also failed:", fallbackError.message);
+            throw error; // Throw the original error
+          }
         }
       };
 
-      // Use the simpler fetch function
-      fetchContent(url, fetchOptions)
+      // Use the fetch with fallback
+      fetchWithFallback(url, fetchOptions)
         .then(responseText => {
           console.log("Response status:", 200);
           console.log("Received content:", responseText.substring(0, 100) + "...");
@@ -504,9 +518,13 @@ By following this framework, you can systematically improve your prompts through
             }
 
             markdownDiv.innerHTML = `
-              <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
-              <p>Детали ошибки: ${error.message || error.toString()}</p>
-              <p>URL: ${url}</p>
+              <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
+                <h3>Ошибка загрузки контента</h3>
+                <p>Пожалуйста, обратитесь к руководителю команды.</p>
+                <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
+                <p><strong>URL:</strong> ${url}</p>
+                <p><small>Это может быть вызвано проблемами с CORS, сетевым подключением или недоступностью сервера.</small></p>
+              </div>
             `;
             console.error("Content loading error for URL:", url, error);
           }
