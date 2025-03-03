@@ -362,30 +362,22 @@
         body: JSON.stringify({}) // Send empty JSON object as body
       };
 
-      // Retry mechanism for fetch
-      const fetchWithRetry = async (url, options, maxRetries = 3) => {
-        let retries = 0;
-        while (retries < maxRetries) {
-          try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return await response.text();
-          } catch (error) {
-            retries++;
-            console.log(`Attempt ${retries} failed. Retrying...`);
-            if (retries === maxRetries) {
-              throw error;
-            }
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+      // Simplified fetch with better error handling
+      const fetchContent = async (url, options) => {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
           }
+          return await response.text();
+        } catch (error) {
+          console.error("Fetch error:", error.message);
+          throw error; // Re-throw to be handled by the outer catch
         }
       };
 
-      // Try the fetch with retry mechanism
-      fetchWithRetry(url, fetchOptions)
+      // Use the simpler fetch function
+      fetchContent(url, fetchOptions)
         .then(responseText => {
           console.log("Response status:", 200);
           console.log("Received content:", responseText.substring(0, 100) + "...");
@@ -513,9 +505,10 @@ By following this framework, you can systematically improve your prompts through
             
             markdownDiv.innerHTML = `
               <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
-              <p>Детали ошибки: ${error.toString()}</p>
+              <p>Детали ошибки: ${error.message || error.toString()}</p>
               <p>URL: ${url}</p>
             `;
+            console.error("Content loading error for URL:", url, error);
           }
 
           // Just load some hardcoded text for specific topics
