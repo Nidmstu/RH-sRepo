@@ -357,15 +357,17 @@
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({}) // Send empty JSON object as body
       };
 
       fetch(url, fetchOptions)
         .then(response => {
-          if (!response.ok) throw new Error("Network error: " + response.status);
+          console.log("Response status:", response.status);
           return response.text();
         })
         .then(markdown => {
+          console.log("Received content:", markdown.substring(0, 100) + "...");
           if (!markdown.includes('#')) {
             markdown = "# " + window.currentTopic.title + "\n\n" + markdown;
           }
@@ -384,7 +386,11 @@
           }
           if (markdownDiv) {
             markdownDiv.classList.remove("hidden");
-            markdownDiv.innerHTML = "<p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>";
+            markdownDiv.innerHTML = `
+              <p>Ошибка загрузки контента. Пожалуйста, обратитесь к руководителю команды.</p>
+              <p>Детали ошибки: ${error.message}</p>
+              <p>URL: ${url}</p>
+            `;
           }
         });
     }
