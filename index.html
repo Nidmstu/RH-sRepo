@@ -338,12 +338,25 @@
       if (target) target.classList.remove("hidden");
     }
 
+    // Flag to prevent multiple fetch operations at once
+    let fetchInProgress = false;
+    
     function fetchMarkdownContent() {
+      // Don't start another fetch if one is already in progress
+      if (fetchInProgress) {
+        console.log("Fetch already in progress, skipping request");
+        return;
+      }
+      
+      fetchInProgress = true;
       const url = window.currentTopic.contentWebhook;
       const spinner = document.getElementById("loading-spinner");
       if (spinner) spinner.classList.remove("hidden");
       const markdownDiv = document.getElementById("markdown-content");
-      if (markdownDiv) markdownDiv.classList.add("hidden");
+      if (markdownDiv) {
+        markdownDiv.classList.add("hidden");
+        markdownDiv.innerHTML = ""; // Clear previous content
+      }
 
       if (!url || url.startsWith("placeholder")) {
         if (spinner) spinner.classList.add("hidden");
@@ -362,21 +375,44 @@
         body: JSON.stringify({}) // Send empty JSON object as body
       };
 
-      // Simplified fetch with better error handling
+      // Track if a fetch is already in progress
+      let isFetching = false;
+      
+      // Improved fetch with better error handling and request limiting
       const fetchContent = async (url, options) => {
+        if (isFetching) {
+          console.log("Request already in progress, skipping duplicate fetch");
+          throw new Error("Request already in progress");
+        }
+        
+        isFetching = true;
         try {
-          const response = await fetch(url, options);
+          console.log("Starting fetch to:", url);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+          
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
-          return await response.text();
+          
+          const text = await response.text();
+          return text;
         } catch (error) {
-          console.error("Fetch error:", error.message);
-          throw error; // Re-throw to be handled by the outer catch
+          console.error("Fetch error:", error.name, error.message);
+          throw error;
+        } finally {
+          isFetching = false;
         }
       };
 
-      // Use the simpler fetch function
+      // Use the improved fetch function with proper error handling
       fetchContent(url, fetchOptions)
         .then(responseText => {
           console.log("Response status:", 200);
@@ -512,6 +548,12 @@ By following this framework, you can systematically improve your prompts through
           }
 
           // Just load some hardcoded text for specific topics
+          // Show fallback content based on topic title
+          showFallbackContent();
+        });
+      
+      // Function to display fallback content for specific topics when fetch fails
+      function showFallbackContent() {
           if (window.currentTopic && window.currentTopic.title === "What prompting is") {
             const defaultContent = `# What prompting is
 
@@ -576,7 +618,7 @@ The following lessons will explore these concepts in more detail and provide pra
             markdownDiv.innerHTML = createCollapsibleBlocks(defaultContent);
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
-          } else if (window.currentTopic && window.currentTopic.title === "Prompt Engineering Vocabulary") {
+          } else else if (window.currentTopic && window.currentTopic.title === "Prompt Engineering Vocabulary") {
             const vocabularyContent = `# Prompt Engineering Vocabulary
 
 ## Core Concepts
@@ -652,6 +694,8 @@ When a prompt is too long and exceeds the model's context window, causing inform
             if (spinner) spinner.classList.add("hidden");
             markdownDiv.classList.remove("hidden");
           }
+        }).finally(() => {
+          fetchInProgress = false;
         });
     }
 
