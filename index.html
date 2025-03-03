@@ -209,7 +209,7 @@
         2: [
           {
             title: "Iteration methods",
-            contentWebhook: "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/IterationMethods",
+            contentWebhook: "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/IterationMethods",
             testWebhook: "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Test/IterationMethods"
           },
           {
@@ -328,6 +328,54 @@
         if (el) el.classList.add("hidden");
       });
     }
+    
+    // Функция для повторного запроса загрузки контента
+    function retryFetch(url) {
+      console.log("Retrying fetch for URL:", url);
+      document.getElementById("loading-spinner").classList.remove("hidden");
+      document.getElementById("markdown-content").classList.add("hidden");
+      
+      // Добавляем случайный параметр для обхода кэша
+      const nocacheUrl = url.includes('?') 
+        ? `${url}&_nocache=${Date.now()}` 
+        : `${url}?_nocache=${Date.now()}`;
+      
+      fetchContent(nocacheUrl)
+        .then(responseText => {
+          console.log("Retry successful!");
+          let markdown = responseText;
+          
+          // Обработка как в основной функции fetchMarkdownContent
+          if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+            try {
+              const responseJson = JSON.parse(responseText);
+              if (responseJson.text) markdown = responseJson.text;
+              else if (responseJson.content) markdown = responseJson.content;
+              else if (responseJson.markdown) markdown = responseJson.markdown;
+            } catch (e) {
+              console.log("Not JSON or parsing error:", e.message);
+            }
+          }
+          
+          if (!markdown.includes('#')) {
+            markdown = "# " + window.currentTopic.title + "\n\n" + markdown;
+          }
+          
+          const collapsibleHTML = createCollapsibleBlocks(markdown);
+          const markdownDiv = document.getElementById("markdown-content");
+          if (markdownDiv) {
+            markdownDiv.innerHTML = collapsibleHTML;
+            document.getElementById("loading-spinner").classList.add("hidden");
+            markdownDiv.classList.remove("hidden");
+          }
+        })
+        .catch(error => {
+          console.error("Retry failed:", error);
+          document.getElementById("loading-spinner").classList.add("hidden");
+          document.getElementById("markdown-content").classList.remove("hidden");
+          alert("Повторная попытка не удалась: " + error.message);
+        });
+    }
 
     function showSection(id) {
       const home = document.getElementById("home");
@@ -357,47 +405,57 @@
       // Больше не создаем options здесь, все параметры запроса определены внутри fetchContent
 
       // Enhanced fetch with better error handling, debugging and fallbacks
-      const fetchContent = async (url, options) => {
+      const fetchContent = async (url) => {
         return new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(xhr.response);
-            } else {
-              // Если основной запрос не удался, используем fallback fetch
-              console.error("Main fetch failed:", xhr.status, xhr.statusText);
-              const fetchOptions = {
-                method: 'GET',
-                headers: {
-                  'Accept': 'text/plain, text/markdown, application/json, */*'
-                },
-                mode: 'cors',
-                cache: 'no-cache',
-                credentials: 'omit'
-              };
-              fetch(url, fetchOptions)
-              .then(response => {
-                if (!response.ok) {
-                  const errorText = response.text().catch(e => "Unable to read response body");
-                  throw new Error(`HTTP error! Status: ${response.status}, Status Text: ${response.statusText}, Response: ${errorText.substring(0, 500)}`);
-                }
-                return response.text();
-              })
-              .then(responseText => {
-                resolve(responseText);
-              })
-              .catch(error => {
-                // Если fallback fetch тоже не сработал, используем резервное содержимое
-                console.error("Fetch failed:", error.message);
-                useFallbackContent(url, reject, resolve);
-              });
-            };
-
+          console.log("Fetching content from:", url);
+          
+          // Используем Fetch API как основной метод
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/plain, text/markdown, application/json, */*'
+            },
+            mode: 'cors',
+            cache: 'no-cache'
+          })
+          .then(response => {
+            console.log("Fetch response status:", response.status);
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}, Status Text: ${response.statusText}`);
+            }
+            return response.text();
+          })
+          .then(responseText => {
+            console.log("Response received, length:", responseText.length);
+            resolve(responseText);
+          })
+          .catch(error => {
+            console.error("Primary fetch failed:", error.message);
+            
+            // Если основной метод не сработал, используем XMLHttpRequest как запасной вариант
+            const xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
-            // Пробуем получить текст
             xhr.responseType = 'text';
+            
+            xhr.onload = function() {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                console.log("XHR success, status:", xhr.status);
+                resolve(xhr.response);
+              } else {
+                console.error("XHR failed, status:", xhr.status);
+                useFallbackContent(url, reject, resolve);
+              }
+            };
+            
+            xhr.onerror = function() {
+              console.error("XHR error occurred");
+              useFallbackContent(url, reject, resolve);
+            };
+            
             xhr.send();
-          };
+          });
+        });
+      };
 
           function useFallbackContent(url, reject, resolve) {
             // Предоставляем резервное содержимое на основе URL
@@ -669,6 +727,19 @@ By following this framework, you can systematically improve your prompts through
             const errorStack = error.stack || '';
             const errorName = error.name || 'Error';
             const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+            
+            // Попытка проверить доступность URL через ping-запрос
+            fetch(url, { 
+              method: 'HEAD',
+              mode: 'no-cors',
+              cache: 'no-cache'
+            })
+            .then(response => {
+              console.log("Ping test response:", response);
+            })
+            .catch(pingError => {
+              console.error("Ping test failed:", pingError);
+            });
 
             markdownDiv.innerHTML = `
               <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
@@ -677,11 +748,22 @@ By following this framework, you can systematically improve your prompts through
                 <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
                 <p><strong>Тип ошибки:</strong> ${errorName}</p>
                 <p><strong>URL:</strong> ${url}</p>
+                <p><strong>Время ошибки:</strong> ${new Date().toLocaleString()}</p>
                 <details>
                   <summary><strong>Технические детали ошибки (для разработчиков)</strong></summary>
                   <pre style="background-color: #f8f8f8; padding: 10px; overflow: auto; max-height: 200px;">${errorDetails}</pre>
                 </details>
-                <p><small>Это может быть вызвано проблемами с CORS, сетевым подключением или недоступностью сервера.</small></p>
+                <details>
+                  <summary><strong>Возможные причины ошибки</strong></summary>
+                  <ul>
+                    <li>CORS (Cross-Origin Resource Sharing) - сервер не разрешает запросы с этого домена</li>
+                    <li>Сетевая ошибка - проблемы с подключением к серверу</li>
+                    <li>Сервер недоступен или вернул ошибку</li>
+                    <li>Опечатка в URL адресе: <code>${url}</code></li>
+                    <li>Превышено время ожидания ответа от сервера</li>
+                  </ul>
+                </details>
+                <button onclick="retryFetch('${url.replace(/'/g, "\\'")}')">Повторить запрос</button>
               </div>
             `;
 
