@@ -2570,12 +2570,46 @@ class AdminInterface {
     
     localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
     
-    // Экспортируем текущие данные на вебхук, если URL указан
+    // Отправляем только данные о настройках вебхуков на указанный URL экспорта
     if (exportWebhookUrl) {
-      this.exportDataToWebhook(exportWebhookUrl);
+      this.sendWebhookSettingsToURL(exportWebhookUrl, webhookSettings);
     } else {
       this.showWebhookStatus('Настройки сохранены', 'success');
     }
+  }
+  
+  /**
+   * Отправка настроек вебхуков на указанный URL
+   */
+  sendWebhookSettingsToURL(webhookUrl, settings) {
+    this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
+    
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        webhookSettings: settings,
+        timestamp: new Date().toISOString(),
+        source: window.location.hostname,
+        type: 'webhook_settings_update'
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then(result => {
+      console.log('Webhook settings response:', result);
+      this.showWebhookStatus('Настройки вебхуков успешно отправлены', 'success');
+    })
+    .catch(error => {
+      console.error('Webhook settings error:', error);
+      this.showWebhookStatus(`Ошибка при отправке настроек: ${error.message}`, 'error');
+    });
   }
   
   /**
@@ -2617,13 +2651,14 @@ class AdminInterface {
    * Экспорт данных на вебхук
    */
   exportDataToWebhook(webhookUrl) {
-    this.showWebhookStatus('Отправка данных на вебхук...', 'info');
+    this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
     // Подготавливаем данные для отправки
     const data = {
       courses: window.courseManager.courses,
       timestamp: new Date().toISOString(),
-      source: window.location.hostname
+      source: window.location.hostname,
+      type: 'full_courses_export'
     };
     
     // Отправляем данные на вебхук
@@ -2642,7 +2677,7 @@ class AdminInterface {
     })
     .then(result => {
       console.log('Webhook response:', result);
-      this.showWebhookStatus('Данные успешно отправлены на вебхук', 'success');
+      this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
     })
     .catch(error => {
       console.error('Webhook error:', error);
