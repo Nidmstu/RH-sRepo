@@ -130,36 +130,48 @@
       border-radius: 3px;
       font-size: 14px;
     }
-    
-    /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 1.5em;
+
+    /* Адаптивные стили для планшетов */
+    @media (max-width: 768px) and (min-width: 481px) {
+      .admin-body {
+        flex-direction: row;
       }
-      button {
-        width: 100%;
-        margin: 8px 0;
-        padding: 12px 10px;
+
+      .admin-mobile-nav-toggle {
+        display: none;
       }
-      .container {
-        padding: 10px;
-      }
-      .task-buttons button {
-        display: block;
-        width: 100%;
-      }
-      details > summary {
-        font-size: 1em;
-      }
-      .admin-panel {
-        overflow: auto;
-      }
-      iframe {
-        max-width: 100%;
-        height: auto;
+
+      .admin-sidebar {
+        width: 50%;
+        min-height: calc(100vh - 60px);
+        padding: 15px;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
       }
     }
-    
+
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 480px) {
+      .admin-body {
+        flex-direction: column;
+      }
+
+      .admin-mobile-nav-toggle {
+        display: block;
+      }
+
+      .admin-sidebar {
+        width: 100%;
+        min-height: auto;
+        padding: 15px;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
     /* Стили для очень маленьких экранов */
     @media (max-width: 400px) {
       h1 {
@@ -197,7 +209,7 @@
         <button onclick="selectDay(1)">Day 1</button>
         <button onclick="selectDay(2)">Day 2</button>
       </div>
-      
+
       <div id="admin-access" style="margin-top: 30px;">
         <a href="admin.html" style="text-decoration: none;">
           <button style="background-color: #3498db;">Управление курсами</button>
@@ -259,23 +271,23 @@
     // Импортируем модули приложения
     import courseManager from './js/courseManager.js';
     import adminPanel from './js/admin.js';
-    
+
     // Инициализируем приложение после загрузки DOM
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Page loaded, initializing application...");
-      
+
       // Инициализируем менеджер курсов
       await courseManager.initialize();
-      
+
       // При необходимости можно открыть админ-панель
       // adminPanel.show();
-      
+
       // Глобальный доступ к менеджеру курсов и админ-панели
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
     });
   </script>
-  
+
   <script>
     // Обратная совместимость со старым кодом 
     // Глобальные переменные для текущей темы и выбранного дня
@@ -456,21 +468,21 @@
       const fetchContent = async (url, options) => {
         try {
           console.log("Fetching from:", url);
-          
+
           // Check if URL has a typo in "Onboarding" - common error pattern
           const fixedUrl = url.replace("/Oboarding/", "/Onboarding/");
           if (fixedUrl !== url) {
             console.log("Detected possible URL typo, trying with fixed URL:", fixedUrl);
             url = fixedUrl;
           }
-          
+
           // Add a timeout to the fetch operation
           const controller = new AbortController();
           const timeoutId = setTimeout(() => {
             controller.abort();
             console.error("Fetch timeout after 15 seconds");
           }, 15000); // 15 second timeout
-          
+
           // Всегда используем GET-запрос без тела для упрощения CORS
           const fetchOptions = {
             method: 'GET',
@@ -482,21 +494,21 @@
             credentials: 'omit',
             signal: controller.signal
           };
-          
+
           console.log("Using simplified GET request");
-          
+
           // Try with standard fetch first
           try {
             const response = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
-            
+
             console.log("Response status:", response.status);
-            
+
             if (!response.ok) {
               const errorText = await response.text().catch(e => "Unable to read response body");
               throw new Error(`HTTP error! Status: ${response.status}, Status Text: ${response.statusText}, Response: ${errorText.substring(0, 500)}`);
             }
-            
+
             const responseText = await response.text();
             console.log("Response size:", responseText.length, "bytes");
             console.log("Response preview:", responseText.substring(0, 100));
@@ -504,7 +516,7 @@
           } catch (fetchError) {
             // Если основной запрос не удался, используем резервное содержимое
             console.error("Fetch failed:", fetchError.message);
-            
+
             // Предоставляем резервное содержимое на основе URL
             if (url.includes("IterationMethods")) {
               console.log("Using backup content for IterationMethods");
@@ -545,7 +557,7 @@
           throw error; // Re-throw to be handled by the outer catch
         }
       };
-      
+
       // Fallback content functions
       function getBackupContentForWhatPromptingIs() {
         return `# What prompting is
@@ -608,7 +620,7 @@ Good prompt engineers understand:
 
 The following lessons will explore these concepts in more detail and provide practical exercises to develop your prompt engineering skills.`;
       }
-      
+
       function getBackupContentForVocabulary() {
         return `# Prompt Engineering Vocabulary
 
@@ -681,7 +693,7 @@ The degree to which an AI's outputs match human values, intentions, and expectat
 ### Context Truncation
 When a prompt is too long and exceeds the model's context window, causing information loss.`;
       }
-      
+
       function getBackupContentForIterationMethods() {
         return `# Iteration Methods
 
@@ -756,7 +768,7 @@ Iteration involves:
 
 By mastering iteration techniques, prompt engineers can dramatically improve AI outputs while developing an intuitive understanding of how different prompt elements affect results.`;
       }
-      
+
       function getBackupContentForFiveStepFramework() {
         return `# Five-step Framework for Prompt Engineering
 
@@ -824,7 +836,7 @@ Analyze the AI's response and iterate on your prompt to improve results.
 4. Adjust your prompt accordingly
 
 **Example:**
-"The information is good, but there's too much emphasis on cost and not enough on durability. Let me adjust my prompt to prioritize long-term value and performance in extreme weather conditions."
+"The information is good, but there's toomuch emphasis on cost and not enough on durability. Let me adjust my prompt to prioritize long-term value and performance in extreme weather conditions."
 
 ## Putting It All Together
 
@@ -834,7 +846,7 @@ A complete prompt using the Five-step Framework might look like:
 
 By following this framework, you can systematically improve your prompts through each iteration, leading to increasingly accurate and useful AI responses.`;
       }
-      
+
       function getBackupContentForPersonasInPrompting() {
         return `# Personas in Prompting
 
@@ -917,16 +929,16 @@ By mastering the use of personas in your prompts, you can access more specialize
         .then(responseText => {
           console.log("Response received successfully!");
           console.log("Raw response:", responseText.substring(0, 200));
-          
+
           // Always treat responses as plain text
           let markdown = responseText;
-          
+
           // Only try to parse as JSON if it looks like JSON and we need to extract specific fields
           if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
             try {
               const responseJson = JSON.parse(responseText);
               console.log("Response appears to be JSON format");
-              
+
               // Extract markdown content from JSON if available
               if (responseJson.text) {
                 console.log("Using 'text' field from JSON");
@@ -1050,7 +1062,7 @@ By following this framework, you can systematically improve your prompts through
             const errorStack = error.stack || '';
             const errorName = error.name || 'Error';
             const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
-            
+
             markdownDiv.innerHTML = `
               <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
                 <h3>Ошибка загрузки контента</h3>
@@ -1065,7 +1077,7 @@ By following this framework, you can systematically improve your prompts through
                 <p><small>Это может быть вызвано проблемами с CORS, сетевым подключением или недоступностью сервера.</small></p>
               </div>
             `;
-            
+
             // Add console logging for debugging
             console.error("Detailed error information:", {
               message: error.message,
@@ -1074,12 +1086,12 @@ By following this framework, you can systematically improve your prompts through
               details: errorDetails
             });
             console.error("Content loading error for URL:", url, error);
-            
+
             // Check if we have a fallback for this content
             if (window.currentTopic) {
               const topicTitle = window.currentTopic.title;
               console.log("Looking for fallback content for:", topicTitle);
-              
+
               // Display fallback content based on topic titles
               if (topicTitle === "Personas in prompting") {
                 const personasContent = `# Personas in Prompting
@@ -1156,7 +1168,7 @@ Personas work well when combined with other prompting techniques like Chain-of-T
 "I need to understand the implications of implementing a four-day workweek in a medium-sized company. First, respond as a human resources director concerned with employee welfare. Then, respond as a CFO focused on financial impacts. Finally, respond as a productivity consultant looking at operational efficiency."
 
 By mastering the use of personas in your prompts, you can access more specialized knowledge, get more creative responses, and approach problems from multiple perspectives.`;
-                
+
                 markdownDiv.innerHTML = createCollapsibleBlocks(personasContent);
                 spinner.classList.add("hidden");
                 markdownDiv.classList.remove("hidden");

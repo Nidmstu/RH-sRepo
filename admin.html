@@ -402,8 +402,28 @@
       border-radius: 4px;
     }
 
+    /* Адаптивные стили для планшетов */
+    @media (max-width: 768px) and (min-width: 481px) {
+      .admin-body {
+        flex-direction: row;
+      }
+
+      .admin-mobile-nav-toggle {
+        display: none;
+      }
+
+      .admin-sidebar {
+        width: 50%;
+        min-height: calc(100vh - 60px);
+        padding: 15px;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
     /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 768px) {
+    @media (max-width: 480px) {
       .admin-body {
         flex-direction: column;
       }
