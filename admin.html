@@ -618,6 +618,9 @@
       <button id="admin-export-all" class="admin-btn">
         <i class="fas fa-download"></i> Экспорт данных
       </button>
+      <button id="admin-webhook-export" class="admin-btn admin-btn-success">
+        <i class="fas fa-cloud-upload-alt"></i> Отправить на вебхук
+      </button>
     </div>
   </div>
 
@@ -676,6 +679,7 @@
           <div class="admin-tab-header">
             <button class="admin-tab-btn active" data-tab="days">Дни обучения</button>
             <button class="admin-tab-btn" data-tab="special-lessons">Специальные уроки</button>
+            <button class="admin-tab-btn" data-tab="webhooks">Настройки вебхуков</button>
           </div>
 
           <div class="admin-tab-content">
@@ -707,6 +711,38 @@
                 <i class="fas fa-plus"></i> Добавить словарь
               </button>
               <div id="admin-no-day-lessons-list" class="admin-list"></div>
+            </div>
+            
+            <!-- Настройки вебхуков -->
+            <div id="admin-tab-webhooks" class="admin-tab-pane hidden">
+              <div class="admin-section-header">
+                <h3>Настройки вебхуков для импорта/экспорта данных</h3>
+              </div>
+              <div class="admin-form">
+                <div class="admin-form-group">
+                  <label for="admin-export-webhook-url">URL для экспорта данных:</label>
+                  <input type="text" id="admin-export-webhook-url" class="admin-input" 
+                         placeholder="https://example.com/webhook/export" 
+                         value="https://auto.crm-s.com/webhook-test/19d0ae5a-eec7-46a9-869c-1d14bb34b4e0">
+                </div>
+                <div class="admin-form-group">
+                  <label for="admin-import-webhook-url">URL для импорта данных:</label>
+                  <input type="text" id="admin-import-webhook-url" class="admin-input" 
+                         placeholder="https://example.com/webhook/import">
+                </div>
+                <div style="margin-top: 20px;">
+                  <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">
+                    <i class="fas fa-save"></i> Сохранить настройки
+                  </button>
+                  <button id="admin-test-export-webhook" class="admin-btn admin-btn-sm">
+                    <i class="fas fa-upload"></i> Протестировать экспорт
+                  </button>
+                  <button id="admin-test-import-webhook" class="admin-btn admin-btn-sm">
+                    <i class="fas fa-download"></i> Протестировать импорт
+                  </button>
+                </div>
+              </div>
+              <div id="admin-webhook-status" style="margin-top: 20px; padding: 10px; border-radius: 4px;"></div>
             </div>
           </div>
         </div>

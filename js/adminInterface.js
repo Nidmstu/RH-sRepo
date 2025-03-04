@@ -1062,6 +1062,29 @@ class AdminInterface {
         this.importCourse();
       });
     }
+    
+    // Экспорт всех данных на вебхук
+    const webhookExportBtn = document.getElementById('admin-webhook-export');
+    if (webhookExportBtn) {
+      webhookExportBtn.addEventListener('click', () => {
+        const settingsStr = localStorage.getItem('webhookSettings');
+        if (settingsStr) {
+          try {
+            const settings = JSON.parse(settingsStr);
+            if (settings.exportUrl) {
+              this.exportDataToWebhook(settings.exportUrl);
+            } else {
+              alert('URL для экспорта не настроен. Пожалуйста, настройте URL в разделе "Настройки вебхуков".');
+            }
+          } catch (e) {
+            console.error('Error accessing webhook settings:', e);
+            alert('Ошибка при доступе к настройкам вебхуков.');
+          }
+        } else {
+          alert('Настройки вебхуков не найдены. Пожалуйста, настройте вебхуки в разделе "Настройки вебхуков".');
+        }
+      });
+    }
 
     // Добавление нового дня
     const addDayBtn = document.getElementById('admin-add-day');
@@ -1261,6 +1284,38 @@ class AdminInterface {
             sidebar.style.display = 'none';
             toggleSidebarBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
           }
+        }
+      });
+    }
+    
+    // Обработчики для кнопок настроек вебхуков
+    const saveWebhooksBtn = document.getElementById('admin-save-webhooks');
+    if (saveWebhooksBtn) {
+      saveWebhooksBtn.addEventListener('click', () => {
+        this.saveWebhookSettings();
+      });
+    }
+    
+    const testExportWebhookBtn = document.getElementById('admin-test-export-webhook');
+    if (testExportWebhookBtn) {
+      testExportWebhookBtn.addEventListener('click', () => {
+        const exportWebhookUrl = document.getElementById('admin-export-webhook-url').value;
+        if (exportWebhookUrl) {
+          this.exportDataToWebhook(exportWebhookUrl);
+        } else {
+          this.showWebhookStatus('URL для экспорта не указан', 'error');
+        }
+      });
+    }
+    
+    const testImportWebhookBtn = document.getElementById('admin-test-import-webhook');
+    if (testImportWebhookBtn) {
+      testImportWebhookBtn.addEventListener('click', () => {
+        const importWebhookUrl = document.getElementById('admin-import-webhook-url').value;
+        if (importWebhookUrl) {
+          this.importDataFromWebhook(importWebhookUrl);
+        } else {
+          this.showWebhookStatus('URL для импорта не указан', 'error');
         }
       });
     }
@@ -1549,6 +1604,9 @@ class AdminInterface {
     this.loadDaysList();
     this.loadSpecialLessonsList();
     this.loadNoDayLessonsList(); //Load lessons without day
+    
+    // Загружаем настройки вебхуков
+    this.loadWebhookSettings();
 
     // Показываем редактор курса
     document.getElementById('admin-welcome').classList.add('hidden');
@@ -1645,6 +1703,19 @@ class AdminInterface {
     // Обновляем список курсов и продолжаем редактирование
     this.loadCoursesList();
     this.editCourse(newId);
+    
+    // Отправляем данные на вебхук, если настроен
+    const settingsStr = localStorage.getItem('webhookSettings');
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr);
+        if (settings.exportUrl) {
+          this.exportDataToWebhook(settings.exportUrl);
+        }
+      } catch (e) {
+        console.error('Error accessing webhook settings:', e);
+      }
+    }
 
     alert('Курс успешно сохранен!');
   }
@@ -2470,6 +2541,176 @@ class AdminInterface {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+  
+  /**
+   * Сохранение настроек вебхуков
+   */
+  saveWebhookSettings() {
+    const exportWebhookUrl = document.getElementById('admin-export-webhook-url').value;
+    const importWebhookUrl = document.getElementById('admin-import-webhook-url').value;
+    
+    // Проверка корректности URL
+    if (exportWebhookUrl && !this.isValidUrl(exportWebhookUrl)) {
+      this.showWebhookStatus('Ошибка: Некорректный URL для экспорта', 'error');
+      return;
+    }
+    
+    if (importWebhookUrl && !this.isValidUrl(importWebhookUrl)) {
+      this.showWebhookStatus('Ошибка: Некорректный URL для импорта', 'error');
+      return;
+    }
+    
+    // Сохраняем настройки в localStorage для дальнейшего использования
+    const webhookSettings = {
+      exportUrl: exportWebhookUrl,
+      importUrl: importWebhookUrl,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+    
+    // Экспортируем текущие данные на вебхук, если URL указан
+    if (exportWebhookUrl) {
+      this.exportDataToWebhook(exportWebhookUrl);
+    } else {
+      this.showWebhookStatus('Настройки сохранены', 'success');
+    }
+  }
+  
+  /**
+   * Проверка валидности URL
+   */
+  isValidUrl(url) {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  /**
+   * Отображение статуса операций с вебхуками
+   */
+  showWebhookStatus(message, type = 'info') {
+    const statusEl = document.getElementById('admin-webhook-status');
+    if (!statusEl) return;
+    
+    let bgColor = '#e3f2fd'; // info
+    if (type === 'success') bgColor = '#e8f5e9';
+    if (type === 'error') bgColor = '#ffebee';
+    
+    statusEl.style.backgroundColor = bgColor;
+    statusEl.innerHTML = `<p>${message}</p>`;
+    
+    // Автоматически скрываем сообщение через 5 секунд, если это сообщение об успехе
+    if (type === 'success') {
+      setTimeout(() => {
+        statusEl.innerHTML = '';
+        statusEl.style.backgroundColor = 'transparent';
+      }, 5000);
+    }
+  }
+  
+  /**
+   * Экспорт данных на вебхук
+   */
+  exportDataToWebhook(webhookUrl) {
+    this.showWebhookStatus('Отправка данных на вебхук...', 'info');
+    
+    // Подготавливаем данные для отправки
+    const data = {
+      courses: window.courseManager.courses,
+      timestamp: new Date().toISOString(),
+      source: window.location.hostname
+    };
+    
+    // Отправляем данные на вебхук
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then(result => {
+      console.log('Webhook response:', result);
+      this.showWebhookStatus('Данные успешно отправлены на вебхук', 'success');
+    })
+    .catch(error => {
+      console.error('Webhook error:', error);
+      this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}`, 'error');
+    });
+  }
+  
+  /**
+   * Импорт данных с вебхука
+   */
+  importDataFromWebhook(webhookUrl) {
+    if (!webhookUrl) {
+      this.showWebhookStatus('URL для импорта не указан', 'error');
+      return;
+    }
+    
+    this.showWebhookStatus('Получение данных с вебхука...', 'info');
+    
+    fetch(webhookUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Проверяем, что полученные данные содержат курсы
+        if (!data.courses) {
+          throw new Error('Полученные данные не содержат информацию о курсах');
+        }
+        
+        // Применяем полученные данные
+        window.courseManager.courses = data.courses;
+        
+        // Обновляем интерфейс
+        this.loadCoursesList();
+        
+        this.showWebhookStatus('Данные успешно импортированы', 'success');
+      })
+      .catch(error => {
+        console.error('Import error:', error);
+        this.showWebhookStatus(`Ошибка при импорте данных: ${error.message}`, 'error');
+      });
+  }
+  
+  /**
+   * Загрузка настроек вебхуков
+   */
+  loadWebhookSettings() {
+    const settingsStr = localStorage.getItem('webhookSettings');
+    if (settingsStr) {
+      try {
+        const settings = JSON.parse(settingsStr);
+        
+        const exportUrlInput = document.getElementById('admin-export-webhook-url');
+        const importUrlInput = document.getElementById('admin-import-webhook-url');
+        
+        if (exportUrlInput && settings.exportUrl) {
+          exportUrlInput.value = settings.exportUrl;
+        }
+        
+        if (importUrlInput && settings.importUrl) {
+          importUrlInput.value = settings.importUrl;
+        }
+      } catch (e) {
+        console.error('Error loading webhook settings:', e);
+      }
+    }
   }
 
   loadNoDayLessonsList() {
