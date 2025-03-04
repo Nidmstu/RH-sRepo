@@ -3,6 +3,7 @@
  * Основной модуль приложения
  */
 import courseManager from './courseManager.js';
+import adminInterface from './adminInterface.js';
 
 // Контейнеры для разных секций
 const homeContainer = document.getElementById('home');
@@ -248,6 +249,14 @@ function createCollapsibleBlocks(markdown) {
   // Упрощенная версия для примера
   return marked.parse(markdown);
 }
+
+// Функция для открытия админ-панели
+window.openAdminPanel = function() {
+  adminInterface.show();
+};
+
+// Экспортируем adminInterface в глобальный контекст для доступа из других модулей
+window.adminInterface = adminInterface;
 
 // Инициализация приложения при загрузке
 document.addEventListener('DOMContentLoaded', initApp);
