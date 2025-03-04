@@ -634,7 +634,9 @@ class AdminInterface {
           width: 100%;
           margin: 5px 0;
         }
-      };
+      }
+      
+      .admin-body {
         height: calc(100% - 60px);
         overflow: hidden;
       }
