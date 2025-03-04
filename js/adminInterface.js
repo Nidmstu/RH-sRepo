@@ -1,3 +1,4 @@
+
 /**
  * Административный интерфейс для управления курсами и материалами
  */
@@ -117,16 +118,6 @@ class AdminInterface {
               <div class="admin-accordion-content">
                 <div class="admin-form-group">
                   <label for="admin-test-source-type">Тип источника теста:</label>
-
-    // Добавление словаря (урока без дня)
-    const addVocabularyBtn = document.getElementById('admin-add-vocabulary');
-    if (addVocabularyBtn) {
-      addVocabularyBtn.addEventListener('click', () => {
-        this.createNoDayLesson();
-      });
-    }
-
-
                   <select id="admin-test-source-type" class="admin-select">
                     <option value="none">Нет</option>
                     <option value="webhook">Webhook (внешний API)</option>
@@ -328,6 +319,9 @@ class AdminInterface {
                 <h3>Уроки без дня</h3>
                 <p>Уроки, доступные без выбора дня обучения, например "Словарь"</p>
               </div>
+              <button id="admin-add-vocabulary" class="admin-btn admin-btn-success" style="margin-bottom: 10px;">
+                <i class="fas fa-plus"></i> Добавить словарь
+              </button>
               <div id="admin-no-day-lessons-list" class="admin-list"></div>
           </div>
 
@@ -560,13 +554,13 @@ class AdminInterface {
 
       // Добавляем стили для админ-панели
       this.addStyles();
-
-      // Подключаем обработчики событий
-      this.setupEventListeners();
-
-      this.isInitialized = true;
-      console.log('Административный интерфейс инициализирован');
     }
+    
+    // Подключаем обработчики событий
+    this.setupEventListeners();
+
+    this.isInitialized = true;
+    console.log('Административный интерфейс инициализирован');
   }
 
   /**
