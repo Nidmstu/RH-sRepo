@@ -117,6 +117,16 @@ class AdminInterface {
               <div class="admin-accordion-content">
                 <div class="admin-form-group">
                   <label for="admin-test-source-type">Тип источника теста:</label>
+
+    // Добавление словаря (урока без дня)
+    const addVocabularyBtn = document.getElementById('admin-add-vocabulary');
+    if (addVocabularyBtn) {
+      addVocabularyBtn.addEventListener('click', () => {
+        this.createNoDayLesson();
+      });
+    }
+
+
                   <select id="admin-test-source-type" class="admin-select">
                     <option value="none">Нет</option>
                     <option value="webhook">Webhook (внешний API)</option>
@@ -1120,8 +1130,29 @@ class AdminInterface {
     if (tabButtons && tabButtons.length > 0) {
       tabButtons.forEach(tab => {
         tab.addEventListener('click', (e) => {
-          const tabId = e.target.getAttribute('data-tab');
+          // Получаем data-tab из кликнутого элемента или его родителя
+          let targetElement = e.target;
+          let tabId = targetElement.getAttribute('data-tab');
+          
+          // Если у целевого элемента нет атрибута data-tab, ищем его в родителе
+          if (!tabId && targetElement.parentElement) {
+            tabId = targetElement.parentElement.getAttribute('data-tab');
+          }
+          
+          // Если кликнули по дочернему элементу кнопки (например, иконке), ищем кнопку
+          if (!tabId) {
+            const closestButton = targetElement.closest('.admin-tab-btn');
+            if (closestButton) {
+              tabId = closestButton.getAttribute('data-tab');
+            }
+          }
+          
           console.log(`Клик по вкладке: ${tabId}`);
+          
+          if (!tabId) {
+            console.error('Не удалось определить ID вкладки из клика');
+            return;
+          }
           
           // Проверяем наличие соответствующей панели
           const tabPane = document.getElementById(`admin-tab-${tabId}`);
@@ -1295,6 +1326,7 @@ class AdminInterface {
     const tabButton = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
     if (tabButton) {
       tabButton.classList.add('active');
+      console.log(`Кнопка вкладки ${tabId} активирована`);
     } else {
       console.error(`Кнопка вкладки с data-tab="${tabId}" не найдена`);
     }
@@ -1303,11 +1335,17 @@ class AdminInterface {
     const tabPane = document.getElementById(`admin-tab-${tabId}`);
     if (tabPane) {
       tabPane.classList.remove('hidden');
-      console.log(`Панель ${tabId} отображена`);
+      console.log(`Панель ${tabId} отображена, классы элемента:`, tabPane.className);
+      
+      // Проверяем видимость панели после удаления класса hidden
+      const computedStyle = window.getComputedStyle(tabPane);
+      console.log(`Панель ${tabId} стиль display:`, computedStyle.display);
       
       // Если это вкладка специальных уроков, обновляем их список
       if (tabId === 'special-lessons') {
+        console.log('Загружаем список специальных уроков');
         this.loadSpecialLessonsList();
+        this.loadNoDayLessonsList();
       }
     } else {
       console.error(`Панель вкладки с id="admin-tab-${tabId}" не найдена`);
