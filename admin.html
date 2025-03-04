@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Администрирование курсов</title>
+  <!-- Подключаем marked.js для парсинга Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Подключаем Font Awesome для иконок -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .admin-header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .admin-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    
+    .admin-header-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .admin-body {
+      display: flex;
+      flex-direction: row;
+    }
+    
+    .admin-sidebar {
+      width: 280px;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+      padding: 15px;
+      min-height: calc(100vh - 60px);
+    }
+    
+    .admin-sidebar-section {
+      margin-bottom: 20px;
+    }
+    
+    .admin-sidebar-section h3 {
+      margin-top: 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .admin-content {
+      flex: 1;
+      padding: 20px;
+      background-color: #f9f9f9;
+      min-height: calc(100vh - 60px);
+    }
+    
+    .admin-panel-section {
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .admin-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .admin-section-header h2, 
+    .admin-section-header h3 {
+      margin: 0;
+    }
+    
+    .admin-section-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .admin-section-divider {
+      height: 1px;
+      background-color: #eee;
+      margin: 20px 0;
+    }
+    
+    .admin-btn {
+      padding: 8px 15px;
+      background-color: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #333;
+      transition: all 0.2s;
+    }
+    
+    .admin-btn:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .admin-btn-primary {
+      background-color: #3498db;
+      border-color: #2980b9;
+      color: white;
+    }
+    
+    .admin-btn-primary:hover {
+      background-color: #2980b9;
+    }
+    
+    .admin-btn-success {
+      background-color: #2ecc71;
+      border-color: #27ae60;
+      color: white;
+    }
+    
+    .admin-btn-success:hover {
+      background-color: #27ae60;
+    }
+    
+    .admin-btn-danger {
+      background-color: #e74c3c;
+      border-color: #c0392b;
+      color: white;
+    }
+    
+    .admin-btn-danger:hover {
+      background-color: #c0392b;
+    }
+    
+    .admin-btn-sm {
+      padding: 4px 10px;
+      font-size: 0.8rem;
+    }
+    
+    .admin-btn-block {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 10px;
+    }
+    
+    .admin-list {
+      border: 1px solid #eee;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .admin-list:empty::after {
+      content: "Нет элементов";
+      display: block;
+      padding: 15px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
+    }
+    
+    .admin-list-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #fff;
+      transition: background-color 0.2s;
+    }
+    
+    .admin-list-item:last-child {
+      border-bottom: none;
+    }
+    
+    .admin-list-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .admin-list-item-info {
+      flex: 1;
+    }
+    
+    .admin-list-item-title {
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+    
+    .admin-list-item-subtitle {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    
+    .admin-list-item-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+      .admin-body {
+        flex-direction: column;
+      }
+      
+      .admin-sidebar {
+        width: 100%;
+        min-height: auto;
+      }
+      
+      .admin-header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .admin-btn {
+        width: 100%;
+        margin: 5px 0;
+      }
+    }
+    
+    .nav-link {
+      display: inline-block;
+      padding: 8px 15px;
+      color: white;
+      text-decoration: none;
+      margin-right: 15px;
+    }
+    
+    .nav-link:hover {
+      text-decoration: underline;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-header">
+    <h1>Управление курсами</h1>
+    <div class="admin-header-actions">
+      <a href="index.html" class="nav-link">
+        <i class="fas fa-graduation-cap"></i> К обучению
+      </a>
+      <button id="admin-export-all" class="admin-btn">
+        <i class="fas fa-download"></i> Экспорт всех данных
+      </button>
+    </div>
+  </div>
+  
+  <div class="admin-body">
+    <div class="admin-sidebar">
+      <div class="admin-sidebar-section">
+        <h3>Курсы</h3>
+        <div id="admin-courses-list" class="admin-list"></div>
+        <button id="admin-add-course" class="admin-btn admin-btn-success admin-btn-block">
+          <i class="fas fa-plus"></i> Добавить курс
+        </button>
+      </div>
+    </div>
+    
+    <div class="admin-content">
+      <!-- Начальный экран -->
+      <div id="admin-welcome" class="admin-panel-section">
+        <div style="text-align: center; padding: 50px 0;">
+          <h2>Добро пожаловать в панель управления</h2>
+          <p>Выберите курс в боковом меню или создайте новый</p>
+        </div>
+      </div>
+      
+      <!-- Редактирование курса -->
+      <div id="admin-course-editor" class="admin-panel-section hidden">
+        <div class="admin-section-header">
+          <h2>Редактирование курса: <span id="admin-course-title">Название курса</span></h2>
+          <div class="admin-section-actions">
+            <button id="admin-save-course" class="admin-btn admin-btn-primary">Сохранить</button>
+            <button id="admin-export-course" class="admin-btn">Экспорт</button>
+            <button id="admin-import-course" class="admin-btn">Импорт</button>
+          </div>
+        </div>
+        
+        <div class="admin-course-form">
+          <div class="admin-form-group">
+            <label for="admin-course-id">ID курса:</label>
+            <input type="text" id="admin-course-id" class="admin-input">
+          </div>
+          <div class="admin-form-group">
+            <label for="admin-course-title-input">Название курса:</label>
+            <input type="text" id="admin-course-title-input" class="admin-input">
+          </div>
+          <div class="admin-form-group">
+            <label for="admin-course-redirect">URL перенаправления (опционально):</label>
+            <input type="text" id="admin-course-redirect" class="admin-input" placeholder="Оставьте пустым, если перенаправление не требуется">
+          </div>
+        </div>
+        
+        <div class="admin-section-divider"></div>
+        
+        <div class="admin-tabs">
+          <div class="admin-tab-header">
+            <button class="admin-tab-btn active" data-tab="days">Дни обучения</button>
+            <button class="admin-tab-btn" data-tab="special-lessons">Специальные уроки</button>
+          </div>
+          
+          <div class="admin-tab-content">
+            <!-- Дни обучения -->
+            <div id="admin-tab-days" class="admin-tab-pane active">
+              <div class="admin-section-header">
+                <h3>Дни обучения</h3>
+                <button id="admin-add-day" class="admin-btn admin-btn-sm admin-btn-success">
+                  <i class="fas fa-plus"></i> Добавить день
+                </button>
+              </div>
+              <div id="admin-days-list" class="admin-list"></div>
+            </div>
+            
+            <!-- Специальные уроки -->
+            <div id="admin-tab-special-lessons" class="admin-tab-pane hidden">
+              <div class="admin-section-header">
+                <h3>Специальные уроки</h3>
+                <button id="admin-add-special-lesson" class="admin-btn admin-btn-sm admin-btn-success">
+                  <i class="fas fa-plus"></i> Добавить урок
+                </button>
+              </div>
+              <div id="admin-special-lessons-list" class="admin-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Редактирование дня -->
+      <div id="admin-day-editor" class="admin-panel-section hidden">
+        <div class="admin-section-header">
+          <h2>Редактирование дня</h2>
+          <div class="admin-section-actions">
+            <button id="admin-save-day" class="admin-btn admin-btn-primary">Сохранить</button>
+            <button id="admin-cancel-day" class="admin-btn">Отмена</button>
+          </div>
+        </div>
+        
+        <div class="admin-form">
+          <div class="admin-form-group">
+            <label for="admin-day-id">ID дня:</label>
+            <input type="number" id="admin-day-id" class="admin-input" min="1">
+          </div>
+          <div class="admin-form-group">
+            <label for="admin-day-title">Название дня:</label>
+            <input type="text" id="admin-day-title" class="admin-input" placeholder="День 1">
+          </div>
+          
+          <div class="admin-section-divider"></div>
+          
+          <div class="admin-section-header">
+            <h3>Уроки</h3>
+            <button id="admin-add-lesson" class="admin-btn admin-btn-sm admin-btn-success">
+              <i class="fas fa-plus"></i> Добавить урок
+            </button>
+          </div>
+          <div id="admin-lessons-list" class="admin-list"></div>
+        </div>
+      </div>
+      
+      <!-- Редактирование урока -->
+      <div id="admin-lesson-editor" class="admin-panel-section hidden">
+        <!-- Этот блок будет динамически заполняться из adminInterface.js -->
+      </div>
+    </div>
+  </div>
+  
+  <script type="module">
+    import courseManager from './js/courseManager.js';
+    import adminInterface from './js/adminInterface.js';
+    
+    // Инициализируем приложение после загрузки DOM
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log("Страница администратора загружена, инициализация...");
+      
+      // Инициализируем менеджер курсов
+      await courseManager.initialize();
+      
+      // Инициализируем и показываем административный интерфейс
+      await adminInterface.initialize();
+      adminInterface.show();
+      
+      // Глобальный доступ к менеджеру курсов и административному интерфейсу
+      window.courseManager = courseManager;
+      window.adminInterface = adminInterface;
+    });
+  </script>
+</body>
+</html>

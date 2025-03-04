@@ -250,13 +250,10 @@ function createCollapsibleBlocks(markdown) {
   return marked.parse(markdown);
 }
 
-// Функция для открытия админ-панели
+// Редирект на страницу администрирования
 window.openAdminPanel = function() {
-  adminInterface.show();
+  window.location.href = 'admin.html';
 };
-
-// Экспортируем adminInterface в глобальный контекст для доступа из других модулей
-window.adminInterface = adminInterface;
 
 // Инициализация приложения при загрузке
 document.addEventListener('DOMContentLoaded', initApp);

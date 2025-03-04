@@ -21,15 +21,214 @@ class AdminInterface {
     if (this.isInitialized) return;
     
     console.log('Инициализация административного интерфейса...');
-    
-    // Создаем контейнер для панели администратора
-    this.container = document.createElement('div');
-    this.container.id = 'admin-interface';
-    this.container.className = 'admin-panel hidden';
-    document.body.appendChild(this.container);
-    
-    // Добавляем базовую структуру HTML
-    this.container.innerHTML = `
+
+    // Для admin.html не создаем новый контейнер, используем существующую структуру
+    if (window.location.pathname.includes('admin.html')) {
+      this.container = document;
+      
+      // Заполняем содержимое блока редактирования урока
+      const lessonEditor = document.getElementById('admin-lesson-editor');
+      if (lessonEditor) {
+        lessonEditor.innerHTML = `
+          <div class="admin-section-header">
+            <h2>Редактирование урока</h2>
+            <div class="admin-section-actions">
+              <button id="admin-save-lesson" class="admin-btn admin-btn-primary">Сохранить</button>
+              <button id="admin-cancel-lesson" class="admin-btn">Отмена</button>
+            </div>
+          </div>
+          
+          <div class="admin-form">
+            <div class="admin-form-row">
+              <div class="admin-form-group">
+                <label for="admin-lesson-id">ID урока:</label>
+                <input type="text" id="admin-lesson-id" class="admin-input" placeholder="what-prompting-is">
+              </div>
+              <div class="admin-form-group">
+                <label for="admin-lesson-title">Название урока:</label>
+                <input type="text" id="admin-lesson-title" class="admin-input" placeholder="What prompting is">
+              </div>
+            </div>
+            
+            <div class="admin-section-divider"></div>
+            
+            <!-- Источник контента -->
+            <div class="admin-accordion">
+              <div class="admin-accordion-header">
+                <h3>Источник контента</h3>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="admin-accordion-content">
+                <div class="admin-form-group">
+                  <label for="admin-content-source-type">Тип источника:</label>
+                  <select id="admin-content-source-type" class="admin-select">
+                    <option value="webhook">Webhook (внешний API)</option>
+                    <option value="local">Локальный (из файла fallbacks.json)</option>
+                    <option value="markdown">Встроенный Markdown</option>
+                  </select>
+                </div>
+                
+                <!-- Поля для webhook -->
+                <div id="admin-content-webhook-fields">
+                  <div class="admin-form-group">
+                    <label for="admin-content-webhook-url">URL webhook:</label>
+                    <input type="text" id="admin-content-webhook-url" class="admin-input" placeholder="https://example.com/api/content">
+                  </div>
+                  <div class="admin-form-row">
+                    <div class="admin-form-group">
+                      <label for="admin-content-fallback-type">Тип резервного контента:</label>
+                      <select id="admin-content-fallback-type" class="admin-select">
+                        <option value="none">Нет</option>
+                        <option value="local">Локальный</option>
+                      </select>
+                    </div>
+                    <div class="admin-form-group" id="admin-content-fallback-id-group">
+                      <label for="admin-content-fallback-id">ID резервного контента:</label>
+                      <input type="text" id="admin-content-fallback-id" class="admin-input" placeholder="content-id">
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Поля для локального контента -->
+                <div id="admin-content-local-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-content-local-id">ID в fallbacks.json:</label>
+                    <input type="text" id="admin-content-local-id" class="admin-input" placeholder="what-prompting-is">
+                  </div>
+                </div>
+                
+                <!-- Поля для встроенного markdown -->
+                <div id="admin-content-markdown-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-content-markdown">Markdown контент:</label>
+                    <textarea id="admin-content-markdown" class="admin-textarea" rows="10" placeholder="# Заголовок урока
+                    
+Основной текст урока..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Источник теста -->
+            <div class="admin-accordion">
+              <div class="admin-accordion-header">
+                <h3>Тест</h3>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="admin-accordion-content">
+                <div class="admin-form-group">
+                  <label for="admin-test-source-type">Тип источника теста:</label>
+                  <select id="admin-test-source-type" class="admin-select">
+                    <option value="none">Нет</option>
+                    <option value="webhook">Webhook (внешний API)</option>
+                    <option value="markdown">Локальный Markdown-файл</option>
+                  </select>
+                </div>
+                
+                <!-- Поля для webhook -->
+                <div id="admin-test-webhook-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-test-webhook-url">URL webhook:</label>
+                    <input type="text" id="admin-test-webhook-url" class="admin-input" placeholder="https://example.com/api/test">
+                  </div>
+                  <div class="admin-form-row">
+                    <div class="admin-form-group">
+                      <label for="admin-test-fallback-type">Тип резервного теста:</label>
+                      <select id="admin-test-fallback-type" class="admin-select">
+                        <option value="none">Нет</option>
+                        <option value="markdown">Markdown-файл</option>
+                      </select>
+                    </div>
+                    <div class="admin-form-group" id="admin-test-fallback-id-group" class="hidden">
+                      <label for="admin-test-fallback-id">ID файла:</label>
+                      <input type="text" id="admin-test-fallback-id" class="admin-input" placeholder="test-what-prompting-is">
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Поля для markdown-файла -->
+                <div id="admin-test-markdown-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-test-markdown-id">ID тестового файла:</label>
+                    <input type="text" id="admin-test-markdown-id" class="admin-input" placeholder="test-what-prompting-is">
+                  </div>
+                  <div class="admin-form-group">
+                    <label for="admin-test-markdown">Содержимое теста:</label>
+                    <textarea id="admin-test-markdown" class="admin-textarea" rows="10" placeholder="# Тест по теме
+                    
+1. Вопрос один?
+   - Ответ А
+   - Ответ Б"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Задание -->
+            <div class="admin-accordion">
+              <div class="admin-accordion-header">
+                <h3>Практическое задание</h3>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="admin-accordion-content">
+                <div class="admin-form-group">
+                  <label for="admin-task-source-type">Включить задание:</label>
+                  <select id="admin-task-source-type" class="admin-select">
+                    <option value="none">Нет</option>
+                    <option value="markdown">Markdown</option>
+                  </select>
+                </div>
+                
+                <div id="admin-task-markdown-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-task-markdown">Текст задания:</label>
+                    <textarea id="admin-task-markdown" class="admin-textarea" rows="8" placeholder="# Задание
+
+Создайте промпт, который..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Аудио -->
+            <div class="admin-accordion">
+              <div class="admin-accordion-header">
+                <h3>Аудио</h3>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="admin-accordion-content">
+                <div class="admin-form-group">
+                  <label for="admin-audio-source-type">Тип аудио:</label>
+                  <select id="admin-audio-source-type" class="admin-select">
+                    <option value="none">Нет</option>
+                    <option value="soundcloud">SoundCloud</option>
+                  </select>
+                </div>
+                
+                <div id="admin-audio-soundcloud-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-audio-account-url">URL аккаунта SoundCloud:</label>
+                    <input type="text" id="admin-audio-account-url" class="admin-input" placeholder="https://soundcloud.com/username">
+                  </div>
+                  <div class="admin-form-group">
+                    <label for="admin-audio-track-url">URL трека:</label>
+                    <input type="text" id="admin-audio-track-url" class="admin-input" placeholder="https://soundcloud.com/username/track-name">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    } else {
+      // Для встроенной панели администратора создаем контейнер
+      this.container = document.createElement('div');
+      this.container.id = 'admin-interface';
+      this.container.className = 'admin-panel hidden';
+      document.body.appendChild(this.container);
+      
+      // Добавляем базовую структуру HTML
+      this.container.innerHTML = `
       <div class="admin-header">
         <h1>Управление курсами и материалами</h1>
         <div class="admin-header-actions">
@@ -912,8 +1111,14 @@ class AdminInterface {
    */
   show() {
     this.initialize().then(() => {
-      this.container.classList.remove('hidden');
-      this.loadCoursesList();
+      // Если мы на странице admin.html, сразу загружаем список курсов
+      if (window.location.pathname.includes('admin.html')) {
+        this.loadCoursesList();
+      } else {
+        // Для встроенной панели, показываем контейнер
+        this.container.classList.remove('hidden');
+        this.loadCoursesList();
+      }
     });
   }
   
@@ -921,7 +1126,13 @@ class AdminInterface {
    * Скрыть админ-панель
    */
   hide() {
-    this.container.classList.add('hidden');
+    // Только для встроенной панели
+    if (!window.location.pathname.includes('admin.html')) {
+      this.container.classList.add('hidden');
+    } else {
+      // На странице admin.html кнопка закрытия ведет на главную страницу
+      window.location.href = 'index.html';
+    }
   }
   
   /**
@@ -1811,6 +2022,30 @@ class AdminInterface {
         URL.revokeObjectURL(url);
       }, 1000);
     });
+  }
+  
+  /**
+   * Экспорт всех данных
+   */
+  exportAllData() {
+    // Создаем zip-архив со всеми необходимыми файлами
+    // Примечание: для реальной реализации потребуется библиотека JSZip
+    const data = {
+      courses: window.courseManager.courses,
+      fallbacks: window.courseManager.fallbacks
+    };
+    
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'course_data_export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }
 
