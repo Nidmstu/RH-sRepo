@@ -505,6 +505,29 @@
         width: 100% !important;
         margin-bottom: 15px;
       }
+      
+      /* Улучшенная видимость боковой панели и элементов списка на мобильных */
+      .admin-sidebar {
+        box-sizing: border-box;
+        padding: 10px;
+        width: 100% !important;
+      }
+      
+      .admin-list-item {
+        padding: 15px 10px;
+      }
+      
+      .admin-list-item-actions {
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      
+      .admin-list-item-actions .admin-btn {
+        margin: 5px 0;
+        padding: 10px;
+        flex: 1;
+        min-width: 40%;
+      }
     }
     
     /* Стили для очень маленьких экранов */
@@ -647,7 +670,7 @@
       
       if (toggleSidebarBtn && sidebar) {
         toggleSidebarBtn.addEventListener('click', function() {
-          if (sidebar.style.display === 'none') {
+          if (sidebar.style.display === 'none' || getComputedStyle(sidebar).display === 'none') {
             sidebar.style.display = 'block';
             toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть меню курсов';
           } else {
@@ -661,14 +684,59 @@
           if (window.innerWidth <= 768) {
             sidebar.style.display = 'none';
             toggleSidebarBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+            toggleSidebarBtn.style.display = 'block';
           } else {
             sidebar.style.display = 'block';
+            toggleSidebarBtn.style.display = 'none';
           }
         }
         
         // Проверяем при загрузке и при изменении размера
         checkWidth();
         window.addEventListener('resize', checkWidth);
+      }
+      
+      // Активация аккордеонов
+      const accordionHeaders = document.querySelectorAll('.admin-accordion-header');
+      if (accordionHeaders && accordionHeaders.length > 0) {
+        accordionHeaders.forEach(header => {
+          header.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            if (content) {
+              content.style.display = content.style.display === 'none' || getComputedStyle(content).display === 'none' ? 'block' : 'none';
+              const icon = this.querySelector('i');
+              if (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+              }
+            }
+          });
+        });
+      }
+      
+      // Активация табов
+      const tabButtons = document.querySelectorAll('.admin-tab-btn');
+      if (tabButtons && tabButtons.length > 0) {
+        tabButtons.forEach(tab => {
+          tab.addEventListener('click', function(e) {
+            const tabId = this.getAttribute('data-tab');
+            
+            // Деактивируем все вкладки
+            document.querySelectorAll('.admin-tab-btn').forEach(el => {
+              el.classList.remove('active');
+            });
+            document.querySelectorAll('.admin-tab-pane').forEach(el => {
+              el.classList.add('hidden');
+            });
+            
+            // Активируем нужную вкладку
+            this.classList.add('active');
+            const tabPane = document.getElementById(`admin-tab-${tabId}`);
+            if (tabPane) {
+              tabPane.classList.remove('hidden');
+            }
+          });
+        });
       }
     });
   </script>
