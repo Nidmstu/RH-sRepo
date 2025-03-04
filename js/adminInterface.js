@@ -1121,6 +1121,16 @@ class AdminInterface {
       tabButtons.forEach(tab => {
         tab.addEventListener('click', (e) => {
           const tabId = e.target.getAttribute('data-tab');
+          console.log(`Клик по вкладке: ${tabId}`);
+          
+          // Проверяем наличие соответствующей панели
+          const tabPane = document.getElementById(`admin-tab-${tabId}`);
+          if (tabPane) {
+            console.log(`Панель ${tabId} найдена, текущие классы: ${tabPane.className}`);
+          } else {
+            console.error(`Панель для вкладки ${tabId} не найдена!`);
+          }
+          
           this.switchTab(tabId);
         });
       });
@@ -1275,6 +1285,8 @@ class AdminInterface {
     document.querySelectorAll('.admin-tab-btn').forEach(el => {
       el.classList.remove('active');
     });
+    
+    // Скрываем все панели вкладок
     document.querySelectorAll('.admin-tab-pane').forEach(el => {
       el.classList.add('hidden');
     });
@@ -1287,9 +1299,11 @@ class AdminInterface {
       console.error(`Кнопка вкладки с data-tab="${tabId}" не найдена`);
     }
     
+    // Показываем нужную панель
     const tabPane = document.getElementById(`admin-tab-${tabId}`);
     if (tabPane) {
       tabPane.classList.remove('hidden');
+      console.log(`Панель ${tabId} отображена`);
       
       // Если это вкладка специальных уроков, обновляем их список
       if (tabId === 'special-lessons') {
