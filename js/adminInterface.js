@@ -2584,21 +2584,34 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
+    console.log('Отправка данных на вебхук:', webhookUrl);
+    
+    const data = {
+      webhookSettings: settings,
+      timestamp: new Date().toISOString(),
+      source: window.location.hostname || 'onboarding-app',
+      type: 'webhook_settings_update'
+    };
+    
+    console.log('Отправляемые данные:', JSON.stringify(data, null, 2));
+    
     fetch(webhookUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*'
       },
-      body: JSON.stringify({
-        webhookSettings: settings,
-        timestamp: new Date().toISOString(),
-        source: window.location.hostname,
-        type: 'webhook_settings_update'
-      })
+      mode: 'cors',
+      cache: 'no-cache',
+      body: JSON.stringify(data)
     })
     .then(response => {
+      console.log('Получен ответ с кодом:', response.status);
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.text().then(text => {
+          console.error('Ошибка ответа сервера:', text);
+          throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+        });
       }
       return response.text();
     })
@@ -2607,7 +2620,7 @@ class AdminInterface {
       this.showWebhookStatus('Настройки вебхуков успешно отправлены', 'success');
     })
     .catch(error => {
-      console.error('Webhook settings error:', error);
+      console.error('Webhook settings error:', error.message);
       this.showWebhookStatus(`Ошибка при отправке настроек: ${error.message}`, 'error');
     });
   }
@@ -2653,25 +2666,36 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
+    console.log('Экспорт данных на URL:', webhookUrl);
+    
     // Подготавливаем данные для отправки
     const data = {
       courses: window.courseManager.courses,
       timestamp: new Date().toISOString(),
-      source: window.location.hostname,
+      source: window.location.hostname || 'onboarding-app',
       type: 'full_courses_export'
     };
+    
+    console.log('Начало отправки данных. Объем данных:', JSON.stringify(data).length, 'байт');
     
     // Отправляем данные на вебхук
     fetch(webhookUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*'
       },
+      mode: 'cors',
+      cache: 'no-cache',
       body: JSON.stringify(data)
     })
     .then(response => {
+      console.log('Получен ответ с кодом:', response.status);
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.text().then(text => {
+          console.error('Ошибка ответа сервера:', text);
+          throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+        });
       }
       return response.text();
     })
@@ -2680,7 +2704,7 @@ class AdminInterface {
       this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
     })
     .catch(error => {
-      console.error('Webhook error:', error);
+      console.error('Webhook error:', error.message);
       this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}`, 'error');
     });
   }
