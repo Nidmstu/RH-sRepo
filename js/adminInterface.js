@@ -2584,7 +2584,9 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
-    console.log('СЕТЕВОЙ ЗАПРОС: Отправка данных на вебхук:', webhookUrl);
+    // Используем фиксированный URL, чтобы гарантировать отправку на правильный адрес
+    const targetUrl = "https://auto.crm-s.com/webhook/SaveWebhooks";
+    console.log('СЕТЕВОЙ ЗАПРОС: Отправка данных на вебхук:', targetUrl);
     
     const data = {
       webhookSettings: settings,
@@ -2595,7 +2597,7 @@ class AdminInterface {
     
     // Отправляем данные через XMLHttpRequest вместо fetch для большей совместимости
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', webhookUrl, true);
+    xhr.open('POST', targetUrl, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
     
@@ -2693,7 +2695,9 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
-    console.log('ЭКСПОРТ: Отправка данных на URL:', webhookUrl);
+    // Используем фиксированный URL для экспорта
+    const targetUrl = "https://auto.crm-s.com/webhook/SaveWebhooks";
+    console.log('ЭКСПОРТ: Отправка данных на URL:', targetUrl);
     
     // Подготавливаем данные для отправки
     const data = {
@@ -2705,7 +2709,7 @@ class AdminInterface {
     
     // Используем только XMLHttpRequest для максимальной совместимости
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', webhookUrl, true);
+    xhr.open('POST', targetUrl, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
     
