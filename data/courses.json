@@ -1,0 +1,138 @@
+
+{
+  "prompt-engineer": {
+    "title": "Prompt Engineering Onboarding",
+    "days": [
+      {
+        "id": 1,
+        "title": "Day 1",
+        "lessons": [
+          {
+            "id": "what-prompting-is",
+            "title": "What prompting is",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/PromptEngineering/WhatPromptingIs",
+              "fallbackType": "local",
+              "fallbackId": "what-prompting-is"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/PromptEngineering/Tests/WhatPromptingIs",
+              "fallbackType": "markdown",
+              "fallbackId": "test-what-prompting-is"
+            },
+            "taskSource": {
+              "type": "markdown",
+              "content": "# Task: Create your first prompt\n\nCreate a prompt that asks the AI to explain what photosynthesis is to a 10-year-old child."
+            },
+            "audioSource": null
+          },
+          {
+            "id": "five-step-framework",
+            "title": "Five-step Framework",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/FiveStepFramework",
+              "fallbackType": "local",
+              "fallbackId": "five-step-framework"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Oboarding/PromptEngineering/tests/FiveStepFramework"
+            },
+            "taskSource": {
+              "type": "markdown",
+              "content": "# Task: Apply the Five-step Framework\n\nUse the five-step framework to create a prompt that generates a recipe based on ingredients in your refrigerator."
+            }
+          },
+          {
+            "id": "personas-in-prompting",
+            "title": "Personas in prompting",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/PersonasInPrompting",
+              "fallbackType": "local",
+              "fallbackId": "personas-in-prompting"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Tests/PersonasInPrompting"
+            },
+            "taskSource": null
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Day 2",
+        "lessons": [
+          {
+            "id": "iteration-methods",
+            "title": "Iteration methods",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/IterationMethods",
+              "fallbackType": "local",
+              "fallbackId": "iteration-methods"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Test/IterationMethods"
+            },
+            "taskSource": null
+          },
+          {
+            "id": "multimodal-prompting",
+            "title": "Multimodal prompting",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/MultimodalPrompting",
+              "fallbackType": "local",
+              "fallbackId": "multimodal-prompting"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/Test/MultimodalPrompting"
+            },
+            "taskSource": null
+          },
+          {
+            "id": "responsible-ai-use",
+            "title": "Responsible AI Use",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://hook.eu1.make.com/ya6a12917mjqwfx9lhpxf9wy3now3f4r"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://hook.eu1.make.com/cjn0iv6d6l6pdpzv9of1bpohnv419omj"
+            },
+            "taskSource": null
+          }
+        ]
+      }
+    ],
+    "specialLessons": [
+      {
+        "id": "vocabulary",
+        "title": "Prompt Engineering Vocabulary",
+        "contentSource": {
+          "type": "webhook",
+          "url": "https://auto.crm-s.com/webhook/PromptEngineering/Vocabulary",
+          "fallbackType": "local",
+          "fallbackId": "vocabulary"
+        },
+        "testSource": null,
+        "audioSource": {
+          "type": "soundcloud",
+          "url": "https://soundcloud.com/developers-remote-helpers",
+          "trackUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2028455920"
+        }
+      }
+    ]
+  },
+  "lead-generator": {
+    "redirectUrl": "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n"
+  }
+}
