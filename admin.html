@@ -36,6 +36,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       width: 100%;
       box-sizing: border-box;
+      flex-wrap: wrap;
     }
     
     .admin-header h1 {
@@ -365,10 +366,29 @@
       border-top: 1px solid #eee;
     }
     
+    /* Мобильная навигация */
+    .admin-mobile-nav-toggle {
+      display: none;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      text-align: center;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
     /* Адаптивные стили для мобильных устройств */
     @media (max-width: 768px) {
       .admin-body {
         flex-direction: column;
+      }
+      
+      .admin-mobile-nav-toggle {
+        display: block;
       }
       
       .admin-sidebar {
@@ -377,6 +397,8 @@
         padding: 15px;
         border-right: none;
         border-bottom: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
       }
       
       .admin-content {
@@ -476,6 +498,13 @@
         width: 100%;
         min-width: 100%;
       }
+      
+      /* Фиксим отображение списка курсов на мобильных */
+      #admin-courses-list {
+        display: block !important;
+        width: 100% !important;
+        margin-bottom: 15px;
+      }
     }
     
     /* Стили для очень маленьких экранов */
@@ -549,6 +578,9 @@
   </div>
   
   <div class="admin-body">
+    <button id="toggle-sidebar" class="admin-mobile-nav-toggle">
+      <i class="fas fa-bars"></i> Показать/скрыть меню курсов
+    </button>
     <div class="admin-sidebar">
       <div class="admin-sidebar-section">
         <h3>Курсы</h3>
@@ -606,6 +638,41 @@
             <!-- Дни обучения -->
             <div id="admin-tab-days" class="admin-tab-pane active">
               <div class="admin-section-header">
+
+  <script>
+    // Функция для переключения видимости боковой панели на мобильных устройствах
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+      const sidebar = document.querySelector('.admin-sidebar');
+      
+      if (toggleSidebarBtn && sidebar) {
+        toggleSidebarBtn.addEventListener('click', function() {
+          if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+            toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть меню курсов';
+          } else {
+            sidebar.style.display = 'none';
+            toggleSidebarBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+          }
+        });
+        
+        // Инициализация - проверяем ширину экрана и скрываем меню на мобильных
+        function checkWidth() {
+          if (window.innerWidth <= 768) {
+            sidebar.style.display = 'none';
+            toggleSidebarBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+          } else {
+            sidebar.style.display = 'block';
+          }
+        }
+        
+        // Проверяем при загрузке и при изменении размера
+        checkWidth();
+        window.addEventListener('resize', checkWidth);
+      }
+    });
+  </script>
+
                 <h3>Дни обучения</h3>
                 <button id="admin-add-day" class="admin-btn admin-btn-sm admin-btn-success">
                   <i class="fas fa-plus"></i> Добавить день

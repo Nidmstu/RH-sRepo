@@ -1171,13 +1171,24 @@ class AdminInterface {
     console.log('Загружаю список курсов...');
     console.log('Доступные профессии:', window.courseManager.courses);
     
+    // Убеждаемся, что courseManager и courses существуют
+    if (!window.courseManager || !window.courseManager.courses) {
+      console.error('CourseManager не инициализирован или отсутствуют данные о курсах');
+      coursesList.innerHTML = '<div class="admin-list-empty">Ошибка загрузки курсов. Обновите страницу.</div>';
+      return;
+    }
+    
     const professions = window.courseManager.getProfessions();
     console.log('Полученные профессии:', professions);
     
     if (!professions || professions.length === 0) {
+      console.log('Курсы не найдены в системе');
       coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
       return;
     }
+    
+    // Создаем временный контейнер для собранных элементов
+    const fragment = document.createDocumentFragment();
     
     professions.forEach(professionId => {
       console.log(`Обработка профессии: ${professionId}`);
@@ -1200,37 +1211,64 @@ class AdminInterface {
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-course" data-id="${professionId}">
-            <i class="fas fa-edit"></i>
+            <i class="fas fa-edit"></i> Изменить
           </button>
           <button class="admin-btn admin-btn-sm admin-btn-danger delete-course" data-id="${professionId}">
-            <i class="fas fa-trash"></i>
+            <i class="fas fa-trash"></i> Удалить
           </button>
         </div>
       `;
-      coursesList.appendChild(courseItem);
       
-      // Обработчик редактирования
-      courseItem.querySelector('.edit-course').addEventListener('click', () => {
-        this.editCourse(professionId);
-      });
+      // Добавляем обработчики событий
+      const editButton = courseItem.querySelector('.edit-course');
+      const deleteButton = courseItem.querySelector('.delete-course');
       
-      // Обработчик удаления
-      courseItem.querySelector('.delete-course').addEventListener('click', () => {
-        this.deleteCourse(professionId);
-      });
+      if (editButton) {
+        editButton.addEventListener('click', () => {
+          this.editCourse(professionId);
+          
+          // На мобильных устройствах скрываем боковую панель после выбора курса
+          if (window.innerWidth <= 768) {
+            const sidebar = document.querySelector('.admin-sidebar');
+            const toggleBtn = document.getElementById('toggle-sidebar');
+            
+            if (sidebar && toggleBtn) {
+              sidebar.style.display = 'none';
+              toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+            }
+          }
+        });
+      }
+      
+      if (deleteButton) {
+        deleteButton.addEventListener('click', () => {
+          this.deleteCourse(professionId);
+        });
+      }
+      
+      fragment.appendChild(courseItem);
     });
     
-    // Добавляем стили для пустого списка
-    const style = document.createElement('style');
-    style.textContent = `
-      .admin-list-empty {
-        padding: 15px;
-        text-align: center;
-        color: #666;
-        font-style: italic;
-      }
-    `;
-    document.head.appendChild(style);
+    // Добавляем все элементы сразу для лучшей производительности
+    coursesList.appendChild(fragment);
+    
+    // Добавляем стили для пустого списка, если их еще нет
+    if (!document.querySelector('style[data-for="admin-list-empty"]')) {
+      const style = document.createElement('style');
+      style.setAttribute('data-for', 'admin-list-empty');
+      style.textContent = `
+        .admin-list-empty {
+          padding: 15px;
+          text-align: center;
+          color: #666;
+          font-style: italic;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Убеждаемся, что список курсов виден на мобильных устройствах
+    coursesList.style.display = 'block';
   }
   
   /**
