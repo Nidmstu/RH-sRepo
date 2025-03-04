@@ -171,6 +171,16 @@
         height: 100%;
         padding: 15px;
       }
+      
+      /* Стили для основного интерфейса обучения (не админ панель) */
+      #day-selection, #task-selection {
+        padding: 0 5%;
+      }
+      
+      #guide {
+        display: flex;
+        flex-direction: column;
+      }
     }
 
     /* Стили для альбомной ориентации на планшетах */
@@ -188,6 +198,24 @@
         width: 50% !important;
         flex: 0 0 50% !important;
       }
+      
+      /* Разделение интерфейса обучения на планшетах в альбомной ориентации */
+      #home.split-view {
+        display: flex;
+        flex-direction: row;
+      }
+      
+      #day-selection, #task-selection {
+        width: 50%;
+        padding: 15px;
+        box-sizing: border-box;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      
+      #day-selection.split-visible, #task-selection.split-visible {
+        display: block !important;
+      }
     }
 
     /* Стили для портретной ориентации на планшетах */
@@ -204,6 +232,24 @@
       .admin-content {
         width: 50% !important;
         flex: 0 0 50% !important;
+      }
+      
+      /* Разделение интерфейса обучения на планшетах в портретной ориентации */
+      #home.split-view {
+        display: flex;
+        flex-direction: row;
+      }
+      
+      #day-selection, #task-selection {
+        width: 50%;
+        padding: 10px;
+        box-sizing: border-box;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      
+      #day-selection.split-visible, #task-selection.split-visible {
+        display: block !important;
       }
     }
 
@@ -350,6 +396,9 @@
     window.currentTopic = null;
     window.currentDay = null;
     let currentTasks = [];
+    
+    // Проверяем, является ли устройство планшетом
+    const isTablet = window.matchMedia('(max-width: 1024px) and (min-width: 481px)').matches;
 
     const professionTasks = {
       "prompt-engineer": {
@@ -412,10 +461,33 @@
       currentTasks = JSON.parse(JSON.stringify(professionTasks[selectedProfession][day]));
       const dayHeader = document.getElementById("day-header");
       if (dayHeader) dayHeader.innerText = "Day " + day;
-      const daySelection = document.getElementById("day-selection");
-      if (daySelection) daySelection.classList.add("hidden");
-      const taskSelection = document.getElementById("task-selection");
-      if (taskSelection) taskSelection.classList.remove("hidden");
+      
+      // Проверяем, планшет ли это
+      if (isTablet) {
+        // Для планшетов используем разделенный вид
+        const home = document.getElementById("home");
+        if (home) home.classList.add("split-view");
+        
+        const daySelection = document.getElementById("day-selection");
+        if (daySelection) {
+          daySelection.classList.remove("hidden");
+          daySelection.classList.add("split-visible");
+        }
+        
+        const taskSelection = document.getElementById("task-selection");
+        if (taskSelection) {
+          taskSelection.classList.remove("hidden");
+          taskSelection.classList.add("split-visible");
+        }
+      } else {
+        // Для мобильных и десктопов - обычное поведение
+        const daySelection = document.getElementById("day-selection");
+        if (daySelection) daySelection.classList.add("hidden");
+        
+        const taskSelection = document.getElementById("task-selection");
+        if (taskSelection) taskSelection.classList.remove("hidden");
+      }
+      
       const taskButtonsDiv = document.getElementById("task-buttons");
       if (taskButtonsDiv) {
         taskButtonsDiv.innerHTML = "";
@@ -429,10 +501,29 @@
     }
 
     function goBackToDaySelection() {
-      const taskSelection = document.getElementById("task-selection");
-      if (taskSelection) taskSelection.classList.add("hidden");
-      const daySelection = document.getElementById("day-selection");
-      if (daySelection) daySelection.classList.remove("hidden");
+      if (isTablet) {
+        // Для планшетов просто убираем режим разделенного экрана
+        const home = document.getElementById("home");
+        if (home) home.classList.remove("split-view");
+        
+        const daySelection = document.getElementById("day-selection");
+        if (daySelection) {
+          daySelection.classList.remove("split-visible");
+          daySelection.classList.remove("hidden");
+        }
+        
+        const taskSelection = document.getElementById("task-selection");
+        if (taskSelection) {
+          taskSelection.classList.remove("split-visible");
+          taskSelection.classList.add("hidden");
+        }
+      } else {
+        // Для других устройств - обычное поведение
+        const taskSelection = document.getElementById("task-selection");
+        if (taskSelection) taskSelection.classList.add("hidden");
+        const daySelection = document.getElementById("day-selection");
+        if (daySelection) daySelection.classList.remove("hidden");
+      }
     }
 
     // Функция возврата к списку топиков – обновляет его через selectDay с сохранённым днем и сбрасывает выбранный топик
@@ -441,11 +532,20 @@
       const markdownDiv = document.getElementById("markdown-content");
       if (markdownDiv) markdownDiv.innerHTML = "";
       window.currentTopic = null;
+      
       const home = document.getElementById("home");
-      if (home) home.classList.remove("hidden");
+      if (home) {
+        home.classList.remove("hidden");
+        // Вернём класс split-view, если мы на планшете и был выбран день
+        if (isTablet && window.currentDay !== null) {
+          home.classList.add("split-view");
+        }
+      }
+      
       if (window.currentDay !== null) {
         selectDay(window.currentDay);
       }
+      
       const guide = document.getElementById("guide");
       if (guide) guide.classList.add("hidden");
     }
@@ -495,9 +595,22 @@
 
     function showSection(id) {
       const home = document.getElementById("home");
-      if (home) home.classList.add("hidden");
+      if (home) {
+        home.classList.add("hidden");
+        // Убираем режим разделенного экрана при переключении разделов
+        home.classList.remove("split-view");
+      }
+      
+      // Убираем классы видимости для дочерних элементов
+      const daySelection = document.getElementById("day-selection");
+      if (daySelection) daySelection.classList.remove("split-visible");
+      
+      const taskSelection = document.getElementById("task-selection");
+      if (taskSelection) taskSelection.classList.remove("split-visible");
+      
       const guide = document.getElementById("guide");
       if (guide) guide.classList.add("hidden");
+      
       const target = document.getElementById(id);
       if (target) target.classList.remove("hidden");
     }
