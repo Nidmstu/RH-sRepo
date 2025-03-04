@@ -654,6 +654,7 @@
         <div class="admin-tabs">
           <div class="admin-tab-header">
             <button class="admin-tab-btn active" data-tab="days">Дни обучения</button>
+            <button class="admin-tab-btn" data-tab="without-day">Without day</button>
             <button class="admin-tab-btn" data-tab="special-lessons">Специальные уроки</button>
           </div>
           
@@ -747,6 +748,17 @@
                 </button>
               </div>
               <div id="admin-days-list" class="admin-list"></div>
+            </div>
+            
+            <!-- Without day - уроки без дня -->
+            <div id="admin-tab-without-day" class="admin-tab-pane hidden">
+              <div class="admin-section-header">
+                <h3>Уроки без привязки к дню</h3>
+                <button id="admin-add-without-day-lesson" class="admin-btn admin-btn-sm admin-btn-success">
+                  <i class="fas fa-plus"></i> Добавить урок
+                </button>
+              </div>
+              <div id="admin-without-day-lessons-list" class="admin-list"></div>
             </div>
             
             <!-- Специальные уроки -->
