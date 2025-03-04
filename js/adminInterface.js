@@ -2593,44 +2593,43 @@ class AdminInterface {
       type: 'webhook_settings_update'
     };
     
-    console.log('СЕТЕВОЙ ЗАПРОС: Отправляемые данные:', JSON.stringify(data, null, 2));
+    // Отправляем данные через XMLHttpRequest вместо fetch для большей совместимости
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', webhookUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
     
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      mode: 'cors',
-      cache: 'no-cache',
-      body: JSON.stringify(data)
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        console.log('XHR статус:', xhr.status);
+        console.log('XHR ответ:', xhr.responseText);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          console.log('Webhook settings response:', xhr.responseText);
+          this.showWebhookStatus('Настройки вебхуков успешно отправлены', 'success');
+        } else {
+          console.error('Webhook settings error:', xhr.statusText);
+          this.showWebhookStatus(`Ошибка при отправке настроек: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
+        }
+      }
     };
     
-    console.log('СЕТЕВОЙ ЗАПРОС: Параметры запроса:', JSON.stringify(options, null, 2));
+    xhr.onerror = (e) => {
+      console.error('XHR ошибка:', e);
+      this.showWebhookStatus('Ошибка соединения с сервером', 'error');
+    };
     
-    fetch(webhookUrl, options)
-    .then(response => {
-      console.log('СЕТЕВОЙ ЗАПРОС: Получен ответ с кодом:', response.status);
-      console.log('СЕТЕВОЙ ЗАПРОС: Заголовки ответа:', 
-        JSON.stringify(Array.from(response.headers.entries()), null, 2));
-      
-      if (!response.ok) {
-        return response.text().then(text => {
-          console.error('СЕТЕВОЙ ЗАПРОС: Ошибка ответа сервера:', text);
-          throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-        });
-      }
-      return response.text();
-    })
-    .then(result => {
-      console.log('Webhook settings response:', result);
-      this.showWebhookStatus('Настройки вебхуков успешно отправлены', 'success');
-    })
-    .catch(error => {
-      console.error('Webhook settings error:', error.message);
-      this.showWebhookStatus(`Ошибка при отправке настроек: ${error.message}`, 'error');
-    });
+    xhr.timeout = 10000; // 10 секунд таймаут
+    xhr.ontimeout = () => {
+      this.showWebhookStatus('Истекло время ожидания ответа от сервера', 'error');
+    };
+    
+    try {
+      xhr.send(JSON.stringify(data));
+    } catch (e) {
+      console.error('Ошибка при отправке запроса:', e);
+      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
+    }
   }
   
   /**
@@ -2696,98 +2695,52 @@ class AdminInterface {
     
     console.log('ЭКСПОРТ: Отправка данных на URL:', webhookUrl);
     
-    // Тестируем доступность сервера сначала GET запросом
-    fetch(webhookUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      mode: 'cors',
-      cache: 'no-cache',
-    })
-    .then(response => {
-      console.log('ЭКСПОРТ: Предварительный GET-запрос выполнен, статус:', response.status);
-      
-      // После успешной проверки делаем основной запрос
-      // Подготавливаем данные для отправки
-      const data = {
-        courses: window.courseManager.courses,
-        timestamp: new Date().toISOString(),
-        source: window.location.hostname || 'onboarding-app',
-        type: 'full_courses_export'
-      };
-      
-      console.log('ЭКСПОРТ: Начало отправки данных POST. Объем данных:', JSON.stringify(data).length, 'байт');
-      
-      // Отправляем данные на вебхук
-      return fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/plain, */*',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        mode: 'cors',
-        cache: 'no-cache',
-        body: JSON.stringify(data)
-      });
-    })
-    .then(response => {
-      console.log('ЭКСПОРТ: Получен ответ с кодом:', response.status);
-      console.log('ЭКСПОРТ: Заголовки ответа:', 
-        JSON.stringify(Array.from(response.headers.entries()), null, 2));
-      
-      if (!response.ok) {
-        return response.text().then(text => {
-          console.error('ЭКСПОРТ: Ошибка ответа сервера:', text);
-          throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-        });
-      }
-      return response.text();
-    })
-    .then(result => {
-      console.log('ЭКСПОРТ: Webhook response:', result);
-      this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
-    })
-    .catch(error => {
-      console.error('ЭКСПОРТ: Webhook error:', error);
-      console.error('ЭКСПОРТ: Подробная информация об ошибке:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // Попробуем альтернативный запрос с XMLHttpRequest
-      console.log('ЭКСПОРТ: Пробуем альтернативный метод отправки через XMLHttpRequest');
-      
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', webhookUrl, true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          console.log('ЭКСПОРТ: XHR статус:', xhr.status);
-          console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
-          
-          if (xhr.status >= 200 && xhr.status < 300) {
-            this.showWebhookStatus('Данные успешно отправлены на вебхук (альтернативный метод)', 'success');
-          } else {
-            this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText}`, 'error');
-          }
+    // Подготавливаем данные для отправки
+    const data = {
+      courses: window.courseManager.courses,
+      timestamp: new Date().toISOString(),
+      source: window.location.hostname || 'onboarding-app',
+      type: 'full_courses_export'
+    };
+    
+    // Используем только XMLHttpRequest для максимальной совместимости
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', webhookUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+    
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        console.log('ЭКСПОРТ: XHR статус:', xhr.status);
+        console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
+        } else {
+          this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
         }
-      };
-      
-      const data = {
-        courses: window.courseManager.courses,
-        timestamp: new Date().toISOString(),
-        source: window.location.hostname || 'onboarding-app',
-        type: 'full_courses_export'
-      };
-      
-      xhr.send(JSON.stringify(data));
-      this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}. Пробуем альтернативный метод...`, 'error');
-    });
+      }
+    };
+    
+    xhr.onerror = (e) => {
+      console.error('ЭКСПОРТ: XHR ошибка:', e);
+      this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
+    };
+    
+    xhr.timeout = 15000; // 15 секунд таймаут
+    xhr.ontimeout = () => {
+      this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
+    };
+    
+    try {
+      // Преобразовываем JSON и отправляем данные
+      const jsonData = JSON.stringify(data);
+      console.log('ЭКСПОРТ: Размер данных для отправки:', jsonData.length, 'байт');
+      xhr.send(jsonData);
+    } catch (e) {
+      console.error('ЭКСПОРТ: Ошибка при отправке запроса:', e);
+      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
+    }
   }
   
   /**
