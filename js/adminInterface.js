@@ -1119,14 +1119,6 @@ class AdminInterface {
         });
       });
     }
-    
-    // Добавление урока без дня
-    const addWithoutDayLessonBtn = document.getElementById('admin-add-without-day-lesson');
-    if (addWithoutDayLessonBtn) {
-      addWithoutDayLessonBtn.addEventListener('click', () => {
-        this.createWithoutDayLesson();
-      });
-    }
 
     // Переключение типа источника контента
     const contentSourceType = document.getElementById('admin-content-source-type');
@@ -1430,9 +1422,8 @@ class AdminInterface {
     document.getElementById('admin-course-redirect').value = course.redirectUrl || '';
     document.getElementById('admin-course-title').textContent = course.title || professionId;
 
-    // Загружаем дни, уроки без дня и специальные уроки
+    // Загружаем дни и специальные уроки
     this.loadDaysList();
-    this.loadWithoutDayLessonsList();
     this.loadSpecialLessonsList();
 
     // Показываем редактор курса
@@ -1533,84 +1524,6 @@ class AdminInterface {
     alert('Курс успешно сохранен!');
   }
 
-  /**
-   * Создание урока без дня
-   */
-  createWithoutDayLesson() {
-    // Создаем шаблон нового урока
-    const newLesson = {
-      id: "",
-      title: "Урок без дня",
-      contentSource: {
-        type: "webhook",
-        url: ""
-      }
-    };
-
-    // Заполняем форму урока
-    this.fillLessonForm(newLesson);
-
-    // Настраиваем параметры редактирования
-    this.currentEditing.lesson = newLesson;
-    this.currentEditing.lessonIndex = -1;
-    this.currentEditing.isWithoutDay = true;
-    this.currentEditing.isSpecial = false;
-    this.currentEditing.isNew = true;
-
-    // Показываем редактор урока
-    document.getElementById('admin-welcome').classList.add('hidden');
-    document.getElementById('admin-course-editor').classList.add('hidden');
-    document.getElementById('admin-day-editor').classList.add('hidden');
-    document.getElementById('admin-lesson-editor').classList.remove('hidden');
-  }
-  
-  /**
-   * Редактирование урока без дня
-   */
-  editWithoutDayLesson(index) {
-    if (!this.currentEditing.course || !this.currentEditing.course.withoutDayLessons[index]) return;
-    
-    const lesson = this.currentEditing.course.withoutDayLessons[index];
-    
-    // Заполняем форму урока
-    this.fillLessonForm(lesson);
-
-    // Настраиваем параметры редактирования
-    this.currentEditing.lesson = lesson;
-    this.currentEditing.lessonIndex = index;
-    this.currentEditing.isWithoutDay = true;
-    this.currentEditing.isSpecial = false;
-    this.currentEditing.isNew = false;
-
-    // Показываем редактор урока
-    document.getElementById('admin-welcome').classList.add('hidden');
-    document.getElementById('admin-course-editor').classList.add('hidden');
-    document.getElementById('admin-day-editor').classList.add('hidden');
-    document.getElementById('admin-lesson-editor').classList.remove('hidden');
-  }
-  
-  /**
-   * Удаление урока без дня
-   */
-  deleteWithoutDayLesson(index) {
-    if (!this.currentEditing.course || !this.currentEditing.course.withoutDayLessons[index]) return;
-    
-    const lesson = this.currentEditing.course.withoutDayLessons[index];
-
-    if (!confirm(`Вы уверены, что хотите удалить урок "${lesson.title}"?`)) {
-      return;
-    }
-
-    // Удаляем урок
-    this.currentEditing.course.withoutDayLessons.splice(index, 1);
-
-    // Обновляем список
-    this.loadWithoutDayLessonsList();
-
-    // Сохраняем изменения в JSON файл
-    this.saveCoursesToJSON();
-  }
-  
   /**
    * Экспорт курса в JSON файл
    */
@@ -1722,63 +1635,6 @@ class AdminInterface {
     });
   }
 
-  /**
-   * Загрузка списка уроков без дня
-   */
-  loadWithoutDayLessonsList() {
-    const withoutDayLessonsList = document.getElementById('admin-without-day-lessons-list');
-    if (!withoutDayLessonsList) return;
-    
-    withoutDayLessonsList.innerHTML = '';
-
-    if (!this.currentEditing.course || !this.currentEditing.course.withoutDayLessons) {
-      this.currentEditing.course.withoutDayLessons = [];
-      
-      // Если блок еще не существует, но есть словарь в специальных уроках, перемещаем его
-      if (this.currentEditing.course.specialLessons) {
-        const vocabularyIndex = this.currentEditing.course.specialLessons.findIndex(
-          lesson => lesson.id === 'vocabulary'
-        );
-        
-        if (vocabularyIndex >= 0) {
-          const vocabularyLesson = this.currentEditing.course.specialLessons[vocabularyIndex];
-          this.currentEditing.course.withoutDayLessons.push(vocabularyLesson);
-          this.currentEditing.course.specialLessons.splice(vocabularyIndex, 1);
-        }
-      }
-    }
-
-    this.currentEditing.course.withoutDayLessons.forEach((lesson, index) => {
-      const lessonItem = document.createElement('div');
-      lessonItem.className = 'admin-list-item';
-      lessonItem.innerHTML = `
-        <div class="admin-list-item-info">
-          <div class="admin-list-item-title">${lesson.title}</div>
-          <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
-        </div>
-        <div class="admin-list-item-actions">
-          <button class="admin-btn admin-btn-sm edit-without-day-lesson" data-index="${index}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="admin-btn admin-btn-sm admin-btn-danger delete-without-day-lesson" data-index="${index}">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      `;
-      withoutDayLessonsList.appendChild(lessonItem);
-
-      // Обработчик редактирования
-      lessonItem.querySelector('.edit-without-day-lesson').addEventListener('click', () => {
-        this.editWithoutDayLesson(index);
-      });
-
-      // Обработчик удаления
-      lessonItem.querySelector('.delete-without-day-lesson').addEventListener('click', () => {
-        this.deleteWithoutDayLesson(index);
-      });
-    });
-  }
-  
   /**
    * Загрузка списка специальных уроков
    */
@@ -2208,22 +2064,7 @@ class AdminInterface {
     }
 
     // Сохраняем изменения
-    if (this.currentEditing.isWithoutDay) {
-      // Сохраняем урок без дня
-      if (this.currentEditing.isNew) {
-        // Новый урок
-        if (!this.currentEditing.course.withoutDayLessons) {
-          this.currentEditing.course.withoutDayLessons = [];
-        }
-        this.currentEditing.course.withoutDayLessons.push(lessonData);
-      } else {
-        // Обновляем существующий
-        this.currentEditing.course.withoutDayLessons[this.currentEditing.lessonIndex] = lessonData;
-      }
-
-      // Обновляем список
-      this.loadWithoutDayLessonsList();
-    } else if (this.currentEditing.isSpecial) {
+    if (this.currentEditing.isSpecial) {
       // Сохраняем специальный урок
       if (this.currentEditing.isNew) {
         // Новый урок
@@ -2270,16 +2111,9 @@ class AdminInterface {
   cancelLessonEdit() {
     this.currentEditing.lesson = null;
 
-    if (this.currentEditing.isSpecial || this.currentEditing.isWithoutDay) {
+    if (this.currentEditing.isSpecial) {
       document.getElementById('admin-lesson-editor').classList.add('hidden');
       document.getElementById('admin-course-editor').classList.remove('hidden');
-      
-      // При возвращении к редактору курса, переключаемся на нужную вкладку
-      if (this.currentEditing.isWithoutDay) {
-        this.switchTab('without-day');
-      } else if (this.currentEditing.isSpecial) {
-        this.switchTab('special-lessons');
-      }
     } else {
       document.getElementById('admin-lesson-editor').classList.add('hidden');
       document.getElementById('admin-day-editor').classList.remove('hidden');
