@@ -12,9 +12,12 @@
       margin: 0;
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
+      font-size: 16px;
     }
     .container {
-      padding: 20px;
+      padding: 15px;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .hidden {
       display: none;
@@ -23,23 +26,34 @@
       text-align: center;
     }
     button {
-      padding: 10px 20px;
-      margin: 10px;
+      padding: 12px 20px;
+      margin: 8px 5px;
       cursor: pointer;
       border: none;
       background-color: #4CAF50;
       color: white;
       border-radius: 5px;
+      width: auto;
+      font-size: 16px;
+      display: inline-block;
     }
     button:hover {
       background-color: #45a049;
     }
+    select, input {
+      font-size: 16px;
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
     .spinner {
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #3498db;
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
       border-radius: 50%;
-      width: 60px;
-      height: 60px;
+      width: 40px;
+      height: 40px;
       animation: spin 2s linear infinite;
       margin: 20px auto;
     }
@@ -47,17 +61,25 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .markdown-content {
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
     .markdown-content p {
       margin: 10px 0;
     }
     .markdown-content ul {
-      margin: 10px 20px;
+      margin: 10px 5px;
       padding-left: 20px;
     }
     .markdown-content table {
       border-collapse: collapse;
       width: 100%;
       margin: 10px 0;
+      display: block;
+      overflow-x: auto;
     }
     .markdown-content table,
     .markdown-content th,
@@ -68,6 +90,7 @@
     .markdown-content td {
       padding: 8px;
       text-align: left;
+      min-width: 100px;
     }
     details {
       background: #fff;
@@ -77,9 +100,10 @@
     }
     summary {
       cursor: pointer;
+      padding: 10px 0;
     }
     details > summary {
-      font-size: 1.2em;
+      font-size: 1.1em;
       font-weight: bold;
     }
     details details > summary {
@@ -98,11 +122,55 @@
       white-space: pre-wrap;
       word-wrap: break-word;
       margin: 10px 0;
+      font-size: 14px;
     }
     .markdown-content code {
       background-color: #f9f9f9;
       padding: 2px 4px;
       border-radius: 3px;
+      font-size: 14px;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.5em;
+      }
+      button {
+        width: 100%;
+        margin: 8px 0;
+        padding: 12px 10px;
+      }
+      .container {
+        padding: 10px;
+      }
+      .task-buttons button {
+        display: block;
+        width: 100%;
+      }
+      details > summary {
+        font-size: 1em;
+      }
+      .admin-panel {
+        overflow: auto;
+      }
+      iframe {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+    
+    /* Стили для очень маленьких экранов */
+    @media (max-width: 400px) {
+      h1 {
+        font-size: 1.3em;
+      }
+      button {
+        font-size: 14px;
+      }
+      .container {
+        padding: 8px;
+      }
     }
   </style>
 </head>
@@ -136,7 +204,7 @@
     </div>
     <div id="task-selection" class="hidden">
       <h1 id="day-header"></h1>
-      <div id="task-buttons"></div>
+      <div id="task-buttons" class="task-buttons"></div>
       <button onclick="goBackToDaySelection()">Back</button>
     </div>
   </div>

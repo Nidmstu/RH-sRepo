@@ -374,7 +374,7 @@ class AdminInterface {
         flex-direction: column;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: #333;
-        overflow: hidden;
+        overflow: auto;
       }
       
       .admin-panel.hidden {
@@ -405,6 +405,37 @@ class AdminInterface {
       /* Основное содержимое */
       .admin-body {
         display: flex;
+        flex-direction: row;
+        overflow: auto;
+      }
+      
+      /* Адаптивные стили для мобильных устройств */
+      @media (max-width: 768px) {
+        .admin-body {
+          flex-direction: column;
+        }
+        
+        .admin-sidebar, 
+        .admin-main {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        .admin-header h1 {
+          font-size: 1.2rem;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          font-size: 16px; /* Предотвращает масштабирование на iOS */
+        }
+        
+        .admin-panel button {
+          width: 100%;
+          margin: 5px 0;
+        }
+      };
         height: calc(100% - 60px);
         overflow: hidden;
       }
