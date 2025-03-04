@@ -1032,52 +1032,6 @@ class AdminInterface {
     }
 
     // Добавление нового курса
-
-  /**
-   * Тестирование доступности вебхука
-   */
-  testWebhookConnection(webhookUrl) {
-    this.showWebhookStatus(`Проверка соединения с ${webhookUrl}...`, 'info');
-    
-    // Используем простой GET запрос для проверки соединения
-    fetch(webhookUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'X-Test-Connection': 'true'
-      },
-      mode: 'cors',
-      cache: 'no-cache'
-    })
-    .then(response => {
-      console.log('Тест соединения - статус:', response.status);
-      console.log('Заголовки ответа:', Object.fromEntries([...response.headers.entries()]));
-      
-      return response.text().then(text => {
-        console.log('Тело ответа при тестировании:', text);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`);
-        }
-        return text;
-      });
-    })
-    .then(result => {
-      console.log('Тест соединения выполнен успешно:', result);
-      this.showWebhookStatus('Соединение с вебхуком установлено успешно', 'success');
-    })
-    .catch(error => {
-      console.error('Ошибка при тестировании соединения:', error);
-      console.error('Полные данные об ошибке:', error);
-      
-      // Проверка на CORS ошибки
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        this.showWebhookStatus('Ошибка CORS или недоступность сервера. Проверьте консоль браузера.', 'error');
-      } else {
-        this.showWebhookStatus(`Ошибка соединения: ${error.toString()}`, 'error');
-      }
-    });
-  }
-
     const addCourseBtn = document.getElementById('admin-add-course');
     if (addCourseBtn) {
       addCourseBtn.addEventListener('click', () => {
@@ -1362,19 +1316,6 @@ class AdminInterface {
           this.importDataFromWebhook(importWebhookUrl);
         } else {
           this.showWebhookStatus('URL для импорта не указан', 'error');
-        }
-      });
-    }
-    
-    // Обработчик для кнопки тестирования соединения
-    const testConnectionBtn = document.getElementById('admin-test-connection');
-    if (testConnectionBtn) {
-      testConnectionBtn.addEventListener('click', () => {
-        const exportWebhookUrl = document.getElementById('admin-export-webhook-url').value;
-        if (exportWebhookUrl) {
-          this.testWebhookConnection(exportWebhookUrl);
-        } else {
-          this.showWebhookStatus('URL для проверки не указан', 'error');
         }
       });
     }
@@ -2643,9 +2584,6 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
-    console.log('Отправка запроса на URL:', webhookUrl);
-    console.log('Данные для отправки:', settings);
-    
     fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -2659,16 +2597,10 @@ class AdminInterface {
       })
     })
     .then(response => {
-      console.log('Статус ответа:', response.status);
-      console.log('Заголовки ответа:', Object.fromEntries([...response.headers.entries()]));
-      
-      // Клонирование ответа для получения текста и при этом проверка статуса
-      return response.text().then(text => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`);
-        }
-        return text;
-      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.text();
     })
     .then(result => {
       console.log('Webhook settings response:', result);
@@ -2676,10 +2608,7 @@ class AdminInterface {
     })
     .catch(error => {
       console.error('Webhook settings error:', error);
-      // Более подробное сообщение об ошибке
-      const errorDetails = error.toString();
-      console.error('Error details:', errorDetails);
-      this.showWebhookStatus(`Ошибка при отправке настроек: ${errorDetails}`, 'error');
+      this.showWebhookStatus(`Ошибка при отправке настроек: ${error.message}`, 'error');
     });
   }
   
@@ -2732,9 +2661,6 @@ class AdminInterface {
       type: 'full_courses_export'
     };
     
-    console.log('Экспорт данных на URL:', webhookUrl);
-    console.log('Размер данных:', JSON.stringify(data).length, 'байт');
-    
     // Отправляем данные на вебхук
     fetch(webhookUrl, {
       method: 'POST',
@@ -2744,17 +2670,10 @@ class AdminInterface {
       body: JSON.stringify(data)
     })
     .then(response => {
-      console.log('Статус ответа:', response.status);
-      console.log('Заголовки ответа:', Object.fromEntries([...response.headers.entries()]));
-      
-      // Клонирование ответа для получения текста и при этом проверка статуса
-      return response.text().then(text => {
-        console.log('Тело ответа:', text);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`);
-        }
-        return text;
-      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.text();
     })
     .then(result => {
       console.log('Webhook response:', result);
@@ -2762,15 +2681,7 @@ class AdminInterface {
     })
     .catch(error => {
       console.error('Webhook error:', error);
-      const errorDetails = error.toString();
-      console.error('Error details:', errorDetails);
-      this.showWebhookStatus(`Ошибка при отправке данных: ${errorDetails}`, 'error');
-      
-      // Добавляем информацию о возможных сетевых проблемах
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('Возможная причина: проблемы с сетью или CORS');
-        this.showWebhookStatus('Возможная причина: проблемы с CORS или блокировка смешанного контента', 'error');
-      }
+      this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}`, 'error');
     });
   }
   

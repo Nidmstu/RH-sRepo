@@ -1,285 +1,210 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Администрирование курсов</title>
-  <!-- Подключаем marked.js для парсинга Markdown -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Подключаем Font Awesome для иконок -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель администратора</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      background-color: #f5f5f5;
     }
-
-    .admin-header {
-      background-color: #2c3e50;
+    
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    header {
+      background-color: #333;
       color: white;
-      padding: 15px 20px;
+      padding: 10px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
-    .admin-header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
-
-    .admin-container {
+    
+    .main-container {
       display: flex;
-      min-height: calc(100vh - 60px);
+      flex: 1;
+      width: 100%;
+      flex-direction: row;
     }
-
-    .admin-sidebar {
-      width: 300px;
-      background-color: #fff;
-      border-right: 1px solid #ddd;
+    
+    .sidebar {
+      background-color: #f5f5f5;
+      width: 250px;
+      overflow-y: auto;
       padding: 20px;
+      border-right: 1px solid #ddd;
     }
-
-    .admin-content {
+    
+    .sidebar h2 {
+      margin-bottom: 15px;
+    }
+    
+    .sidebar ul {
+      list-style-type: none;
+    }
+    
+    .sidebar li {
+      margin-bottom: 10px;
+      padding: 8px;
+      cursor: pointer;
+    }
+    
+    .sidebar li:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .sidebar li.active {
+      background-color: #ddd;
+      font-weight: bold;
+    }
+    
+    .content {
       flex: 1;
       padding: 20px;
-      overflow: auto;
+      overflow-y: auto;
     }
-
-    .admin-mobile-nav {
-      display: none;
-      padding: 10px;
-      background-color: #fff;
+    
+    .welcome-message {
+      text-align: center;
+      margin-top: 50px;
+    }
+    
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 8px 15px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    button.delete {
+      background-color: #f44336;
+    }
+    
+    button.delete:hover {
+      background-color: #d32f2f;
+    }
+    
+    /* Стили для вкладок */
+    .tab-buttons {
+      display: flex;
+      margin-bottom: 15px;
       border-bottom: 1px solid #ddd;
     }
-
-    @media (max-width: 768px) {
-      .admin-container {
+    
+    .tab-button {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+    }
+    
+    .tab-button.active {
+      background-color: white;
+      border-bottom: 2px solid white;
+    }
+    
+    .tab-panel {
+      display: none;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    /* Адаптивный дизайн для планшетов и мобильных устройств */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: row;
+      }
+      
+      .sidebar {
+        width: 50%;
+        min-width: 50%;
+        max-width: 50%;
+      }
+      
+      .content {
+        width: 50%;
+        min-width: 50%;
+        max-width: 50%;
+      }
+    }
+    
+    @media (max-width: 768px) and (orientation: portrait) {
+      .main-container {
         flex-direction: column;
       }
-
-      .admin-sidebar {
+      
+      .sidebar {
         width: 100%;
-        display: none;
+        max-width: 100%;
+        min-width: 100%;
+        height: 33vh;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
       }
-
-      .admin-mobile-nav {
-        display: block;
+      
+      .content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        height: 67vh;
       }
-    }
-
-    /* Добавляем стили для webhooks секции */
-    #admin-tab-webhooks {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    #admin-webhook-status {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="admin-header">
-    <h1>Управление курсами и материалами</h1>
-    <a href="index.html" class="admin-btn">Вернуться на главную</a>
-  </div>
-
-  <div class="admin-mobile-nav">
-    <button id="toggle-sidebar" class="admin-btn admin-btn-block">
-      <i class="fas fa-bars"></i> Показать меню курсов
-    </button>
-  </div>
-
-  <div class="admin-container">
-    <div class="admin-sidebar">
-      <div class="admin-sidebar-section">
-        <h3>Курсы</h3>
-        <div id="admin-courses-list" class="admin-list"></div>
-        <button id="admin-add-course" class="admin-btn admin-btn-success admin-btn-block">
-          <i class="fas fa-plus"></i> Добавить курс
-        </button>
-      </div>
+  <header>
+    <h1>Управление курсами</h1>
+    <div>
+      <button id="to-learning" class="secondary">К обучению</button>
+      <button id="export-data" class="secondary">Экспорт данных</button>
+      <button id="send-webhook" class="primary">Отправить на вебхук</button>
     </div>
-
-    <div class="admin-content">
-      <!-- Начальный экран -->
-      <div id="admin-welcome" class="admin-panel-section">
-        <div class="admin-welcome-content">
-          <h2>Добро пожаловать в панель управления</h2>
-          <p>Выберите курс в боковом меню или создайте новый</p>
-        </div>
-      </div>
-
-      <!-- Редактирование курса -->
-      <div id="admin-course-editor" class="admin-panel-section hidden">
-        <div class="admin-section-header">
-          <h2>Редактирование курса: <span id="admin-course-title">Название курса</span></h2>
-          <div class="admin-section-actions">
-            <button id="admin-save-course" class="admin-btn admin-btn-primary">Сохранить</button>
-            <button id="admin-export-course" class="admin-btn">Экспорт</button>
-            <button id="admin-import-course" class="admin-btn">Импорт</button>
-          </div>
-        </div>
-
-        <div class="admin-course-form">
-          <div class="admin-form-group">
-            <label for="admin-course-id">ID курса:</label>
-            <input type="text" id="admin-course-id" class="admin-input">
-          </div>
-          <div class="admin-form-group">
-            <label for="admin-course-title-input">Название курса:</label>
-            <input type="text" id="admin-course-title-input" class="admin-input">
-          </div>
-          <div class="admin-form-group">
-            <label for="admin-course-redirect">URL перенаправления (опционально):</label>
-            <input type="text" id="admin-course-redirect" class="admin-input" placeholder="Оставьте пустым, если перенаправление не требуется">
-          </div>
-        </div>
-
-        <div class="admin-section-divider"></div>
-
-        <div class="admin-tabs">
-          <div class="admin-tab-header">
-            <button class="admin-tab-btn active" data-tab="days">Дни обучения</button>
-            <button class="admin-tab-btn" data-tab="special-lessons">Специальные уроки</button>
-            <button class="admin-tab-btn" data-tab="webhooks">Настройки вебхуков</button>
-          </div>
-
-          <div class="admin-tab-content">
-            <!-- Дни обучения -->
-            <div id="admin-tab-days" class="admin-tab-pane active">
-              <div class="admin-section-header">
-                <h3>Дни обучения</h3>
-                <button id="admin-add-day" class="admin-btn admin-btn-sm admin-btn-success">
-                  <i class="fas fa-plus"></i> Добавить день
-                </button>
-              </div>
-              <div id="admin-days-list" class="admin-list"></div>
-            </div>
-
-            <!-- Специальные уроки -->
-            <div id="admin-tab-special-lessons" class="admin-tab-pane">
-              <div class="admin-section-header">
-                <h3>Специальные уроки</h3>
-                <button id="admin-add-special-lesson" class="admin-btn admin-btn-sm admin-btn-success">
-                  <i class="fas fa-plus"></i> Добавить урок
-                </button>
-              </div>
-              <div id="admin-special-lessons-list" class="admin-list"></div>
-
-              <div class="admin-section-header" style="margin-top: 20px;">
-                <h3>Уроки без дня</h3>
-                <p>Уроки, доступные без выбора дня обучения, например "Словарь"</p>
-              </div>
-              <button id="admin-add-vocabulary" class="admin-btn admin-btn-success" style="margin-bottom: 10px;">
-                <i class="fas fa-plus"></i> Добавить словарь
-              </button>
-              <div id="admin-no-day-lessons-list" class="admin-list"></div>
-            </div>
-
-            <!-- Настройки вебхуков -->
-            <div id="admin-tab-webhooks" class="admin-tab-pane">
-              <div class="admin-section-header">
-                <h3>Настройки вебхуков</h3>
-              </div>
-
-              <div class="admin-form">
-                <div class="admin-form-group">
-                  <label for="admin-export-webhook-url">URL для экспорта данных:</label>
-                  <input type="text" id="admin-export-webhook-url" class="admin-input" placeholder="https://example.com/api/export">
-                </div>
-
-                <div class="admin-form-group">
-                  <label for="admin-import-webhook-url">URL для импорта данных:</label>
-                  <input type="text" id="admin-import-webhook-url" class="admin-input" placeholder="https://example.com/api/import">
-                </div>
-
-                <div class="admin-section-actions" style="margin-top: 15px;">
-                  <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">Сохранить настройки</button>
-                  <button id="admin-test-connection" class="admin-btn">Проверить соединение</button>
-                  <button id="admin-test-export-webhook" class="admin-btn">Тест экспорта</button>
-                  <button id="admin-test-import-webhook" class="admin-btn">Тест импорта</button>
-                </div>
-
-                <div id="admin-webhook-status" style="margin-top: 15px;"></div>
-
-                <div class="admin-form-group" style="margin-top: 20px;">
-                  <button id="admin-webhook-export" class="admin-btn admin-btn-success">
-                    <i class="fas fa-cloud-upload-alt"></i> Экспортировать все данные на вебхук
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Редактирование дня -->
-      <div id="admin-day-editor" class="admin-panel-section hidden">
-        <div class="admin-section-header">
-          <h2>Редактирование дня</h2>
-          <div class="admin-section-actions">
-            <button id="admin-save-day" class="admin-btn admin-btn-primary">Сохранить</button>
-            <button id="admin-cancel-day" class="admin-btn">Отмена</button>
-          </div>
-        </div>
-
-        <div class="admin-form">
-          <div class="admin-form-group">
-            <label for="admin-day-id">ID дня:</label>
-            <input type="number" id="admin-day-id" class="admin-input" min="1">
-          </div>
-          <div class="admin-form-group">
-            <label for="admin-day-title">Название дня:</label>
-            <input type="text" id="admin-day-title" class="admin-input" placeholder="День 1">
-          </div>
-
-          <div class="admin-section-divider"></div>
-
-          <div class="admin-section-header">
-            <h3>Уроки</h3>
-            <button id="admin-add-lesson" class="admin-btn admin-btn-sm admin-btn-success">
-              <i class="fas fa-plus"></i> Добавить урок
-            </button>
-          </div>
-          <div id="admin-lessons-list" class="admin-list"></div>
-        </div>
-      </div>
-
-      <!-- Редактирование урока -->
-      <div id="admin-lesson-editor" class="admin-panel-section hidden">
-        <!-- Содержимое будет заполнено из adminInterface.js -->
+  </header>
+  
+  <div class="main-container">
+    <div class="sidebar">
+      <h2>Курсы</h2>
+      <ul id="courses-list"></ul>
+    </div>
+    
+    <div class="content" id="content">
+      <div class="welcome-message">
+        <h2>Добро пожаловать в панель управления</h2>
+        <p>Выберите курс в боковом меню или создайте новый</p>
       </div>
     </div>
   </div>
-
-  <!-- Подключаем скрипты -->
-  <script type="module">
-    import courseManager from './js/courseManager.js';
-    import adminInterface from './js/adminInterface.js';
-    import './js/admin.js'; // Подключаем административный модуль
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      console.log('Страница администратора загружена, инициализация...');
-
-      // Инициализируем менеджер курсов
-      await courseManager.initialize();
-
-      // Делаем adminInterface глобально доступным
-      window.courseManager = courseManager;
-      window.adminInterface = adminInterface;
-
-      // Показываем административный интерфейс
-      adminInterface.show();
-    });
-  </script>
+  
+  <script src="js/adminInterface.js"></script>
+  <script src="js/courseManager.js"></script>
+  <script src="js/admin.js"></script>
 </body>
 </html>
