@@ -240,7 +240,7 @@
       font-size: 0.8rem;
       color: #777;
     }
-    
+
     .admin-list-item-source {
       font-size: 0.75rem;
       color: #006699;
@@ -793,7 +793,7 @@
               </button>
               <div id="admin-no-day-lessons-list" class="admin-list"></div>
             </div>
-            
+
             <!-- Настройки вебхуков -->
             <div id="admin-tab-webhooks" class="admin-tab-pane hidden">
               <div class="admin-section-header">
@@ -811,16 +811,11 @@
                   <input type="text" id="admin-import-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/import">
                 </div>
-                <div style="margin-top: 20px;">
-                  <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">
-                    <i class="fas fa-save"></i> Сохранить настройки
-                  </button>
-                  <button id="admin-test-export-webhook" class="admin-btn admin-btn-sm">
-                    <i class="fas fa-upload"></i> Протестировать экспорт
-                  </button>
-                  <button id="admin-test-import-webhook" class="admin-btn admin-btn-sm">
-                    <i class="fas fa-download"></i> Протестировать импорт
-                  </button>
+                <div class="admin-form-actions">
+                  <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">Сохранить настройки</button>
+                  <button id="admin-test-connection" class="admin-btn">Проверить соединение</button>
+                  <button id="admin-test-export-webhook" class="admin-btn">Тест экспорта</button>
+                  <button id="admin-test-import-webhook" class="admin-btn">Тест импорта</button>
                 </div>
               </div>
               <div id="admin-webhook-status" style="margin-top: 20px; padding: 10px; border-radius: 4px;"></div>
