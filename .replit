@@ -1,6 +1,6 @@
 entrypoint="index.html"
 hidden=[".config"]
-modules = ["web:v2-20230623-0b7a606"]
+modules = ["web:v2-20230623-0b7a606", "postgresql-16"]
 
 [nix]
 channel = "stable-23_11"
