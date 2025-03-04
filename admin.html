@@ -811,6 +811,12 @@
                   <input type="text" id="admin-import-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/import">
                 </div>
+                <div class="admin-form-group">
+                  <label for="admin-get-webhooks-url">URL для получения вебхуков:</label>
+                  <input type="text" id="admin-get-webhooks-url" class="admin-input" 
+                         placeholder="https://auto.crm-s.com/webhook-test/GetOnboardingHooks" 
+                         value="https://auto.crm-s.com/webhook-test/GetOnboardingHooks">
+                </div>
                 <div style="margin-top: 20px;">
                   <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">
                     <i class="fas fa-save"></i> Сохранить настройки
@@ -820,6 +826,9 @@
                   </button>
                   <button id="admin-test-import-webhook" class="admin-btn admin-btn-sm">
                     <i class="fas fa-download"></i> Протестировать импорт
+                  </button>
+                  <button id="admin-get-webhooks" class="admin-btn admin-btn-primary admin-btn-sm">
+                    <i class="fas fa-cloud-download-alt"></i> Получить вебхуки
                   </button>
                 </div>
               </div>
