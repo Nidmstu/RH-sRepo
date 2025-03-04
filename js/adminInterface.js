@@ -543,14 +543,15 @@ class AdminInterface {
       </div>
     `;
 
-    // Добавляем стили для админ-панели
-    this.addStyles();
+      // Добавляем стили для админ-панели
+      this.addStyles();
 
-    // Подключаем обработчики событий
-    this.setupEventListeners();
+      // Подключаем обработчики событий
+      this.setupEventListeners();
 
-    this.isInitialized = true;
-    console.log('Административный интерфейс инициализирован');
+      this.isInitialized = true;
+      console.log('Административный интерфейс инициализирован');
+    }
   }
 
   /**
@@ -1302,7 +1303,7 @@ class AdminInterface {
     coursesList.innerHTML = '';
 
     console.log('Загружаю список курсов...');
-    console.log('Доступные профессии:', window.courseManager.courses);
+    console.log('Доступные профессии:', Object.keys(window.courseManager.courses || {}));
 
     // Убеждаемся, что courseManager и courses существуют
     if (!window.courseManager || !window.courseManager.courses) {
@@ -1790,7 +1791,7 @@ class AdminInterface {
 
     alert('День успешно сохранен!');
   }
-  
+
   /**
    * Отмена редактирования дня
    */
