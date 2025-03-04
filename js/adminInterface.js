@@ -951,126 +951,200 @@ class AdminInterface {
    * Настройка обработчиков событий
    */
   setupEventListeners() {
-    // Закрытие админ-панели
-    document.getElementById('admin-close').addEventListener('click', () => {
-      this.hide();
-    });
+    // Закрытие админ-панели (только для встроенной панели)
+    const closeBtn = document.getElementById('admin-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.hide();
+      });
+    }
     
-    // Переключение полноэкранного режима
-    document.getElementById('admin-toggle-fullscreen').addEventListener('click', () => {
-      this.toggleFullscreen();
-    });
+    // Переключение полноэкранного режима (только для встроенной панели)
+    const fullscreenBtn = document.getElementById('admin-toggle-fullscreen');
+    if (fullscreenBtn) {
+      fullscreenBtn.addEventListener('click', () => {
+        this.toggleFullscreen();
+      });
+    }
     
     // Добавление нового курса
-    document.getElementById('admin-add-course').addEventListener('click', () => {
-      this.createCourse();
-    });
+    const addCourseBtn = document.getElementById('admin-add-course');
+    if (addCourseBtn) {
+      addCourseBtn.addEventListener('click', () => {
+        this.createCourse();
+      });
+    }
     
     // Сохранение курса
-    document.getElementById('admin-save-course').addEventListener('click', () => {
-      this.saveCourse();
-    });
+    const saveCourseBtn = document.getElementById('admin-save-course');
+    if (saveCourseBtn) {
+      saveCourseBtn.addEventListener('click', () => {
+        this.saveCourse();
+      });
+    }
     
     // Экспорт курса
-    document.getElementById('admin-export-course').addEventListener('click', () => {
-      this.exportCourse();
-    });
+    const exportCourseBtn = document.getElementById('admin-export-course');
+    if (exportCourseBtn) {
+      exportCourseBtn.addEventListener('click', () => {
+        this.exportCourse();
+      });
+    }
     
     // Импорт курса
-    document.getElementById('admin-import-course').addEventListener('click', () => {
-      this.importCourse();
-    });
+    const importCourseBtn = document.getElementById('admin-import-course');
+    if (importCourseBtn) {
+      importCourseBtn.addEventListener('click', () => {
+        this.importCourse();
+      });
+    }
     
     // Добавление нового дня
-    document.getElementById('admin-add-day').addEventListener('click', () => {
-      this.createDay();
-    });
+    const addDayBtn = document.getElementById('admin-add-day');
+    if (addDayBtn) {
+      addDayBtn.addEventListener('click', () => {
+        this.createDay();
+      });
+    }
     
     // Сохранение дня
-    document.getElementById('admin-save-day').addEventListener('click', () => {
-      this.saveDay();
-    });
+    const saveDayBtn = document.getElementById('admin-save-day');
+    if (saveDayBtn) {
+      saveDayBtn.addEventListener('click', () => {
+        this.saveDay();
+      });
+    }
     
     // Отмена редактирования дня
-    document.getElementById('admin-cancel-day').addEventListener('click', () => {
-      this.cancelDayEdit();
-    });
+    const cancelDayBtn = document.getElementById('admin-cancel-day');
+    if (cancelDayBtn) {
+      cancelDayBtn.addEventListener('click', () => {
+        this.cancelDayEdit();
+      });
+    }
     
     // Добавление урока к дню
-    document.getElementById('admin-add-lesson').addEventListener('click', () => {
-      this.createLesson(false);
-    });
+    const addLessonBtn = document.getElementById('admin-add-lesson');
+    if (addLessonBtn) {
+      addLessonBtn.addEventListener('click', () => {
+        this.createLesson(false);
+      });
+    }
     
     // Добавление специального урока
-    document.getElementById('admin-add-special-lesson').addEventListener('click', () => {
-      this.createLesson(true);
-    });
+    const addSpecialLessonBtn = document.getElementById('admin-add-special-lesson');
+    if (addSpecialLessonBtn) {
+      addSpecialLessonBtn.addEventListener('click', () => {
+        this.createLesson(true);
+      });
+    }
     
     // Сохранение урока
-    document.getElementById('admin-save-lesson').addEventListener('click', () => {
-      this.saveLesson();
-    });
+    const saveLessonBtn = document.getElementById('admin-save-lesson');
+    if (saveLessonBtn) {
+      saveLessonBtn.addEventListener('click', () => {
+        this.saveLesson();
+      });
+    }
     
     // Отмена редактирования урока
-    document.getElementById('admin-cancel-lesson').addEventListener('click', () => {
-      this.cancelLessonEdit();
-    });
+    const cancelLessonBtn = document.getElementById('admin-cancel-lesson');
+    if (cancelLessonBtn) {
+      cancelLessonBtn.addEventListener('click', () => {
+        this.cancelLessonEdit();
+      });
+    }
     
     // Переключение вкладок
-    document.querySelectorAll('.admin-tab-btn').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const tabId = e.target.getAttribute('data-tab');
-        this.switchTab(tabId);
+    const tabButtons = document.querySelectorAll('.admin-tab-btn');
+    if (tabButtons && tabButtons.length > 0) {
+      tabButtons.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          const tabId = e.target.getAttribute('data-tab');
+          this.switchTab(tabId);
+        });
       });
-    });
+    }
     
     // Переключение типа источника контента
-    document.getElementById('admin-content-source-type').addEventListener('change', (e) => {
-      this.toggleSourceFields('content', e.target.value);
-    });
+    const contentSourceType = document.getElementById('admin-content-source-type');
+    if (contentSourceType) {
+      contentSourceType.addEventListener('change', (e) => {
+        this.toggleSourceFields('content', e.target.value);
+      });
+    }
     
     // Переключение типа источника теста
-    document.getElementById('admin-test-source-type').addEventListener('change', (e) => {
-      this.toggleSourceFields('test', e.target.value);
-    });
+    const testSourceType = document.getElementById('admin-test-source-type');
+    if (testSourceType) {
+      testSourceType.addEventListener('change', (e) => {
+        this.toggleSourceFields('test', e.target.value);
+      });
+    }
     
     // Переключение типа задания
-    document.getElementById('admin-task-source-type').addEventListener('change', (e) => {
-      this.toggleSourceFields('task', e.target.value);
-    });
+    const taskSourceType = document.getElementById('admin-task-source-type');
+    if (taskSourceType) {
+      taskSourceType.addEventListener('change', (e) => {
+        this.toggleSourceFields('task', e.target.value);
+      });
+    }
     
     // Переключение типа аудио
-    document.getElementById('admin-audio-source-type').addEventListener('change', (e) => {
-      this.toggleSourceFields('audio', e.target.value);
-    });
+    const audioSourceType = document.getElementById('admin-audio-source-type');
+    if (audioSourceType) {
+      audioSourceType.addEventListener('change', (e) => {
+        this.toggleSourceFields('audio', e.target.value);
+      });
+    }
     
     // Переключение резервного типа контента
-    document.getElementById('admin-content-fallback-type').addEventListener('change', (e) => {
-      if (e.target.value === 'none') {
-        document.getElementById('admin-content-fallback-id-group').classList.add('hidden');
-      } else {
-        document.getElementById('admin-content-fallback-id-group').classList.remove('hidden');
-      }
-    });
+    const contentFallbackType = document.getElementById('admin-content-fallback-type');
+    if (contentFallbackType) {
+      contentFallbackType.addEventListener('change', (e) => {
+        const fallbackIdGroup = document.getElementById('admin-content-fallback-id-group');
+        if (fallbackIdGroup) {
+          if (e.target.value === 'none') {
+            fallbackIdGroup.classList.add('hidden');
+          } else {
+            fallbackIdGroup.classList.remove('hidden');
+          }
+        }
+      });
+    }
     
     // Переключение резервного типа теста
-    document.getElementById('admin-test-fallback-type').addEventListener('change', (e) => {
-      if (e.target.value === 'none') {
-        document.getElementById('admin-test-fallback-id-group').classList.add('hidden');
-      } else {
-        document.getElementById('admin-test-fallback-id-group').classList.remove('hidden');
-      }
-    });
+    const testFallbackType = document.getElementById('admin-test-fallback-type');
+    if (testFallbackType) {
+      testFallbackType.addEventListener('change', (e) => {
+        const fallbackIdGroup = document.getElementById('admin-test-fallback-id-group');
+        if (fallbackIdGroup) {
+          if (e.target.value === 'none') {
+            fallbackIdGroup.classList.add('hidden');
+          } else {
+            fallbackIdGroup.classList.remove('hidden');
+          }
+        }
+      });
+    }
     
     // Аккордеоны
-    document.querySelectorAll('.admin-accordion-header').forEach(header => {
-      header.addEventListener('click', (e) => {
-        const content = header.nextElementSibling;
-        content.style.display = content.style.display === 'none' ? 'block' : 'none';
-        header.querySelector('i').classList.toggle('fa-chevron-down');
-        header.querySelector('i').classList.toggle('fa-chevron-up');
+    const accordionHeaders = document.querySelectorAll('.admin-accordion-header');
+    if (accordionHeaders && accordionHeaders.length > 0) {
+      accordionHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+          const content = header.nextElementSibling;
+          if (content) {
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            const icon = header.querySelector('i');
+            if (icon) {
+              icon.classList.toggle('fa-chevron-down');
+              icon.classList.toggle('fa-chevron-up');
+            }
+          }
+        });
       });
-    });
+    }
   }
   
   /**
