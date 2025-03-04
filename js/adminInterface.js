@@ -1264,6 +1264,22 @@ class AdminInterface {
         }
       });
     }
+    
+    // Добавляем обработчик для кнопки настроек вебхуков
+    const webhookSettingsBtn = document.getElementById('admin-webhook-settings');
+    if (webhookSettingsBtn) {
+      webhookSettingsBtn.addEventListener('click', () => {
+        this.openWebhookSettings();
+      });
+    }
+    
+    // Добавляем обработчик для кнопки экспорта всех данных
+    const exportAllBtn = document.getElementById('admin-export-all');
+    if (exportAllBtn) {
+      exportAllBtn.addEventListener('click', () => {
+        this.exportAllData();
+      });
+    }
   }
 
   /**
@@ -2470,6 +2486,239 @@ class AdminInterface {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+  
+  /**
+   * Открыть окно настроек импорта/экспорта
+   */
+  openWebhookSettings() {
+    // Получаем текущие настройки вебхуков
+    const exportWebhook = localStorage.getItem('admin-export-webhook') || '';
+    const importWebhook = localStorage.getItem('admin-import-webhook') || '';
+
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'admin-webhook-modal';
+
+    modal.innerHTML = `
+      <div class="admin-webhook-dialog">
+        <div class="admin-section-header">
+          <h2>Настройки импорта/экспорта</h2>
+          <button class="admin-btn admin-close-webhook-settings">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="admin-section-divider"></div>
+
+        <div class="admin-form">
+          <div class="admin-form-group">
+            <label for="admin-export-webhook-url">URL для экспорта данных (POST):</label>
+            <input type="text" id="admin-export-webhook-url" class="admin-input" 
+              placeholder="https://example.com/api/export" value="${exportWebhook}">
+            <p class="admin-form-help">URL, на который будут отправляться данные курсов методом POST</p>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="admin-import-webhook-url">URL для импорта данных (GET):</label>
+            <input type="text" id="admin-import-webhook-url" class="admin-input" 
+              placeholder="https://example.com/api/import" value="${importWebhook}">
+            <p class="admin-form-help">URL, с которого будут загружаться данные курсов методом GET</p>
+          </div>
+
+          <div class="admin-webhook-actions">
+            <button id="admin-save-webhook-settings" class="admin-btn admin-btn-primary">
+              Сохранить настройки
+            </button>
+            <button id="admin-export-to-webhook" class="admin-btn admin-btn-success">
+              Экспортировать данные
+            </button>
+            <button id="admin-import-from-webhook" class="admin-btn admin-btn-success">
+              Импортировать данные
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Добавляем стили для модального окна
+    if (!document.querySelector('style[data-for="admin-webhook-modal"]')) {
+      const style = document.createElement('style');
+      style.setAttribute('data-for', 'admin-webhook-modal');
+      style.textContent = `
+        .admin-webhook-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 2000;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .admin-webhook-dialog {
+          background-color: white;
+          padding: 20px;
+          border-radius: 5px;
+          width: 90%;
+          max-width: 600px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .admin-webhook-actions {
+          display: flex;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 20px;
+        }
+
+        .admin-webhook-actions button {
+          flex: 1;
+          min-width: 180px;
+        }
+
+        .admin-form-help {
+          font-size: 0.8rem;
+          color: #666;
+          margin-top: 5px;
+          margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+          .admin-webhook-dialog {
+            width: 95%;
+            padding: 15px;
+          }
+
+          .admin-webhook-actions button {
+            flex: 1 0 100%;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(modal);
+
+    // Обработчики событий
+    // Закрытие окна
+    modal.querySelector('.admin-close-webhook-settings').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    // Сохранение настроек
+    modal.querySelector('#admin-save-webhook-settings').addEventListener('click', () => {
+      const exportUrl = document.getElementById('admin-export-webhook-url').value;
+      const importUrl = document.getElementById('admin-import-webhook-url').value;
+
+      localStorage.setItem('admin-export-webhook', exportUrl);
+      localStorage.setItem('admin-import-webhook', importUrl);
+
+      alert('Настройки вебхуков сохранены!');
+    });
+
+    // Экспорт данных на вебхук
+    modal.querySelector('#admin-export-to-webhook').addEventListener('click', () => {
+      const exportUrl = document.getElementById('admin-export-webhook-url').value;
+      
+      if (!exportUrl) {
+        alert('Укажите URL для экспорта!');
+        return;
+      }
+      
+      this.exportDataToWebhook(exportUrl);
+    });
+
+    // Импорт данных с вебхука
+    modal.querySelector('#admin-import-from-webhook').addEventListener('click', () => {
+      const importUrl = document.getElementById('admin-import-webhook-url').value;
+      
+      if (!importUrl) {
+        alert('Укажите URL для импорта!');
+        return;
+      }
+      
+      this.importDataFromWebhook(importUrl);
+    });
+  }
+
+  /**
+   * Экспорт данных на вебхук
+   */
+  async exportDataToWebhook(url) {
+    if (!url) return;
+
+    try {
+      const data = {
+        courses: window.courseManager.courses,
+        fallbacks: window.courseManager.fallbacks || {}
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      alert('Данные успешно экспортированы на указанный вебхук!');
+    } catch (error) {
+      console.error('Ошибка при экспорте данных:', error);
+      alert(`Ошибка при экспорте данных: ${error.message}`);
+    }
+  }
+
+  /**
+   * Импорт данных с вебхука
+   */
+  async importDataFromWebhook(url) {
+    if (!url) return;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.courses) {
+        throw new Error('Неверный формат данных: не найден объект "courses"');
+      }
+
+      // Подтверждение импорта
+      if (confirm('Вы уверены, что хотите импортировать данные? Текущие данные будут заменены.')) {
+        // Обновляем данные в системе
+        window.courseManager.courses = data.courses;
+        
+        if (data.fallbacks) {
+          window.courseManager.fallbacks = data.fallbacks;
+        }
+
+        // Обновляем списки
+        this.loadCoursesList();
+
+        alert('Данные успешно импортированы!');
+      }
+    } catch (error) {
+      console.error('Ошибка при импорте данных:', error);
+      alert(`Ошибка при импорте данных: ${error.message}`);
+    }
   }
 
   loadNoDayLessonsList() {
