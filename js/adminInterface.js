@@ -314,6 +314,11 @@ class AdminInterface {
                 </div>
               </div>
             </div>
+            <div class="admin-section-header" style="margin-top: 20px;">
+                <h3>Уроки без дня</h3>
+                <p>Уроки, доступные без выбора дня обучения, например "Словарь"</p>
+              </div>
+              <div id="admin-no-day-lessons-list" class="admin-list"></div>
           </div>
 
           <!-- Редактирование дня -->
@@ -796,8 +801,7 @@ class AdminInterface {
       .admin-textarea {
         width: 100%;
         padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+        border: 1px solid #ddd;border-radius: 4px;
         font-size: 0.9rem;
         font-family: inherit;
       }
@@ -1425,6 +1429,7 @@ class AdminInterface {
     // Загружаем дни и специальные уроки
     this.loadDaysList();
     this.loadSpecialLessonsList();
+    this.loadNoDayLessonsList(); //Load lessons without day
 
     // Показываем редактор курса
     document.getElementById('admin-welcome').classList.add('hidden');
@@ -1444,7 +1449,8 @@ class AdminInterface {
     const newCourse = {
       title: "Новый курс",
       days: [],
-      specialLessons: []
+      specialLessons: [],
+      noDayLessons: [] //Add lessons without day
     };
 
     // Запрашиваем ID курса
@@ -1643,12 +1649,12 @@ class AdminInterface {
     specialLessonsList.innerHTML = '';
 
     if (!this.currentEditing.course) return;
-    
+
     // Убедимся, что массив specialLessons существует
     if (!this.currentEditing.course.specialLessons) {
       this.currentEditing.course.specialLessons = [];
     }
-    
+
     this.currentEditing.course.specialLessons.forEach((lesson, index) => {
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
@@ -2074,7 +2080,7 @@ class AdminInterface {
       if (!this.currentEditing.course.specialLessons) {
         this.currentEditing.course.specialLessons = [];
       }
-      
+
       // Сохраняем специальный урок
       if (this.currentEditing.isNew) {
         // Новый урок
@@ -2266,6 +2272,108 @@ class AdminInterface {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  loadNoDayLessonsList() {
+    const noDayLessonsList = document.getElementById('admin-no-day-lessons-list');
+    noDayLessonsList.innerHTML = '';
+
+    if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons) return;
+
+    this.currentEditing.course.noDayLessons.forEach((lesson, index) => {
+      const lessonItem = document.createElement('div');
+      lessonItem.className = 'admin-list-item';
+      lessonItem.innerHTML = `
+        <div class="admin-list-item-info">
+          <div class="admin-list-item-title">${lesson.title}</div>
+          <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
+        </div>
+        <div class="admin-list-item-actions">
+          <button class="admin-btn admin-btn-sm edit-no-day-lesson" data-index="${index}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="admin-btn admin-btn-sm admin-btn-danger delete-no-day-lesson" data-index="${index}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      `;
+      noDayLessonsList.appendChild(lessonItem);
+
+      lessonItem.querySelector('.edit-no-day-lesson').addEventListener('click', () => {
+        this.editNoDayLesson(index);
+      });
+
+      lessonItem.querySelector('.delete-no-day-lesson').addEventListener('click', () => {
+        this.deleteNoDayLesson(index);
+      });
+    });
+  }
+
+  editNoDayLesson(index) {
+    if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons[index]) return;
+    const lesson = this.currentEditing.course.noDayLessons[index];
+    this.fillLessonForm(lesson);
+    this.currentEditing.lesson = lesson;
+    this.currentEditing.lessonIndex = index;
+    this.currentEditing.isSpecial = false;
+    this.currentEditing.isNew = false;
+    document.getElementById('admin-welcome').classList.add('hidden');
+    document.getElementById('admin-course-editor').classList.add('hidden');
+    document.getElementById('admin-day-editor').classList.add('hidden');
+    document.getElementById('admin-lesson-editor').classList.remove('hidden');
+  }
+
+  deleteNoDayLesson(index) {
+    if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons[index]) return;
+    const lesson = this.currentEditing.course.noDayLessons[index];
+    if (!confirm(`Вы уверены, что хотите удалить урок "${lesson.title}"?`)) return;
+    this.currentEditing.course.noDayLessons.splice(index, 1);
+    this.loadNoDayLessonsList();
+    this.saveCoursesToJSON();
+  }
+
+  createNoDayLesson() {
+    const newLesson = {
+      id: '',
+      title: 'Новый урок без дня',
+      contentSource: { type: 'markdown', content: '' }
+    };
+    this.fillLessonForm(newLesson);
+    this.currentEditing.lesson = newLesson;
+    this.currentEditing.lessonIndex = -1;
+    this.currentEditing.isSpecial = false;
+    this.currentEditing.isNew = true;
+    document.getElementById('admin-welcome').classList.add('hidden');
+    document.getElementById('admin-course-editor').classList.add('hidden');
+    document.getElementById('admin-day-editor').classList.add('hidden');
+    document.getElementById('admin-lesson-editor').classList.remove('hidden');
+  }
+
+
+  saveNoDayLesson() {
+    const lessonData = {
+      id: document.getElementById('admin-lesson-id').value,
+      title: document.getElementById('admin-lesson-title').value,
+      contentSource: {
+        type: document.getElementById('admin-content-source-type').value,
+        content: document.getElementById('admin-content-markdown').value
+      }
+    };
+
+    if (!lessonData.id || !lessonData.title) {
+      alert('ID и название урока обязательны!');
+      return;
+    }
+
+    if (this.currentEditing.isNew) {
+      this.currentEditing.course.noDayLessons.push(lessonData);
+    } else {
+      this.currentEditing.course.noDayLessons[this.currentEditing.lessonIndex] = lessonData;
+    }
+    this.loadNoDayLessonsList();
+    this.saveCoursesToJSON();
+    this.cancelLessonEdit();
+    alert('Урок успешно сохранен!');
   }
 }
 
