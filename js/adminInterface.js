@@ -1231,34 +1231,21 @@ class AdminInterface {
       });
     }
 
-    // Добавляем кнопку переключения боковой панели для мобильных устройств
-    const adminBody = document.querySelector('.admin-body');
-    if (adminBody && window.innerWidth <= 768) {
-      // Создаем кнопку, если ее еще нет
-      if (!document.getElementById('toggle-sidebar')) {
-        const toggleBtn = document.createElement('button');
-        toggleBtn.id = 'toggle-sidebar';
-        toggleBtn.className = 'admin-btn admin-mobile-nav-toggle';
-        toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
-        toggleBtn.style.display = 'block';
-        
-        // Вставляем кнопку перед основным содержимым
-        adminBody.insertBefore(toggleBtn, adminBody.firstChild);
-        
-        // Добавляем обработчик события для кнопки
-        toggleBtn.addEventListener('click', () => {
-          const sidebar = document.querySelector('.admin-sidebar');
-          if (sidebar) {
-            if (sidebar.style.display === 'none') {
-              sidebar.style.display = 'block';
-              toggleBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть меню курсов';
-            } else {
-              sidebar.style.display = 'none';
-              toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
-            }
+    // Добавляем обработчик для кнопки переключения боковой панели
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+    if (toggleSidebarBtn) {
+      toggleSidebarBtn.addEventListener('click', () => {
+        const sidebar = document.querySelector('.admin-sidebar');
+        if (sidebar) {
+          if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+            toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть меню курсов';
+          } else {
+            sidebar.style.display = 'none';
+            toggleSidebarBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
           }
-        });
-      }
+        }
+      });
     }
   }
 
@@ -1300,18 +1287,10 @@ class AdminInterface {
       // Деактивируем все кнопки вкладок
       const allTabButtons = document.querySelectorAll('.admin-tab-btn');
       console.log(`Найдено ${allTabButtons.length} кнопок вкладок`);
-      allTabButtons.forEach(el => {
-        el.classList.remove('active');
+      allTabButtons.forEach(button => {
+        button.classList.remove('active');
       });
       
-      // Скрываем все панели вкладок
-      const allTabPanes = document.querySelectorAll('.admin-tab-pane');
-      console.log(`Найдено ${allTabPanes.length} панелей вкладок`);
-      allTabPanes.forEach(el => {
-        console.log(`Скрываем панель: ${el.id}`);
-        el.classList.add('hidden');
-      });
-
       // Активируем нужную кнопку вкладки
       const tabButton = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
       if (tabButton) {
@@ -1320,19 +1299,23 @@ class AdminInterface {
       } else {
         console.error(`Кнопка вкладки с data-tab="${tabId}" не найдена`);
       }
+
+      // Скрываем все панели вкладок
+      const allTabPanes = document.querySelectorAll('.admin-tab-pane');
+      console.log(`Найдено ${allTabPanes.length} панелей вкладок`);
+      allTabPanes.forEach(pane => {
+        pane.classList.add('hidden');
+        pane.style.display = 'none'; // Устанавливаем display: none для всех панелей
+      });
       
       // Показываем нужную панель
       const tabPaneId = `admin-tab-${tabId}`;
       const tabPane = document.getElementById(tabPaneId);
       
       if (tabPane) {
-        console.log(`Панель ${tabPaneId} найдена, текущие классы:`, tabPane.className);
+        console.log(`Панель ${tabPaneId} найдена, активируем её`);
         tabPane.style.display = 'block'; // Принудительно устанавливаем display: block
         tabPane.classList.remove('hidden');
-        
-        // Проверяем видимость панели после изменений
-        const computedStyle = window.getComputedStyle(tabPane);
-        console.log(`Панель ${tabId} стиль display после изменений:`, computedStyle.display);
         
         // Если это вкладка специальных уроков, обновляем их список
         if (tabId === 'special-lessons') {
