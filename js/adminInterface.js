@@ -1781,12 +1781,36 @@ class AdminInterface {
     }
 
     this.currentEditing.course.specialLessons.forEach((lesson, index) => {
+      // Формируем информацию об источнике контента
+      let contentSourceInfo = '';
+      if (lesson.contentSource) {
+        contentSourceInfo = `<div class="admin-list-item-source">Контент: ${lesson.contentSource.type}`;
+        if (lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+          contentSourceInfo += ` (${lesson.contentSource.url.substring(0, 30)}${lesson.contentSource.url.length > 30 ? '...' : ''})`;
+        } else if (lesson.contentSource.type === 'local' && lesson.contentSource.id) {
+          contentSourceInfo += ` (ID: ${lesson.contentSource.id})`;
+        }
+        contentSourceInfo += '</div>';
+      }
+
+      // Формируем информацию об источнике теста
+      let testSourceInfo = '';
+      if (lesson.testSource) {
+        testSourceInfo = `<div class="admin-list-item-source">Тест: ${lesson.testSource.type}`;
+        if (lesson.testSource.type === 'webhook' && lesson.testSource.url) {
+          testSourceInfo += ` (${lesson.testSource.url.substring(0, 30)}${lesson.testSource.url.length > 30 ? '...' : ''})`;
+        }
+        testSourceInfo += '</div>';
+      }
+      
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
       lessonItem.innerHTML = `
         <div class="admin-list-item-info">
           <div class="admin-list-item-title">${lesson.title || 'Без названия'}</div>
           <div class="admin-list-item-subtitle">ID: ${lesson.id || 'Без ID'}</div>
+          ${contentSourceInfo}
+          ${testSourceInfo}
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-special-lesson" data-index="${index}">
@@ -1879,12 +1903,36 @@ class AdminInterface {
     if (!this.currentEditing.day || !this.currentEditing.day.lessons) return;
 
     this.currentEditing.day.lessons.forEach((lesson, index) => {
+      // Формируем информацию об источнике контента
+      let contentSourceInfo = '';
+      if (lesson.contentSource) {
+        contentSourceInfo = `<div class="admin-list-item-source">Контент: ${lesson.contentSource.type}`;
+        if (lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+          contentSourceInfo += ` (${lesson.contentSource.url.substring(0, 30)}${lesson.contentSource.url.length > 30 ? '...' : ''})`;
+        } else if (lesson.contentSource.type === 'local' && lesson.contentSource.id) {
+          contentSourceInfo += ` (ID: ${lesson.contentSource.id})`;
+        }
+        contentSourceInfo += '</div>';
+      }
+
+      // Формируем информацию об источнике теста
+      let testSourceInfo = '';
+      if (lesson.testSource) {
+        testSourceInfo = `<div class="admin-list-item-source">Тест: ${lesson.testSource.type}`;
+        if (lesson.testSource.type === 'webhook' && lesson.testSource.url) {
+          testSourceInfo += ` (${lesson.testSource.url.substring(0, 30)}${lesson.testSource.url.length > 30 ? '...' : ''})`;
+        }
+        testSourceInfo += '</div>';
+      }
+
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
       lessonItem.innerHTML = `
         <div class="admin-list-item-info">
           <div class="admin-list-item-title">${lesson.title}</div>
           <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
+          ${contentSourceInfo}
+          ${testSourceInfo}
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-lesson" data-index="${index}">
@@ -2431,12 +2479,38 @@ class AdminInterface {
     if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons) return;
 
     this.currentEditing.course.noDayLessons.forEach((lesson, index) => {
+      // Формируем информацию об источнике контента
+      let contentSourceInfo = '';
+      if (lesson.contentSource) {
+        contentSourceInfo = `<div class="admin-list-item-source">Контент: ${lesson.contentSource.type}`;
+        if (lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+          contentSourceInfo += ` (${lesson.contentSource.url.substring(0, 30)}${lesson.contentSource.url.length > 30 ? '...' : ''})`;
+        } else if (lesson.contentSource.type === 'local' && lesson.contentSource.id) {
+          contentSourceInfo += ` (ID: ${lesson.contentSource.id})`;
+        } else if (lesson.contentSource.type === 'markdown') {
+          contentSourceInfo += ` (встроенный)`;
+        }
+        contentSourceInfo += '</div>';
+      }
+
+      // Формируем информацию об источнике теста
+      let testSourceInfo = '';
+      if (lesson.testSource) {
+        testSourceInfo = `<div class="admin-list-item-source">Тест: ${lesson.testSource.type}`;
+        if (lesson.testSource.type === 'webhook' && lesson.testSource.url) {
+          testSourceInfo += ` (${lesson.testSource.url.substring(0, 30)}${lesson.testSource.url.length > 30 ? '...' : ''})`;
+        }
+        testSourceInfo += '</div>';
+      }
+      
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
       lessonItem.innerHTML = `
         <div class="admin-list-item-info">
           <div class="admin-list-item-title">${lesson.title}</div>
           <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
+          ${contentSourceInfo}
+          ${testSourceInfo}
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-no-day-lesson" data-index="${index}">
