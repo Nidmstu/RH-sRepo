@@ -2584,7 +2584,7 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
-    console.log('Отправка данных на вебхук:', webhookUrl);
+    console.log('СЕТЕВОЙ ЗАПРОС: Отправка данных на вебхук:', webhookUrl);
     
     const data = {
       webhookSettings: settings,
@@ -2593,23 +2593,31 @@ class AdminInterface {
       type: 'webhook_settings_update'
     };
     
-    console.log('Отправляемые данные:', JSON.stringify(data, null, 2));
+    console.log('СЕТЕВОЙ ЗАПРОС: Отправляемые данные:', JSON.stringify(data, null, 2));
     
-    fetch(webhookUrl, {
+    const options = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*'
+        'Accept': 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       mode: 'cors',
       cache: 'no-cache',
       body: JSON.stringify(data)
-    })
+    };
+    
+    console.log('СЕТЕВОЙ ЗАПРОС: Параметры запроса:', JSON.stringify(options, null, 2));
+    
+    fetch(webhookUrl, options)
     .then(response => {
-      console.log('Получен ответ с кодом:', response.status);
+      console.log('СЕТЕВОЙ ЗАПРОС: Получен ответ с кодом:', response.status);
+      console.log('СЕТЕВОЙ ЗАПРОС: Заголовки ответа:', 
+        JSON.stringify(Array.from(response.headers.entries()), null, 2));
+      
       if (!response.ok) {
         return response.text().then(text => {
-          console.error('Ошибка ответа сервера:', text);
+          console.error('СЕТЕВОЙ ЗАПРОС: Ошибка ответа сервера:', text);
           throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
         });
       }
@@ -2642,21 +2650,41 @@ class AdminInterface {
    */
   showWebhookStatus(message, type = 'info') {
     const statusEl = document.getElementById('admin-webhook-status');
-    if (!statusEl) return;
+    if (!statusEl) {
+      console.warn('Элемент для отображения статуса вебхука не найден');
+      return;
+    }
     
     let bgColor = '#e3f2fd'; // info
     if (type === 'success') bgColor = '#e8f5e9';
     if (type === 'error') bgColor = '#ffebee';
     
-    statusEl.style.backgroundColor = bgColor;
-    statusEl.innerHTML = `<p>${message}</p>`;
+    const timestamp = new Date().toLocaleTimeString();
     
-    // Автоматически скрываем сообщение через 5 секунд, если это сообщение об успехе
-    if (type === 'success') {
+    // Сохраняем предыдущие сообщения
+    const previousMessages = statusEl.innerHTML;
+    
+    // Добавляем новое сообщение в начало с указанием времени
+    statusEl.innerHTML = `
+      <div style="padding: 8px; margin-bottom: 8px; border-radius: 4px; background-color: ${bgColor};">
+        <p style="margin: 0; font-weight: ${type === 'error' ? 'bold' : 'normal'}">
+          <span style="color: #666; font-size: 0.8em;">[${timestamp}]</span> 
+          ${message}
+        </p>
+      </div>
+      ${previousMessages}
+    `;
+    
+    // Логируем сообщение в консоль
+    console.log(`СТАТУС ВЕБХУКА [${type}]: ${message}`);
+    
+    // Автоматически очищаем блок через 30 секунд, если накопилось слишком много сообщений
+    if (statusEl.childElementCount > 10) {
       setTimeout(() => {
-        statusEl.innerHTML = '';
-        statusEl.style.backgroundColor = 'transparent';
-      }, 5000);
+        while (statusEl.childElementCount > 5) {
+          statusEl.removeChild(statusEl.lastChild);
+        }
+      }, 30000);
     }
   }
   
@@ -2666,46 +2694,99 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
-    console.log('Экспорт данных на URL:', webhookUrl);
+    console.log('ЭКСПОРТ: Отправка данных на URL:', webhookUrl);
     
-    // Подготавливаем данные для отправки
-    const data = {
-      courses: window.courseManager.courses,
-      timestamp: new Date().toISOString(),
-      source: window.location.hostname || 'onboarding-app',
-      type: 'full_courses_export'
-    };
-    
-    console.log('Начало отправки данных. Объем данных:', JSON.stringify(data).length, 'байт');
-    
-    // Отправляем данные на вебхук
+    // Тестируем доступность сервера сначала GET запросом
     fetch(webhookUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*'
+        'Accept': 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       mode: 'cors',
       cache: 'no-cache',
-      body: JSON.stringify(data)
     })
     .then(response => {
-      console.log('Получен ответ с кодом:', response.status);
+      console.log('ЭКСПОРТ: Предварительный GET-запрос выполнен, статус:', response.status);
+      
+      // После успешной проверки делаем основной запрос
+      // Подготавливаем данные для отправки
+      const data = {
+        courses: window.courseManager.courses,
+        timestamp: new Date().toISOString(),
+        source: window.location.hostname || 'onboarding-app',
+        type: 'full_courses_export'
+      };
+      
+      console.log('ЭКСПОРТ: Начало отправки данных POST. Объем данных:', JSON.stringify(data).length, 'байт');
+      
+      // Отправляем данные на вебхук
+      return fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        mode: 'cors',
+        cache: 'no-cache',
+        body: JSON.stringify(data)
+      });
+    })
+    .then(response => {
+      console.log('ЭКСПОРТ: Получен ответ с кодом:', response.status);
+      console.log('ЭКСПОРТ: Заголовки ответа:', 
+        JSON.stringify(Array.from(response.headers.entries()), null, 2));
+      
       if (!response.ok) {
         return response.text().then(text => {
-          console.error('Ошибка ответа сервера:', text);
+          console.error('ЭКСПОРТ: Ошибка ответа сервера:', text);
           throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
         });
       }
       return response.text();
     })
     .then(result => {
-      console.log('Webhook response:', result);
+      console.log('ЭКСПОРТ: Webhook response:', result);
       this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
     })
     .catch(error => {
-      console.error('Webhook error:', error.message);
-      this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}`, 'error');
+      console.error('ЭКСПОРТ: Webhook error:', error);
+      console.error('ЭКСПОРТ: Подробная информация об ошибке:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Попробуем альтернативный запрос с XMLHttpRequest
+      console.log('ЭКСПОРТ: Пробуем альтернативный метод отправки через XMLHttpRequest');
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', webhookUrl, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          console.log('ЭКСПОРТ: XHR статус:', xhr.status);
+          console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            this.showWebhookStatus('Данные успешно отправлены на вебхук (альтернативный метод)', 'success');
+          } else {
+            this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText}`, 'error');
+          }
+        }
+      };
+      
+      const data = {
+        courses: window.courseManager.courses,
+        timestamp: new Date().toISOString(),
+        source: window.location.hostname || 'onboarding-app',
+        type: 'full_courses_export'
+      };
+      
+      xhr.send(JSON.stringify(data));
+      this.showWebhookStatus(`Ошибка при отправке данных: ${error.message}. Пробуем альтернативный метод...`, 'error');
     });
   }
   
