@@ -132,7 +132,7 @@
     }
 
     /* Адаптивные стили для планшетов */
-    @media (max-width: 768px) and (min-width: 481px) {
+    @media (max-width: 1024px) and (min-width: 481px) {
       .admin-body {
         flex-direction: row;
       }
@@ -148,6 +148,40 @@
         border-right: 1px solid #ddd;
         display: flex;
         flex-direction: column;
+      }
+
+      .admin-content {
+        width: 50%;
+      }
+    }
+
+    /* Стили для альбомной ориентации на планшетах */
+    @media (max-width: 1024px) and (min-width: 481px) and (orientation: landscape) {
+      .admin-body {
+        flex-direction: row;
+      }
+
+      .admin-sidebar {
+        width: 50%;
+      }
+
+      .admin-content {
+        width: 50%;
+      }
+    }
+
+    /* Стили для портретной ориентации на планшетах */
+    @media (max-width: 1024px) and (min-width: 481px) and (orientation: portrait) {
+      .admin-body {
+        flex-direction: row;
+      }
+
+      .admin-sidebar {
+        width: 50%;
+      }
+
+      .admin-content {
+        width: 50%;
       }
     }
 
