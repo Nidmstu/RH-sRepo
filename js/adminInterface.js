@@ -1168,15 +1168,34 @@ class AdminInterface {
     const coursesList = document.getElementById('admin-courses-list');
     coursesList.innerHTML = '';
     
+    console.log('Загружаю список курсов...');
+    console.log('Доступные профессии:', window.courseManager.courses);
+    
     const professions = window.courseManager.getProfessions();
+    console.log('Полученные профессии:', professions);
+    
+    if (!professions || professions.length === 0) {
+      coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
+      return;
+    }
     
     professions.forEach(professionId => {
+      console.log(`Обработка профессии: ${professionId}`);
+      
       const course = window.courseManager.courses[professionId];
+      if (!course) {
+        console.error(`Курс не найден для ID: ${professionId}`);
+        return;
+      }
+      
+      const title = course.title || professionId;
+      console.log(`Название курса: ${title}`);
+      
       const courseItem = document.createElement('div');
       courseItem.className = 'admin-list-item';
       courseItem.innerHTML = `
         <div class="admin-list-item-info">
-          <div class="admin-list-item-title">${course.title || professionId}</div>
+          <div class="admin-list-item-title">${title}</div>
           <div class="admin-list-item-subtitle">${professionId}</div>
         </div>
         <div class="admin-list-item-actions">
@@ -1200,6 +1219,18 @@ class AdminInterface {
         this.deleteCourse(professionId);
       });
     });
+    
+    // Добавляем стили для пустого списка
+    const style = document.createElement('style');
+    style.textContent = `
+      .admin-list-empty {
+        padding: 15px;
+        text-align: center;
+        color: #666;
+        font-style: italic;
+      }
+    `;
+    document.head.appendChild(style);
   }
   
   /**

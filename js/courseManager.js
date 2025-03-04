@@ -45,6 +45,10 @@ class CourseManager {
    * Получить список всех профессий
    */
   getProfessions() {
+    if (!this.courses || typeof this.courses !== 'object') {
+      console.error('Объект courses не определен или не является объектом:', this.courses);
+      return [];
+    }
     return Object.keys(this.courses);
   }
 
