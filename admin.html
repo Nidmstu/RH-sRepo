@@ -11,18 +11,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
   <style>
     body {
-      margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
       background-color: #f5f5f5;
-      color: #333;
-      line-height: 1.5;
-      overflow-x: hidden;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    *, *:before, *:after {
-      box-sizing: inherit;
     }
 
     .admin-header {
@@ -32,683 +24,81 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      width: 100%;
-      box-sizing: border-box;
-      flex-wrap: wrap;
     }
 
     .admin-header h1 {
       margin: 0;
       font-size: 1.5rem;
-      flex-shrink: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
-    .admin-header-actions {
+    .admin-container {
       display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    .admin-body {
-      display: flex;
-      flex-direction: row;
-      width: 100%;
-      height: calc(100vh - 60px);
-      overflow: hidden;
+      min-height: calc(100vh - 60px);
     }
 
     .admin-sidebar {
-      width: 50%;
+      width: 300px;
       background-color: #fff;
       border-right: 1px solid #ddd;
-      padding: 15px;
-      height: 100%;
-      overflow-y: auto;
-      flex: 0 0 50%;
-      box-sizing: border-box;
-    }
-
-    .admin-sidebar-section {
-      margin-bottom: 20px;
-    }
-
-    .admin-sidebar-section h3 {
-      margin-top: 0;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #eee;
+      padding: 20px;
     }
 
     .admin-content {
-      width: 50%;
-      padding: 20px;
-      background-color: #f9f9f9;
-      height: 100%;
-      overflow-y: auto;
-      flex: 0 0 50%;
-      box-sizing: border-box;
-    }
-
-    .admin-panel-section {
-      background-color: #fff;
-      border-radius: 5px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 20px;
-      overflow-x: auto;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .admin-section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-
-    .admin-section-header h2, 
-    .admin-section-header h3 {
-      margin: 0;
-      word-break: break-word;
-    }
-
-    .admin-section-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .admin-section-divider {
-      height: 1px;
-      background-color: #eee;
-      margin: 20px 0;
-      width: 100%;
-    }
-
-    .admin-btn {
-      padding: 8px 15px;
-      background-color: #f0f0f0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: #333;
-      transition: all 0.2s;
-      text-align: center;
-      min-height: 36px;
-    }
-
-    .admin-btn:hover {
-      background-color: #e0e0e0;
-    }
-
-    .admin-btn-primary {
-      background-color: #3498db;
-      border-color: #2980b9;
-      color: white;
-    }
-
-    .admin-btn-primary:hover {
-      background-color: #2980b9;
-    }
-
-    .admin-btn-success {
-      background-color: #2ecc71;
-      border-color: #27ae60;
-      color: white;
-    }
-
-    .admin-btn-success:hover {
-      background-color: #27ae60;
-    }
-
-    .admin-btn-danger {
-      background-color: #e74c3c;
-      border-color: #c0392b;
-      color: white;
-    }
-
-    .admin-btn-danger:hover {
-      background-color: #c0392b;
-    }
-
-    .admin-btn-sm {
-      padding: 4px 10px;
-      font-size: 0.8rem;
-      min-height: 30px;
-    }
-
-    .admin-btn-block {
-      display: block;
-      width: 100%;
-      text-align: center;
-      margin-top: 10px;
-    }
-
-    .admin-list {
-      border: 1px solid #eee;
-      border-radius: 4px;
-      overflow: hidden;
-      width: 100%;
-    }
-
-    .admin-list:empty::after {
-      content: "Нет элементов";
-      display: block;
-      padding: 15px;
-      text-align: center;
-      color: #999;
-      font-style: italic;
-    }
-
-    .admin-list-item {
-      padding: 12px 15px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #fff;
-      transition: background-color 0.2s;
-      flex-wrap: wrap;
-    }
-
-    .admin-list-item:last-child {
-      border-bottom: none;
-    }
-
-    .admin-list-item:hover {
-      background-color: #f5f5f5;
-    }
-
-    .admin-list-item-info {
       flex: 1;
-      min-width: 0;
-      word-break: break-word;
+      padding: 20px;
+      overflow: auto;
     }
 
-    .admin-list-item-title {
-      font-weight: 500;
-      margin-bottom: 3px;
-    }
-
-    .admin-list-item-subtitle {
-      font-size: 0.8rem;
-      color: #777;
-    }
-
-    .admin-list-item-source {
-      font-size: 0.75rem;
-      color: #006699;
-      margin-top: 2px;
-    }
-
-    .admin-list-item-actions {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-    }
-
-    .nav-link {
-      display: inline-block;
-      padding: 8px 15px;
-      color: white;
-      text-decoration: none;
-      margin-right: 15px;
-      border-radius: 4px;
-    }
-
-    .nav-link:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      text-decoration: none;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* Стили для форм */
-    .admin-form {
-      width: 100%;
-    }
-
-    .admin-form-row {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-
-    .admin-form-group {
-      margin-bottom: 15px;
-      flex: 1;
-      min-width: 250px;
-    }
-
-    .admin-form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-
-    .admin-input, 
-    .admin-select, 
-    .admin-textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    .admin-textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    /* Стили для табов */
-    .admin-tabs {
-      margin-top: 20px;
-      width: 100%;
-    }
-
-    .admin-tab-header {
-      display: flex;
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-
-    .admin-tab-btn {
-      padding: 10px 15px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-weight: 500;
-      opacity: 0.6;
-      text-align: center;
-    }
-
-    .admin-tab-btn.active {
-      opacity: 1;
-      border-bottom: 2px solid #3498db;
-    }
-
-    .admin-tab-pane {
-      display: block;
-    }
-
-    .admin-tab-pane.hidden {
-      display: none !important;
-    }
-
-    .admin-tab-pane {
-      display: block;
-    }
-
-    .admin-tab-pane {
-      display: block;
-    }
-
-    .admin-tab-btn {
-      cursor: pointer;
-    }
-
-    .admin-tab-btn.active {
-      background-color: #f0f0f0;
-      border-bottom: 2px solid #3498db;
-    }
-
-    /* Аккордеон для мобильных устройств */
-    .admin-accordion {
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .admin-accordion-header {
-      padding: 12px 15px;
-      background-color: #f5f5f5;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .admin-accordion-header h3 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .admin-accordion-content {
-      padding: 15px;
-      background-color: #fff;
-      border-top: 1px solid #eee;
-    }
-
-    /* Мобильная навигация */
-    .admin-mobile-nav-toggle {
+    .admin-mobile-nav {
       display: none;
-      background-color: #3498db;
-      color: white;
-      border: none;
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      text-align: center;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 4px;
+      padding: 10px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
     }
 
-    /* Адаптивные стили для планшетов */
-    @media (max-width: 1024px) and (min-width: 481px) {
-      .admin-body {
-        flex-direction: row;
-        display: flex;
-        flex-wrap: nowrap;
-        width: 100%;
-        height: calc(100vh - 60px);
-        overflow: hidden;
+    @media (max-width: 768px) {
+      .admin-container {
+        flex-direction: column;
       }
 
-      .admin-mobile-nav-toggle {
+      .admin-sidebar {
+        width: 100%;
         display: none;
       }
 
-      .admin-sidebar {
-        width: 50% !important;
-        min-width: 50% !important;
-        max-width: 50% !important;
-        height: 100%;
-        padding: 15px;
-        border-right: 1px solid #ddd;
-        display: flex;
-        flex-direction: column;
-        flex: 0 0 50% !important;
-        box-sizing: border-box;
-        overflow-y: auto;
-        overflow-x: hidden;
-      }
-
-      .admin-content {
-        width: 50% !important;
-        min-width: 50% !important;
-        max-width: 50% !important;
-        flex: 0 0 50% !important;
-        box-sizing: border-box;
-        overflow-y: auto;
-        height: 100%;
-        padding: 15px;
-      }
-    }
-
-    /* Стили для альбомной ориентации на планшетах */
-    @media (max-width: 1024px) and (min-width: 481px) and (orientation: landscape) {
-      .admin-body {
-        flex-direction: row;
-      }
-
-      .admin-sidebar {
-        width: 50% !important;
-        flex: 0 0 50% !important;
-      }
-
-      .admin-content {
-        width: 50% !important;
-        flex: 0 0 50% !important;
-      }
-    }
-
-    /* Стили для портретной ориентации на планшетах */
-    @media (max-width: 1024px) and (min-width: 481px) and (orientation: portrait) {
-      .admin-body {
-        flex-direction: row;
-      }
-
-      .admin-sidebar {
-        width: 50% !important;
-        flex: 0 0 50% !important;
-      }
-
-      .admin-content {
-        width: 50% !important;
-        flex: 0 0 50% !important;
-      }
-    }
-
-    /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 480px) {
-      .admin-body {
-        flex-direction: column;
-      }
-
-      .admin-mobile-nav-toggle {
+      .admin-mobile-nav {
         display: block;
       }
-
-      .admin-sidebar {
-        width: 100%;
-        min-height: auto;
-        padding: 15px;
-        border-right: none;
-        border-bottom: 1px solid #ddd;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .admin-content {
-        padding: 15px;
-        width: 100%;
-      }
-
-      .admin-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 15px;
-      }
-
-      .admin-header-actions {
-        margin-top: 15px;
-        width: 100%;
-        flex-direction: column;
-      }
-
-      .admin-header h1 {
-        font-size: 1.3rem;
-        margin-bottom: 10px;
-        width: 100%;
-      }
-
-      .nav-link {
-        margin: 5px 0;
-        width: 100%;
-        text-align: center;
-        padding: 12px;
-      }
-
-      .admin-btn {
-        width: 100%;
-        margin: 5px 0;
-        padding: 12px 10px;
-        font-size: 16px;
-        height: auto;
-      }
-
-      .admin-section-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .admin-section-actions {
-        width: 100%;
-        margin-top: 10px;
-      }
-
-      .admin-panel-section {
-        padding: 15px;
-        overflow-x: auto;
-      }
-
-      .admin-list-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .admin-list-item-info {
-        width: 100%;
-        margin-bottom: 10px;
-      }
-
-      .admin-list-item-actions {
-        margin-top: 10px;
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .admin-list-item-actions .admin-btn {
-        flex: 1;
-      }
-
-      .admin-tab-header {
-        flex-direction: column;
-      }
-
-      .admin-tab-btn {
-        width: 100%;
-        margin: 2px 0;
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-      }
-
-      .admin-tab-btn.active {
-        border-bottom: 2px solid #3498db;
-      }
-
-      .admin-form-row {
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .admin-form-group {
-        width: 100%;
-        min-width: 100%;
-      }
-
-      /* Фиксим отображение списка курсов на мобильных */
-      #admin-courses-list {
-        display: block !important;
-        width: 100% !important;
-        margin-bottom: 15px;
-      }
-
-      /* Улучшенная видимость боковой панели и элементов списка на мобильных */
-      .admin-sidebar {
-        box-sizing: border-box;
-        padding: 10px;
-        width: 100% !important;
-      }
-
-      .admin-list-item {
-        padding: 15px 10px;
-      }
-
-      .admin-list-item-actions {
-        flex-wrap: wrap;
-        justify-content: space-between;
-      }
-
-      .admin-list-item-actions .admin-btn {
-        margin: 5px 0;
-        padding: 10px;
-        flex: 1;
-        min-width: 40%;
-      }
     }
 
-    /* Стили для очень маленьких экранов */
-    @media (max-width: 480px) {
-      body {
-        font-size: 15px;
-      }
+    /* Добавляем стили для webhooks секции */
+    #admin-tab-webhooks {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
 
-      .admin-header h1 {
-        font-size: 1.2rem;
-      }
-
-      .admin-btn {
-        font-size: 15px;
-        padding: 10px;
-      }
-
-      .admin-content {
-        padding: 10px;
-      }
-
-      .admin-panel-section {
-        padding: 12px;
-        margin-bottom: 15px;
-      }
-
-      .admin-sidebar {
-        padding: 10px;
-      }
-
-      .admin-list-item {
-        padding: 10px;
-      }
-
-      .admin-input, 
-      .admin-select, 
-      .admin-textarea {
-        font-size: 16px;
-        padding: 12px 10px;
-      }
-
-      .admin-form-group label {
-        font-size: 15px;
-      }
-
-      /* Увеличиваем размер всех интерактивных элементов для лучшего тапа */
-      .admin-btn-sm {
-        padding: 8px;
-        font-size: 14px;
-        min-height: 36px;
-      }
-
-      /* Убираем лишние отступы в формах */
-      .admin-form-group {
-        margin-bottom: 12px;
-      }
+    #admin-webhook-status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
   <div class="admin-header">
-    <h1>Управление курсами</h1>
-    <div class="admin-header-actions">
-      <a href="index.html" class="nav-link">
-        <i class="fas fa-graduation-cap"></i> К обучению
-      </a>
-      <button id="admin-export-all" class="admin-btn">
-        <i class="fas fa-download"></i> Экспорт данных
-      </button>
-      <button id="admin-webhook-export" class="admin-btn admin-btn-success">
-        <i class="fas fa-cloud-upload-alt"></i> Отправить на вебхук
-      </button>
-    </div>
+    <h1>Управление курсами и материалами</h1>
+    <a href="index.html" class="admin-btn">Вернуться на главную</a>
   </div>
 
-  <div class="admin-body">
-    <button id="toggle-sidebar" class="admin-mobile-nav-toggle">
-      <i class="fas fa-bars"></i> Показать/скрыть меню курсов
+  <div class="admin-mobile-nav">
+    <button id="toggle-sidebar" class="admin-btn admin-btn-block">
+      <i class="fas fa-bars"></i> Показать меню курсов
     </button>
+  </div>
+
+  <div class="admin-container">
     <div class="admin-sidebar">
       <div class="admin-sidebar-section">
         <h3>Курсы</h3>
@@ -722,7 +112,7 @@
     <div class="admin-content">
       <!-- Начальный экран -->
       <div id="admin-welcome" class="admin-panel-section">
-        <div style="text-align: center; padding: 50px 0;">
+        <div class="admin-welcome-content">
           <h2>Добро пожаловать в панель управления</h2>
           <p>Выберите курс в боковом меню или создайте новый</p>
         </div>
@@ -765,7 +155,7 @@
 
           <div class="admin-tab-content">
             <!-- Дни обучения -->
-            <div id="admin-tab-days" class="admin-tab-pane" style="display: block;">
+            <div id="admin-tab-days" class="admin-tab-pane active">
               <div class="admin-section-header">
                 <h3>Дни обучения</h3>
                 <button id="admin-add-day" class="admin-btn admin-btn-sm admin-btn-success">
@@ -776,7 +166,7 @@
             </div>
 
             <!-- Специальные уроки -->
-            <div id="admin-tab-special-lessons" class="admin-tab-pane hidden">
+            <div id="admin-tab-special-lessons" class="admin-tab-pane">
               <div class="admin-section-header">
                 <h3>Специальные уроки</h3>
                 <button id="admin-add-special-lesson" class="admin-btn admin-btn-sm admin-btn-success">
@@ -784,6 +174,7 @@
                 </button>
               </div>
               <div id="admin-special-lessons-list" class="admin-list"></div>
+
               <div class="admin-section-header" style="margin-top: 20px;">
                 <h3>Уроки без дня</h3>
                 <p>Уроки, доступные без выбора дня обучения, например "Словарь"</p>
@@ -795,30 +186,37 @@
             </div>
 
             <!-- Настройки вебхуков -->
-            <div id="admin-tab-webhooks" class="admin-tab-pane hidden">
+            <div id="admin-tab-webhooks" class="admin-tab-pane">
               <div class="admin-section-header">
-                <h3>Настройки вебхуков для импорта/экспорта данных</h3>
+                <h3>Настройки вебхуков</h3>
               </div>
+
               <div class="admin-form">
                 <div class="admin-form-group">
                   <label for="admin-export-webhook-url">URL для экспорта данных:</label>
-                  <input type="text" id="admin-export-webhook-url" class="admin-input" 
-                         placeholder="https://example.com/webhook/export" 
-                         value="https://auto.crm-s.com/webhook/SaveWebhooks">
+                  <input type="text" id="admin-export-webhook-url" class="admin-input" placeholder="https://example.com/api/export">
                 </div>
+
                 <div class="admin-form-group">
                   <label for="admin-import-webhook-url">URL для импорта данных:</label>
-                  <input type="text" id="admin-import-webhook-url" class="admin-input" 
-                         placeholder="https://example.com/webhook/import">
+                  <input type="text" id="admin-import-webhook-url" class="admin-input" placeholder="https://example.com/api/import">
                 </div>
-                <div class="admin-form-actions">
+
+                <div class="admin-section-actions" style="margin-top: 15px;">
                   <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">Сохранить настройки</button>
                   <button id="admin-test-connection" class="admin-btn">Проверить соединение</button>
                   <button id="admin-test-export-webhook" class="admin-btn">Тест экспорта</button>
                   <button id="admin-test-import-webhook" class="admin-btn">Тест импорта</button>
                 </div>
+
+                <div id="admin-webhook-status" style="margin-top: 15px;"></div>
+
+                <div class="admin-form-group" style="margin-top: 20px;">
+                  <button id="admin-webhook-export" class="admin-btn admin-btn-success">
+                    <i class="fas fa-cloud-upload-alt"></i> Экспортировать все данные на вебхук
+                  </button>
+                </div>
               </div>
-              <div id="admin-webhook-status" style="margin-top: 20px; padding: 10px; border-radius: 4px;"></div>
             </div>
           </div>
         </div>
@@ -858,29 +256,29 @@
 
       <!-- Редактирование урока -->
       <div id="admin-lesson-editor" class="admin-panel-section hidden">
-        <!-- Этот блок будет динамически заполняться из adminInterface.js -->
+        <!-- Содержимое будет заполнено из adminInterface.js -->
       </div>
     </div>
   </div>
 
+  <!-- Подключаем скрипты -->
   <script type="module">
     import courseManager from './js/courseManager.js';
     import adminInterface from './js/adminInterface.js';
+    import './js/admin.js'; // Подключаем административный модуль
 
-    // Инициализируем приложение после загрузки DOM
-    document.addEventListener('DOMContentLoaded', async function() {
-      console.log("Страница администратора загружена, инициализация...");
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('Страница администратора загружена, инициализация...');
 
       // Инициализируем менеджер курсов
       await courseManager.initialize();
 
-      // Инициализируем и показываем административный интерфейс
-      await adminInterface.initialize();
-      adminInterface.show();
-
-      // Глобальный доступ к менеджеру курсов и административному интерфейсу
+      // Делаем adminInterface глобально доступным
       window.courseManager = courseManager;
       window.adminInterface = adminInterface;
+
+      // Показываем административный интерфейс
+      adminInterface.show();
     });
   </script>
 </body>
