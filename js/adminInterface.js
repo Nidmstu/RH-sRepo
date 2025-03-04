@@ -1295,6 +1295,10 @@ class AdminInterface {
    */
   loadCoursesList() {
     const coursesList = document.getElementById('admin-courses-list');
+    if (!coursesList) {
+      console.error('Элемент списка курсов не найден!');
+      return;
+    }
     coursesList.innerHTML = '';
 
     console.log('Загружаю список курсов...');
@@ -1785,7 +1789,9 @@ class AdminInterface {
     this.cancelDayEdit();
 
     alert('День успешно сохранен!');
-  }/**
+  }
+  
+  /**
    * Отмена редактирования дня
    */
   cancelDayEdit() {
