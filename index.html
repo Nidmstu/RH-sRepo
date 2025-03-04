@@ -133,77 +133,88 @@
 
     /* Адаптивные стили для планшетов */
     @media (max-width: 1024px) and (min-width: 481px) {
-      .admin-body {
-        flex-direction: row;
+      body {
+        overflow: hidden; /* Предотвращаем прокрутку тела */
+      }
+      
+      .container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
         display: flex;
-        flex-wrap: nowrap;
-        width: 100%;
-        height: calc(100vh - 60px);
+        flex-direction: row;
+        height: 100vh;
         overflow: hidden;
       }
-
-      .admin-mobile-nav-toggle {
-        display: none;
-      }
-
-      .admin-sidebar {
-        width: 50% !important;
-        min-width: 50% !important;
-        max-width: 50% !important;
+      
+      #home, #guide {
+        width: 100%;
         height: 100%;
-        padding: 15px;
-        border-right: 1px solid #ddd;
+        margin: 0;
+        padding: 0;
         display: flex;
-        flex-direction: column;
-        flex: 0 0 50% !important;
-        box-sizing: border-box;
+        flex-direction: row;
+      }
+      
+      #day-selection, #task-selection {
+        flex: 0 0 50%;
+        width: 50%;
+        height: 100vh;
         overflow-y: auto;
-        overflow-x: hidden;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      
+      #guide-title, #loading-spinner, .markdown-content, #test-button {
+        flex: 0 0 50%;
+        width: 50%;
+        box-sizing: border-box;
       }
 
-      .admin-content {
-        width: 50% !important;
-        min-width: 50% !important;
-        max-width: 50% !important;
-        flex: 0 0 50% !important;
-        box-sizing: border-box;
-        overflow-y: auto;
-        height: 100%;
-        padding: 15px;
+      /* Улучшаем отображение кнопок для тач-интерфейса */
+      button {
+        padding: 14px 20px; 
+        min-height: 44px;
+        margin: 10px 5px;
+        font-size: 16px;
+      }
+      
+      /* Предотвращаем перенос слов по буквам */
+      h1, h2, p, button {
+        word-break: keep-all;
+        white-space: normal;
       }
     }
 
     /* Стили для альбомной ориентации на планшетах */
     @media (max-width: 1024px) and (min-width: 481px) and (orientation: landscape) {
-      .admin-body {
+      .container, #home, #guide {
         flex-direction: row;
       }
-
-      .admin-sidebar {
-        width: 50% !important;
-        flex: 0 0 50% !important;
-      }
-
-      .admin-content {
-        width: 50% !important;
-        flex: 0 0 50% !important;
+      
+      #day-selection, #task-selection, #guide-title, 
+      #loading-spinner, .markdown-content, #test-button {
+        flex: 0 0 50%;
+        width: 50%;
       }
     }
 
     /* Стили для портретной ориентации на планшетах */
     @media (max-width: 1024px) and (min-width: 481px) and (orientation: portrait) {
-      .admin-body {
-        flex-direction: row;
+      .container, #home, #guide {
+        flex-direction: column;
       }
-
-      .admin-sidebar {
-        width: 50% !important;
-        flex: 0 0 50% !important;
+      
+      #day-selection, #task-selection {
+        flex: 0 0 33%;
+        width: 100%;
+        height: 33vh;
       }
-
-      .admin-content {
-        width: 50% !important;
-        flex: 0 0 50% !important;
+      
+      #guide-title, #loading-spinner, .markdown-content, #test-button {
+        flex: 0 0 67%;
+        width: 100%;
+        height: auto;
       }
     }
 
@@ -637,6 +648,47 @@ Demonstrations of desired outputs that help the AI understand exactly what you w
 
 ### Constraints
 Limitations or boundaries that define what the AI should or shouldn't do.
+
+<script>
+  // Добавление обработчика изменения ориентации экрана
+  window.addEventListener('orientationchange', function() {
+    console.log('Orientation changed to: ', window.orientation);
+    // Небольшая задержка, чтобы дать время браузеру перестроить DOM
+    setTimeout(function() {
+      updateLayoutForTablet();
+    }, 100);
+  });
+  
+  // Также проверяем при изменении размера окна
+  window.addEventListener('resize', function() {
+    updateLayoutForTablet();
+  });
+  
+  function updateLayoutForTablet() {
+    // Проверяем, является ли устройство планшетом по размеру экрана
+    const isTablet = window.innerWidth <= 1024 && window.innerWidth >= 481;
+    
+    if (isTablet) {
+      // Определяем ориентацию (альбомная или портретная)
+      const isLandscape = window.innerWidth > window.innerHeight;
+      console.log('Device is tablet, orientation is: ', isLandscape ? 'landscape' : 'portrait');
+      
+      // Здесь можно добавить дополнительную логику для улучшения UX на планшетах
+      document.body.classList.add('tablet-device');
+      document.body.classList.toggle('landscape', isLandscape);
+      document.body.classList.toggle('portrait', !isLandscape);
+    } else {
+      // Если не планшет, убираем классы
+      document.body.classList.remove('tablet-device', 'landscape', 'portrait');
+    }
+  }
+  
+  // Запускаем функцию при загрузке страницы
+  document.addEventListener('DOMContentLoaded', function() {
+    updateLayoutForTablet();
+  });
+</script>
+
 
 ## Different Types of Prompting
 

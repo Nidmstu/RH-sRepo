@@ -442,6 +442,23 @@
         height: 100%;
         padding: 15px;
       }
+
+      /* Улучшаем читаемость элементов в меню */
+      .admin-list-item {
+        padding: 15px;
+      }
+
+      .admin-list-item-title {
+        font-size: 1.1em;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      .admin-btn {
+        padding: 10px 15px;
+        margin: 8px 0;
+        min-height: 44px; /* Делаем кнопки удобнее для тача */
+      }
     }
 
     /* Стили для альбомной ориентации на планшетах */
@@ -464,17 +481,23 @@
     /* Стили для портретной ориентации на планшетах */
     @media (max-width: 1024px) and (min-width: 481px) and (orientation: portrait) {
       .admin-body {
-        flex-direction: row;
+        flex-direction: column;
       }
 
       .admin-sidebar {
-        width: 50% !important;
-        flex: 0 0 50% !important;
+        width: 100% !important;
+        height: 33% !important;
+        flex: 0 0 33% !important;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        overflow-y: auto;
       }
 
       .admin-content {
-        width: 50% !important;
-        flex: 0 0 50% !important;
+        width: 100% !important;
+        height: 67% !important;
+        flex: 0 0 67% !important;
+        overflow-y: auto;
       }
     }
 
