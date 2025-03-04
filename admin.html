@@ -329,12 +329,11 @@
     }
 
     .admin-tab-pane {
-      display: none;
+      display: block;
     }
 
-    .admin-tab-pane.active {
-      display: block;
-      width: 100%;
+    .admin-tab-pane.hidden {
+      display: none;
     }
 
     /* Аккордеон для мобильных устройств */
@@ -658,7 +657,7 @@
 
           <div class="admin-tab-content">
             <!-- Дни обучения -->
-            <div id="admin-tab-days" class="admin-tab-pane active">
+            <div id="admin-tab-days" class="admin-tab-pane">
               <div class="admin-section-header">
                 <h3>Дни обучения</h3>
                 <button id="admin-add-day" class="admin-btn admin-btn-sm admin-btn-success">

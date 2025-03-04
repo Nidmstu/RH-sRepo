@@ -1276,7 +1276,7 @@ class AdminInterface {
       el.classList.remove('active');
     });
     document.querySelectorAll('.admin-tab-pane').forEach(el => {
-      el.classList.remove('active');
+      el.classList.add('hidden');
     });
 
     // Активируем нужную вкладку
@@ -1289,7 +1289,7 @@ class AdminInterface {
     
     const tabPane = document.getElementById(`admin-tab-${tabId}`);
     if (tabPane) {
-      tabPane.classList.add('active');
+      tabPane.classList.remove('hidden');
       
       // Если это вкладка специальных уроков, обновляем их список
       if (tabId === 'special-lessons') {
