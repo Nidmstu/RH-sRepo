@@ -16,6 +16,14 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f5f5f5;
       color: #333;
+      line-height: 1.5;
+      overflow-x: hidden;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    *, *:before, *:after {
+      box-sizing: inherit;
     }
     
     .admin-header {
@@ -26,21 +34,29 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 100%;
+      box-sizing: border-box;
     }
     
     .admin-header h1 {
       margin: 0;
       font-size: 1.5rem;
+      flex-shrink: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     
     .admin-header-actions {
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
     
     .admin-body {
       display: flex;
       flex-direction: row;
+      width: 100%;
     }
     
     .admin-sidebar {
@@ -49,6 +65,8 @@
       border-right: 1px solid #ddd;
       padding: 15px;
       min-height: calc(100vh - 60px);
+      overflow-y: auto;
+      flex-shrink: 0;
     }
     
     .admin-sidebar-section {
@@ -66,6 +84,7 @@
       padding: 20px;
       background-color: #f9f9f9;
       min-height: calc(100vh - 60px);
+      overflow-x: hidden;
     }
     
     .admin-panel-section {
@@ -74,6 +93,9 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       padding: 20px;
       margin-bottom: 20px;
+      overflow-x: auto;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     .admin-section-header {
@@ -81,22 +103,26 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
+      flex-wrap: wrap;
     }
     
     .admin-section-header h2, 
     .admin-section-header h3 {
       margin: 0;
+      word-break: break-word;
     }
     
     .admin-section-actions {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
     
     .admin-section-divider {
       height: 1px;
       background-color: #eee;
       margin: 20px 0;
+      width: 100%;
     }
     
     .admin-btn {
@@ -108,6 +134,8 @@
       font-size: 0.9rem;
       color: #333;
       transition: all 0.2s;
+      text-align: center;
+      min-height: 36px;
     }
     
     .admin-btn:hover {
@@ -147,6 +175,7 @@
     .admin-btn-sm {
       padding: 4px 10px;
       font-size: 0.8rem;
+      min-height: 30px;
     }
     
     .admin-btn-block {
@@ -160,6 +189,7 @@
       border: 1px solid #eee;
       border-radius: 4px;
       overflow: hidden;
+      width: 100%;
     }
     
     .admin-list:empty::after {
@@ -179,6 +209,7 @@
       align-items: center;
       background-color: #fff;
       transition: background-color 0.2s;
+      flex-wrap: wrap;
     }
     
     .admin-list-item:last-child {
@@ -191,6 +222,8 @@
     
     .admin-list-item-info {
       flex: 1;
+      min-width: 0;
+      word-break: break-word;
     }
     
     .admin-list-item-title {
@@ -206,109 +239,7 @@
     .admin-list-item-actions {
       display: flex;
       gap: 5px;
-    }
-    
-    /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 768px) {
-      .admin-body {
-        flex-direction: column;
-      }
-      
-      .admin-sidebar {
-        width: 100%;
-        min-height: auto;
-        padding: 10px;
-      }
-      
-      .admin-content {
-        padding: 10px;
-      }
-      
-      .admin-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px;
-      }
-      
-      .admin-header-actions {
-        margin-top: 10px;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .admin-header h1 {
-        font-size: 1.2rem;
-        margin-bottom: 10px;
-      }
-      
-      .nav-link {
-        margin: 5px 0;
-        width: 100%;
-        text-align: center;
-        padding: 10px;
-      }
-      
-      .admin-btn {
-        width: 100%;
-        margin: 5px 0;
-        padding: 12px 10px;
-        font-size: 14px;
-      }
-      
-      .admin-section-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      
-      .admin-section-actions {
-        width: 100%;
-        margin-top: 10px;
-      }
-      
-      .admin-panel-section {
-        padding: 15px 10px;
-      }
-      
-      .admin-list-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      
-      .admin-list-item-actions {
-        margin-top: 10px;
-        width: 100%;
-      }
-      
-      .admin-tab-header {
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .admin-tab-btn {
-        width: 100%;
-        margin: 2px 0;
-      }
-    }
-    
-    /* Стили для очень маленьких экранов */
-    @media (max-width: 400px) {
-      .admin-header h1 {
-        font-size: 1.1rem;
-      }
-      
-      .admin-btn {
-        font-size: 13px;
-        padding: 10px 8px;
-      }
-      
-      .admin-content {
-        padding: 8px;
-      }
-      
-      .admin-panel-section {
-        padding: 12px 8px;
-      }
+      flex-wrap: wrap;
     }
     
     .nav-link {
@@ -317,19 +248,34 @@
       color: white;
       text-decoration: none;
       margin-right: 15px;
+      border-radius: 4px;
     }
     
     .nav-link:hover {
-      text-decoration: underline;
+      background-color: rgba(255, 255, 255, 0.1);
+      text-decoration: none;
     }
     
     .hidden {
-      display: none;
+      display: none !important;
     }
     
     /* Стили для форм */
+    .admin-form {
+      width: 100%;
+    }
+    
+    .admin-form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
     .admin-form-group {
       margin-bottom: 15px;
+      flex: 1;
+      min-width: 250px;
     }
     
     .admin-form-group label {
@@ -345,7 +291,7 @@
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 16px;
       box-sizing: border-box;
     }
     
@@ -357,12 +303,14 @@
     /* Стили для табов */
     .admin-tabs {
       margin-top: 20px;
+      width: 100%;
     }
     
     .admin-tab-header {
       display: flex;
       border-bottom: 1px solid #ddd;
       margin-bottom: 15px;
+      flex-wrap: wrap;
     }
     
     .admin-tab-btn {
@@ -372,6 +320,7 @@
       cursor: pointer;
       font-weight: 500;
       opacity: 0.6;
+      text-align: center;
     }
     
     .admin-tab-btn.active {
@@ -379,21 +328,209 @@
       border-bottom: 2px solid #3498db;
     }
     
-    .admin-tab-pane.hidden {
+    .admin-tab-pane {
       display: none;
     }
     
-    /* Адаптивность для форм на мобильных устройствах */
+    .admin-tab-pane.active {
+      display: block;
+      width: 100%;
+    }
+    
+    /* Аккордеон для мобильных устройств */
+    .admin-accordion {
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .admin-accordion-header {
+      padding: 12px 15px;
+      background-color: #f5f5f5;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .admin-accordion-header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    
+    .admin-accordion-content {
+      padding: 15px;
+      background-color: #fff;
+      border-top: 1px solid #eee;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
     @media (max-width: 768px) {
-      .admin-form-group label {
-        font-size: 14px;
+      .admin-body {
+        flex-direction: column;
+      }
+      
+      .admin-sidebar {
+        width: 100%;
+        min-height: auto;
+        padding: 15px;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .admin-content {
+        padding: 15px;
+        width: 100%;
+      }
+      
+      .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+      }
+      
+      .admin-header-actions {
+        margin-top: 15px;
+        width: 100%;
+        flex-direction: column;
+      }
+      
+      .admin-header h1 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        width: 100%;
+      }
+      
+      .nav-link {
+        margin: 5px 0;
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+      }
+      
+      .admin-btn {
+        width: 100%;
+        margin: 5px 0;
+        padding: 12px 10px;
+        font-size: 16px;
+        height: auto;
+      }
+      
+      .admin-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .admin-section-actions {
+        width: 100%;
+        margin-top: 10px;
+      }
+      
+      .admin-panel-section {
+        padding: 15px;
+        overflow-x: auto;
+      }
+      
+      .admin-list-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .admin-list-item-info {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      
+      .admin-list-item-actions {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .admin-list-item-actions .admin-btn {
+        flex: 1;
+      }
+      
+      .admin-tab-header {
+        flex-direction: column;
+      }
+      
+      .admin-tab-btn {
+        width: 100%;
+        margin: 2px 0;
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .admin-tab-btn.active {
+        border-bottom: 2px solid #3498db;
+      }
+      
+      .admin-form-row {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .admin-form-group {
+        width: 100%;
+        min-width: 100%;
+      }
+    }
+    
+    /* Стили для очень маленьких экранов */
+    @media (max-width: 480px) {
+      body {
+        font-size: 15px;
+      }
+      
+      .admin-header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .admin-btn {
+        font-size: 15px;
+        padding: 10px;
+      }
+      
+      .admin-content {
+        padding: 10px;
+      }
+      
+      .admin-panel-section {
+        padding: 12px;
+        margin-bottom: 15px;
+      }
+      
+      .admin-sidebar {
+        padding: 10px;
+      }
+      
+      .admin-list-item {
+        padding: 10px;
       }
       
       .admin-input, 
       .admin-select, 
       .admin-textarea {
+        font-size: 16px;
+        padding: 12px 10px;
+      }
+      
+      .admin-form-group label {
+        font-size: 15px;
+      }
+      
+      /* Увеличиваем размер всех интерактивных элементов для лучшего тапа */
+      .admin-btn-sm {
         padding: 8px;
-        font-size: 13px;
+        font-size: 14px;
+        min-height: 36px;
+      }
+      
+      /* Убираем лишние отступы в формах */
+      .admin-form-group {
+        margin-bottom: 12px;
       }
     }
   </style>
@@ -406,7 +543,7 @@
         <i class="fas fa-graduation-cap"></i> К обучению
       </a>
       <button id="admin-export-all" class="admin-btn">
-        <i class="fas fa-download"></i> Экспорт всех данных
+        <i class="fas fa-download"></i> Экспорт данных
       </button>
     </div>
   </div>

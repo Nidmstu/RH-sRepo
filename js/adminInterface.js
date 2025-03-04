@@ -1087,6 +1087,16 @@ class AdminInterface {
         fieldsEl.classList.remove('hidden');
       }
     }
+    
+    // На мобильных устройствах прокручиваем к выбранному разделу
+    if (window.innerWidth <= 768) {
+      const container = document.getElementById(`admin-${prefix}-${type}-fields`);
+      if (container) {
+        setTimeout(() => {
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
   }
   
   /**
