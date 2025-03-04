@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель администратора</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    header {
+      background-color: #333;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .main-container {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      flex-direction: row;
+    }
+    
+    .sidebar {
+      background-color: #f5f5f5;
+      width: 250px;
+      overflow-y: auto;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+    }
+    
+    .sidebar h2 {
+      margin-bottom: 15px;
+    }
+    
+    .sidebar ul {
+      list-style-type: none;
+    }
+    
+    .sidebar li {
+      margin-bottom: 10px;
+      padding: 8px;
+      cursor: pointer;
+    }
+    
+    .sidebar li:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .sidebar li.active {
+      background-color: #ddd;
+      font-weight: bold;
+    }
+    
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .welcome-message {
+      text-align: center;
+      margin-top: 50px;
+    }
+    
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 8px 15px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    button.delete {
+      background-color: #f44336;
+    }
+    
+    button.delete:hover {
+      background-color: #d32f2f;
+    }
+    
+    /* Стили для вкладок */
+    .tab-buttons {
+      display: flex;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tab-button {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+    }
+    
+    .tab-button.active {
+      background-color: white;
+      border-bottom: 2px solid white;
+    }
+    
+    .tab-panel {
+      display: none;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    /* Адаптивный дизайн для планшетов и мобильных устройств */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: row;
+      }
+      
+      .sidebar {
+        width: 50%;
+        min-width: 50%;
+        max-width: 50%;
+      }
+      
+      .content {
+        width: 50%;
+        min-width: 50%;
+        max-width: 50%;
+      }
+    }
+    
+    @media (max-width: 768px) and (orientation: portrait) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        height: 33vh;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        height: 67vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Управление курсами</h1>
+    <div>
+      <button id="to-learning" class="secondary">К обучению</button>
+      <button id="export-data" class="secondary">Экспорт данных</button>
+      <button id="send-webhook" class="primary">Отправить на вебхук</button>
+    </div>
+  </header>
+  
+  <div class="main-container">
+    <div class="sidebar">
+      <h2>Курсы</h2>
+      <ul id="courses-list"></ul>
+    </div>
+    
+    <div class="content" id="content">
+      <div class="welcome-message">
+        <h2>Добро пожаловать в панель управления</h2>
+        <p>Выберите курс в боковом меню или создайте новый</p>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/adminInterface.js"></script>
+  <script src="js/courseManager.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
