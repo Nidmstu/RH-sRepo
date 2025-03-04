@@ -1125,30 +1125,53 @@ class AdminInterface {
       });
     }
 
-    // Переключение вкладок
-    const tabButtons = document.querySelectorAll('.admin-tab-btn');
-    console.log(`Инициализация обработчиков для ${tabButtons.length} кнопок вкладок`);
-    
-    if (tabButtons && tabButtons.length > 0) {
-      tabButtons.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-          e.preventDefault(); // Предотвращаем поведение по умолчанию
+    // Переключение вкладок - улучшенный обработчик
+    const setupTabButtons = () => {
+      const tabButtons = document.querySelectorAll('.admin-tab-btn');
+      console.log(`Настройка обработчиков для ${tabButtons.length} кнопок вкладок`);
+      
+      if (tabButtons.length > 0) {
+        tabButtons.forEach(tab => {
+          // Удаляем старые обработчики, клонируя элемент
+          const newTab = tab.cloneNode(true);
+          tab.parentNode.replaceChild(newTab, tab);
           
-          // Получаем data-tab из кнопки
-          const tabId = tab.getAttribute('data-tab');
-          console.log(`Клик по вкладке: ${tabId} (${tab.textContent.trim()})`);
-          
-          if (!tabId) {
-            console.error('Не удалось определить ID вкладки из клика');
-            return;
-          }
-          
-          // Вызываем функцию переключения вкладок
-          this.switchTab(tabId);
+          // Добавляем новый обработчик
+          newTab.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const tabId = newTab.getAttribute('data-tab');
+            console.log(`Клик по вкладке: ${tabId} (${newTab.textContent.trim()})`);
+            
+            if (!tabId) {
+              console.error('Не удалось определить ID вкладки из клика');
+              return;
+            }
+            
+            // Вызываем функцию переключения вкладок
+            this.switchTab(tabId);
+          });
         });
+      } else {
+        console.error('Не найдены кнопки вкладок (.admin-tab-btn)');
+      }
+    };
+    
+    // Вызываем настройку кнопок вкладок
+    setupTabButtons();
+    
+    // Добавляем обработчик для кнопки добавления словаря
+    const addVocabularyBtn = document.getElementById('admin-add-vocabulary');
+    if (addVocabularyBtn) {
+      // Очищаем старые обработчики
+      const newBtn = addVocabularyBtn.cloneNode(true);
+      addVocabularyBtn.parentNode.replaceChild(newBtn, addVocabularyBtn);
+      
+      newBtn.addEventListener('click', () => {
+        console.log('Клик по кнопке добавления словаря');
+        this.createNoDayLesson();
       });
-    } else {
-      console.error('Не найдены кнопки вкладок (.admin-tab-btn)');
     }
 
     // Переключение типа источника контента
@@ -1284,51 +1307,68 @@ class AdminInterface {
     console.log(`Переключение на вкладку: ${tabId}`);
     
     try {
-      // Деактивируем все кнопки вкладок
+      // Найдем все кнопки вкладок и панели
       const allTabButtons = document.querySelectorAll('.admin-tab-btn');
-      console.log(`Найдено ${allTabButtons.length} кнопок вкладок`);
+      const allTabPanes = document.querySelectorAll('.admin-tab-pane');
+      
+      console.log(`Найдено ${allTabButtons.length} кнопок вкладок и ${allTabPanes.length} панелей`);
+      
+      // Сначала деактивируем все кнопки и скрываем все панели
       allTabButtons.forEach(button => {
         button.classList.remove('active');
       });
       
-      // Активируем нужную кнопку вкладки
-      const tabButton = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
-      if (tabButton) {
-        tabButton.classList.add('active');
-        console.log(`Кнопка вкладки ${tabId} активирована`);
+      allTabPanes.forEach(pane => {
+        pane.classList.add('hidden');
+        pane.style.display = 'none';
+      });
+      
+      // Теперь активируем нужную кнопку
+      const activeButton = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
+      if (activeButton) {
+        activeButton.classList.add('active');
+        console.log(`Кнопка вкладки "${tabId}" активирована`);
       } else {
         console.error(`Кнопка вкладки с data-tab="${tabId}" не найдена`);
       }
-
-      // Скрываем все панели вкладок
-      const allTabPanes = document.querySelectorAll('.admin-tab-pane');
-      console.log(`Найдено ${allTabPanes.length} панелей вкладок`);
-      allTabPanes.forEach(pane => {
-        pane.classList.add('hidden');
-        pane.style.display = 'none'; // Устанавливаем display: none для всех панелей
-      });
       
-      // Показываем нужную панель
-      const tabPaneId = `admin-tab-${tabId}`;
-      const tabPane = document.getElementById(tabPaneId);
-      
-      if (tabPane) {
-        console.log(`Панель ${tabPaneId} найдена, активируем её`);
-        tabPane.style.display = 'block'; // Принудительно устанавливаем display: block
-        tabPane.classList.remove('hidden');
+      // И показываем соответствующую панель
+      const activePane = document.getElementById(`admin-tab-${tabId}`);
+      if (activePane) {
+        activePane.classList.remove('hidden');
+        activePane.style.display = 'block';
+        console.log(`Панель "admin-tab-${tabId}" активирована`);
         
-        // Если это вкладка специальных уроков, обновляем их список
+        // Если это вкладка специальных уроков, обновляем списки
         if (tabId === 'special-lessons') {
-          console.log('Загружаем список специальных уроков');
-          this.loadSpecialLessonsList();
-          this.loadNoDayLessonsList();
+          console.log('Загружаем список специальных уроков и уроков без дня');
+          setTimeout(() => {
+            // Используем setTimeout, чтобы дать DOM обновиться
+            this.loadSpecialLessonsList();
+            this.loadNoDayLessonsList();
+          }, 100);
+          
+          // Убедимся, что кнопка добавления словаря работает
+          const addVocabularyBtn = document.getElementById('admin-add-vocabulary');
+          if (addVocabularyBtn) {
+            console.log('Настраиваем кнопку добавления словаря');
+            // Удаляем старые обработчики
+            const newBtn = addVocabularyBtn.cloneNode(true);
+            addVocabularyBtn.parentNode.replaceChild(newBtn, addVocabularyBtn);
+            
+            // Добавляем новый обработчик
+            newBtn.addEventListener('click', () => {
+              console.log('Клик по кнопке добавления словаря');
+              this.createNoDayLesson();
+            });
+          } else {
+            console.error('Кнопка добавления словаря не найдена!');
+          }
         }
       } else {
-        console.error(`Панель вкладки с id="${tabPaneId}" не найдена`);
-        
-        // Выведем список всех доступных панелей для диагностики
-        const allPanes = document.querySelectorAll('[id^="admin-tab-"]');
-        console.log('Доступные панели вкладок:', Array.from(allPanes).map(el => el.id));
+        console.error(`Панель вкладки с id="admin-tab-${tabId}" не найдена`);
+        const availablePanes = Array.from(document.querySelectorAll('[id^="admin-tab-"]')).map(el => el.id);
+        console.log('Доступные панели:', availablePanes);
       }
     } catch (error) {
       console.error('Ошибка при переключении вкладок:', error);
@@ -2449,20 +2489,43 @@ class AdminInterface {
   }
 
   createNoDayLesson() {
+    console.log('Создание нового урока без дня (словаря)');
+    
+    // Создаем шаблон нового урока
     const newLesson = {
-      id: '',
-      title: 'Новый урок без дня',
-      contentSource: { type: 'markdown', content: '' }
+      id: 'new-vocabulary',
+      title: 'Новый словарь',
+      contentSource: { 
+        type: 'markdown', 
+        content: '# Новый словарь\n\nДобавьте контент для словаря здесь.' 
+      }
     };
+    
+    // Убедимся, что массив noDayLessons существует
+    if (!this.currentEditing.course.noDayLessons) {
+      this.currentEditing.course.noDayLessons = [];
+    }
+    
+    // Заполняем форму урока
     this.fillLessonForm(newLesson);
+    
+    // Настраиваем параметры редактирования
     this.currentEditing.lesson = newLesson;
     this.currentEditing.lessonIndex = -1;
     this.currentEditing.isSpecial = false;
     this.currentEditing.isNew = true;
+    
+    // Показываем редактор урока
     document.getElementById('admin-welcome').classList.add('hidden');
     document.getElementById('admin-course-editor').classList.add('hidden');
     document.getElementById('admin-day-editor').classList.add('hidden');
     document.getElementById('admin-lesson-editor').classList.remove('hidden');
+    
+    // Переключаем поля в форме на Markdown
+    document.getElementById('admin-content-source-type').value = 'markdown';
+    this.toggleSourceFields('content', 'markdown');
+    
+    console.log('Форма редактирования урока без дня открыта');
   }
 
 
