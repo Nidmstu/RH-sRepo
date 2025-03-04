@@ -1642,8 +1642,13 @@ class AdminInterface {
     const specialLessonsList = document.getElementById('admin-special-lessons-list');
     specialLessonsList.innerHTML = '';
 
-    if (!this.currentEditing.course || !this.currentEditing.course.specialLessons) return;
-
+    if (!this.currentEditing.course) return;
+    
+    // Убедимся, что массив specialLessons существует
+    if (!this.currentEditing.course.specialLessons) {
+      this.currentEditing.course.specialLessons = [];
+    }
+    
     this.currentEditing.course.specialLessons.forEach((lesson, index) => {
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
@@ -2065,12 +2070,14 @@ class AdminInterface {
 
     // Сохраняем изменения
     if (this.currentEditing.isSpecial) {
+      // Убедимся, что массив специальных уроков существует
+      if (!this.currentEditing.course.specialLessons) {
+        this.currentEditing.course.specialLessons = [];
+      }
+      
       // Сохраняем специальный урок
       if (this.currentEditing.isNew) {
         // Новый урок
-        if (!this.currentEditing.course.specialLessons) {
-          this.currentEditing.course.specialLessons = [];
-        }
         this.currentEditing.course.specialLessons.push(lessonData);
       } else {
         // Обновляем существующий
