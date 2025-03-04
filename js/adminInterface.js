@@ -947,7 +947,6 @@ class AdminInterface {
 
       /* Мобильная навигация */
       .admin-mobile-nav-toggle {
-        display: none;
         background-color: #3498db;
         color: white;
         border: none;
@@ -958,6 +957,9 @@ class AdminInterface {
         font-weight: bold;
         cursor: pointer;
         border-radius: 4px;
+        z-index: 100;
+        position: sticky;
+        top: 0;
       }
 
       /* Адаптивные стили для мобильных устройств */
@@ -1203,6 +1205,36 @@ class AdminInterface {
         });
       });
     }
+
+    // Добавляем кнопку переключения боковой панели для мобильных устройств
+    const adminBody = document.querySelector('.admin-body');
+    if (adminBody && window.innerWidth <= 768) {
+      // Создаем кнопку, если ее еще нет
+      if (!document.getElementById('toggle-sidebar')) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggle-sidebar';
+        toggleBtn.className = 'admin-btn admin-mobile-nav-toggle';
+        toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+        toggleBtn.style.display = 'block';
+        
+        // Вставляем кнопку перед основным содержимым
+        adminBody.insertBefore(toggleBtn, adminBody.firstChild);
+        
+        // Добавляем обработчик события для кнопки
+        toggleBtn.addEventListener('click', () => {
+          const sidebar = document.querySelector('.admin-sidebar');
+          if (sidebar) {
+            if (sidebar.style.display === 'none') {
+              sidebar.style.display = 'block';
+              toggleBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть меню курсов';
+            } else {
+              sidebar.style.display = 'none';
+              toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
+            }
+          }
+        });
+      }
+    }
   }
 
   /**
@@ -1237,6 +1269,8 @@ class AdminInterface {
    * Переключение между вкладками
    */
   switchTab(tabId) {
+    console.log(`Переключение на вкладку: ${tabId}`);
+    
     // Деактивируем все вкладки
     document.querySelectorAll('.admin-tab-btn').forEach(el => {
       el.classList.remove('active');
@@ -1246,8 +1280,24 @@ class AdminInterface {
     });
 
     // Активируем нужную вкладку
-    document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`).classList.add('active');
-    document.getElementById(`admin-tab-${tabId}`).classList.add('active');
+    const tabButton = document.querySelector(`.admin-tab-btn[data-tab="${tabId}"]`);
+    if (tabButton) {
+      tabButton.classList.add('active');
+    } else {
+      console.error(`Кнопка вкладки с data-tab="${tabId}" не найдена`);
+    }
+    
+    const tabPane = document.getElementById(`admin-tab-${tabId}`);
+    if (tabPane) {
+      tabPane.classList.add('active');
+      
+      // Если это вкладка специальных уроков, обновляем их список
+      if (tabId === 'special-lessons') {
+        this.loadSpecialLessonsList();
+      }
+    } else {
+      console.error(`Панель вкладки с id="admin-tab-${tabId}" не найдена`);
+    }
   }
 
   /**
@@ -1655,13 +1705,19 @@ class AdminInterface {
       this.currentEditing.course.specialLessons = [];
     }
 
+    console.log('Специальные уроки:', this.currentEditing.course.specialLessons);
+
+    if (this.currentEditing.course.specialLessons.length === 0) {
+      specialLessonsList.innerHTML = '<div class="admin-list-empty">Нет специальных уроков. Добавьте новый специальный урок.</div>';
+    }
+
     this.currentEditing.course.specialLessons.forEach((lesson, index) => {
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
       lessonItem.innerHTML = `
         <div class="admin-list-item-info">
-          <div class="admin-list-item-title">${lesson.title}</div>
-          <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
+          <div class="admin-list-item-title">${lesson.title || 'Без названия'}</div>
+          <div class="admin-list-item-subtitle">ID: ${lesson.id || 'Без ID'}</div>
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-special-lesson" data-index="${index}">
@@ -1675,14 +1731,20 @@ class AdminInterface {
       specialLessonsList.appendChild(lessonItem);
 
       // Обработчик редактирования
-      lessonItem.querySelector('.edit-special-lesson').addEventListener('click', () => {
-        this.editSpecialLesson(index);
-      });
+      const editButton = lessonItem.querySelector('.edit-special-lesson');
+      if (editButton) {
+        editButton.addEventListener('click', () => {
+          this.editSpecialLesson(index);
+        });
+      }
 
       // Обработчик удаления
-      lessonItem.querySelector('.delete-special-lesson').addEventListener('click', () => {
-        this.deleteSpecialLesson(index);
-      });
+      const deleteButton = lessonItem.querySelector('.delete-special-lesson');
+      if (deleteButton) {
+        deleteButton.addEventListener('click', () => {
+          this.deleteSpecialLesson(index);
+        });
+      }
     });
   }
 
@@ -1838,10 +1900,12 @@ class AdminInterface {
    * Создание нового урока
    */
   createLesson(isSpecial = false) {
+    console.log(`Создание нового ${isSpecial ? 'специального' : 'обычного'} урока`);
+    
     // Создаем шаблон нового урока
     const newLesson = {
       id: "",
-      title: "Новый урок",
+      title: isSpecial ? "Новый специальный урок" : "Новый урок",
       contentSource: {
         type: "webhook",
         url: ""
@@ -1898,7 +1962,24 @@ class AdminInterface {
    * Редактирование специального урока
    */
   editSpecialLesson(index) {
-    this.editLesson(index, true);
+    if (!this.currentEditing.course || !this.currentEditing.course.specialLessons[index]) return;
+    
+    const lesson = this.currentEditing.course.specialLessons[index];
+    
+    // Заполняем форму урока
+    this.fillLessonForm(lesson);
+    
+    // Настраиваем параметры редактирования
+    this.currentEditing.lesson = lesson;
+    this.currentEditing.lessonIndex = index;
+    this.currentEditing.isSpecial = true;
+    this.currentEditing.isNew = false;
+    
+    // Показываем редактор урока
+    document.getElementById('admin-welcome').classList.add('hidden');
+    document.getElementById('admin-course-editor').classList.add('hidden');
+    document.getElementById('admin-day-editor').classList.add('hidden');
+    document.getElementById('admin-lesson-editor').classList.remove('hidden');
   }
 
   /**
