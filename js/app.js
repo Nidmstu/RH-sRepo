@@ -138,27 +138,22 @@ async function initApp() {
     console.log('Данные курсов успешно загружены:', Object.keys(courseManager.courses));
     updateLoadingStatus('Данные курсов успешно загружены');
     updateGlobalLoadingStatus('Данные курсов загружены, подготовка интерфейса...');
-
-// Функция для вывода диагностической информации
-function logDiagnostics(message, data) {
-  const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
-  console.log(`[${timestamp}] ${message}`);
-  
-  if (data && window.devMode && window.devMode.enabled) {
-    if (typeof data === 'object') {
-      try {
-        const preview = JSON.stringify(data).substring(0, 100);
-        console.log(`🔧 [DevMode] Data preview: ${preview}${preview.length >= 100 ? '...' : ''}`);
-      } catch (e) {
-        console.log(`🔧 [DevMode] Could not stringify data: ${e.message}`);
+    
+    // Теперь, когда у нас есть данные, подписываемся на их обновления
+    courseManager.onCoursesUpdated((courses) => {
+      console.log('Получено обновление курсов, обновляем интерфейс');
+      
+      // Обновляем список профессий
+      updateProfessionSelector();
+      
+      // Обновляем списки дней и уроков, если выбрана профессия
+      if (courseManager.currentProfession) {
+        updateDaysList();
+        if (courseManager.currentDay) {
+          updateLessonsList();
+        }
       }
-    } else {
-      console.log(`🔧 [DevMode] Data: ${data}`);
-    }
-  }
-}
-
-    }
+    });
 
     // Теперь, когда у нас есть данные, подписываемся на их обновления
     courseManager.onCoursesUpdated((courses) => {
@@ -561,6 +556,26 @@ async function tryImportFromUrl(url) {
         coursesData = importData.courses;
         console.log('Найдены курсы в поле courses');
       }
+
+// Функция для вывода диагностической информации
+function logDiagnostics(message, data) {
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+  console.log(`[${timestamp}] ${message}`);
+  
+  if (data && window.devMode && window.devMode.enabled) {
+    if (typeof data === 'object') {
+      try {
+        const preview = JSON.stringify(data).substring(0, 100);
+        console.log(`🔧 [DevMode] Data preview: ${preview}${preview.length >= 100 ? '...' : ''}`);
+      } catch (e) {
+        console.log(`🔧 [DevMode] Could not stringify data: ${e.message}`);
+      }
+    } else {
+      console.log(`🔧 [DevMode] Data: ${data}`);
+    }
+  }
+}
+
       // Вариант 2: Данные в поле data
       else if (importData.data) {
         if (typeof importData.data === 'object') {
