@@ -13,12 +13,48 @@ class CourseManager {
   }
 
   /**
+   * Сохраняет курсы в localStorage
+   */
+  saveCourseDataToLocalStorage() {
+    try {
+      if (this.courses) {
+        localStorage.setItem('onboarding_courses', JSON.stringify(this.courses));
+        console.log('Курсы успешно сохранены в localStorage');
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении курсов в localStorage:', error);
+    }
+  }
+
+  /**
+   * Загружает курсы из localStorage
+   */
+  loadCourseDataFromLocalStorage() {
+    try {
+      const savedCourses = localStorage.getItem('onboarding_courses');
+      if (savedCourses) {
+        return JSON.parse(savedCourses);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке курсов из localStorage:', error);
+    }
+    return null;
+  }
+
+  /**
    * Инициализирует менеджер курсов
    */
   async initialize() {
     try {
+      // Сначала пытаемся загрузить из localStorage
+      const savedCourses = this.loadCourseDataFromLocalStorage();
+      if (savedCourses) {
+        console.log('Загружены курсы из localStorage:', Object.keys(savedCourses));
+        this.courses = savedCourses;
+      }
+
       // Загружаем структуру курсов с обработкой ошибок
-      console.log('Загрузка структуры курсов...');
+      console.log('Загрузка структуры курсов с сервера...');
       let coursesResponse;
       try {
         coursesResponse = await fetch('data/courses.json');
@@ -29,12 +65,39 @@ class CourseManager {
         
         const coursesText = await coursesResponse.text();
         try {
-          this.courses = JSON.parse(coursesText);
-          console.log('Курсы успешно загружены и распарсены', Object.keys(this.courses));
+          const fetchedCourses = JSON.parse(coursesText);
+          console.log('Курсы успешно загружены и распарсены с сервера', Object.keys(fetchedCourses));
+          // Обновляем курсы только если получили валидные данные
+          if (fetchedCourses && Object.keys(fetchedCourses).length > 0) {
+            this.courses = fetchedCourses;
+            // Сохраняем обновленные курсы в localStorage
+            this.saveCourseDataToLocalStorage();
+          } else {
+            console.warn('Получен пустой JSON с сервера, используем данные из localStorage');
+          }
         } catch (jsonError) {
           console.error('Ошибка при парсинге JSON курсов:', jsonError);
           console.log('Содержимое файла курсов (первые 100 символов):', coursesText.slice(0, 100));
-          // Используем пустой объект курсов в случае ошибки парсинга
+          
+          // Используем ранее загруженные данные из localStorage или создаем базовые
+          if (!this.courses) {
+            console.log('Создание базовой структуры курсов');
+            this.courses = {
+              "prompt-engineer": {
+                "title": "Prompt Engineering Onboarding",
+                "days": [],
+                "specialLessons": [],
+                "noDayLessons": []
+              }
+            };
+          }
+        }
+      } catch (fetchError) {
+        console.error('Ошибка при загрузке файла курсов:', fetchError);
+        
+        // Если нет данных из localStorage, создаем базовую структуру
+        if (!this.courses) {
+          console.log('Создание базовой структуры курсов');
           this.courses = {
             "prompt-engineer": {
               "title": "Prompt Engineering Onboarding",
@@ -43,18 +106,9 @@ class CourseManager {
               "noDayLessons": []
             }
           };
+        } else {
+          console.log('Используем данные из localStorage вместо сетевых запросов');
         }
-      } catch (fetchError) {
-        console.error('Ошибка при загрузке файла курсов:', fetchError);
-        // Создаем базовую структуру если не удалось загрузить файл
-        this.courses = {
-          "prompt-engineer": {
-            "title": "Prompt Engineering Onboarding",
-            "days": [],
-            "specialLessons": [],
-            "noDayLessons": []
-          }
-        };
       }
 
       // Загружаем резервный контент

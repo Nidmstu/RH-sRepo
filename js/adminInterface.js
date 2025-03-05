@@ -2492,6 +2492,11 @@ class AdminInterface {
    * Сохранение курсов в JSON файл
    */
   saveCoursesToJSON() {
+    // Сохраняем данные в localStorage
+    if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
+      window.courseManager.saveCourseDataToLocalStorage();
+    }
+    
     // Проверяем, есть ли настроенный URL для экспорта
     const webhookSettings = this.getWebhookSettings();
     
@@ -2746,6 +2751,11 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
+    // Сначала сохраняем в localStorage независимо от результата отправки на вебхук
+    if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
+      window.courseManager.saveCourseDataToLocalStorage();
+    }
+    
     // Проверяем валидность URL
     if (!webhookUrl || !this.isValidUrl(webhookUrl)) {
       console.error('ЭКСПОРТ: Некорректный URL:', webhookUrl);
@@ -2801,12 +2811,12 @@ class AdminInterface {
       
       xhr.onerror = (e) => {
         console.error('ЭКСПОРТ: XHR ошибка:', e);
-        this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
+        this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных. Данные сохранены локально.', 'error');
       };
       
       xhr.timeout = 20000; // 20 секунд таймаут
       xhr.ontimeout = () => {
-        this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
+        this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных. Данные сохранены локально.', 'error');
       };
       
       // Отправляем данные
@@ -2814,7 +2824,7 @@ class AdminInterface {
       
     } catch (e) {
       console.error('ЭКСПОРТ: Ошибка при подготовке или отправке запроса:', e);
-      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
+      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}. Данные сохранены локально.`, 'error');
     }
   }
   
@@ -2845,14 +2855,25 @@ class AdminInterface {
         // Применяем полученные данные
         window.courseManager.courses = data.courses;
         
+        // Сохраняем в localStorage
+        if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
+          window.courseManager.saveCourseDataToLocalStorage();
+        }
+        
         // Обновляем интерфейс
         this.loadCoursesList();
         
-        this.showWebhookStatus('Данные успешно импортированы', 'success');
+        this.showWebhookStatus('Данные успешно импортированы и сохранены локально', 'success');
       })
       .catch(error => {
         console.error('Import error:', error);
         this.showWebhookStatus(`Ошибка при импорте данных: ${error.message}`, 'error');
+        
+        // Если есть данные в localStorage, предлагаем их использовать
+        if (window.courseManager && typeof window.courseManager.loadCourseDataFromLocalStorage === 'function' && 
+            window.courseManager.loadCourseDataFromLocalStorage()) {
+          this.showWebhookStatus('Используются сохраненные локально данные', 'info');
+        }
       });
   }
   
