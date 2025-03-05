@@ -453,7 +453,27 @@ function syncWithCloud() {
         }
         
         try {
-          await tryImportFromUrl(importWebhookUrl);
+          const result = await tryImportFromUrl(importWebhookUrl);
+          
+          // Если данные были успешно обновлены, обновляем интерфейс
+          if (result && result.success && result.updated) {
+            console.log('Данные синхронизированы, обновляем интерфейс');
+            updateProfessionSelector();
+            
+            // Обновляем текущую страницу
+            if (document.getElementById('home').classList.contains('hidden') === false) {
+              // Если мы на главной, обновляем список дней
+              if (courseManager.currentProfession) {
+                updateDaysList();
+              }
+            } else if (document.getElementById('guide').classList.contains('hidden') === false) {
+              // Если мы на странице гайда и текущий урок все еще существует,
+              // оставляем как есть. Иначе возвращаемся на главную
+              if (!courseManager.currentLesson) {
+                goBackToTaskSelection();
+              }
+            }
+          }
         } catch (e) {
           console.error('Ошибка при синхронизации:', e);
         }
@@ -860,9 +880,24 @@ function updateDaysList() {
   // Получаем список дней
   const days = courseManager.getDays();
   
-  // Очищаем контейнер
-  const container = daySelectionContainer.querySelector('.content-cards') || daySelectionContainer;
-  container.innerHTML = '';
+  // Проверяем, что есть секция для дней
+  let dayCardsContainer = daySelectionContainer.querySelector('.content-cards');
+  if (!dayCardsContainer) {
+    // Если контейнера для карточек нет, создаем его
+    dayCardsContainer = document.createElement('div');
+    dayCardsContainer.className = 'content-cards';
+    daySelectionContainer.appendChild(dayCardsContainer);
+  }
+  
+  // Очищаем контейнер с карточками дней
+  dayCardsContainer.innerHTML = '';
+  
+  // Добавляем заголовок для раздела дней
+  const daysTitle = document.createElement('h2');
+  daysTitle.textContent = 'Выберите день обучения:';
+  dayCardsContainer.appendChild(daysTitle);
+  
+  console.log(`Загружено ${days.length} дней для профессии ${courseManager.currentProfession}`);
   
   // Добавляем карточки для каждого дня
   days.forEach(day => {
@@ -873,8 +908,15 @@ function updateDaysList() {
       <p>${day.description || 'Нажмите, чтобы просмотреть уроки'}</p>
     `;
     card.onclick = () => selectDay(day.id);
-    container.appendChild(card);
+    dayCardsContainer.appendChild(card);
   });
+  
+  // Если нет дней, показываем сообщение
+  if (days.length === 0) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.textContent = 'Для этой профессии еще не добавлены дни обучения.';
+    dayCardsContainer.appendChild(emptyMessage);
+  }
 }
 
 // Функция для обновления списка уроков
@@ -890,11 +932,33 @@ function updateLessonsList() {
   // Получаем уроки для текущего дня
   const lessons = courseManager.getLessonsForCurrentDay();
   
+  console.log(`Загружено ${lessons.length} уроков для дня ${courseManager.currentDay.id}`);
+  
+  // Если нет уроков, отображаем сообщение
+  if (lessons.length === 0) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.textContent = 'Для этого дня еще не добавлены уроки.';
+    emptyMessage.className = 'empty-message';
+    taskButtonsDiv.appendChild(emptyMessage);
+    return;
+  }
+  
   // Добавляем кнопки для каждого урока
   lessons.forEach(lesson => {
     const btn = document.createElement('button');
-    btn.innerText = lesson.title;
+    btn.innerText = lesson.title || `Урок ${lesson.id}`;
     btn.onclick = function() { selectLesson(lesson.id); };
+    
+    // Добавляем дополнительную информацию (если есть)
+    if (lesson.description) {
+      const description = document.createElement('small');
+      description.textContent = lesson.description;
+      description.style.display = 'block';
+      description.style.marginTop = '5px';
+      description.style.color = '#666';
+      btn.appendChild(description);
+    }
+    
     taskButtonsDiv.appendChild(btn);
   });
 }
@@ -924,6 +988,17 @@ function renderHomePage() {
   }
   
   console.log('Отображение домашней страницы с загруженными курсами:', Object.keys(courseManager.courses));
+  
+  // Обновляем список профессий
+  updateProfessionSelector();
+  
+  // Если у нас выбрана профессия, подготовим список дней
+  if (courseManager.currentProfession) {
+    // Генерируем карточки для дней
+    updateDaysList();
+  }
+  
+  // Показываем домашнюю страницу
   showSection('home');
   daySelectionContainer.classList.remove('hidden');
   taskSelectionContainer.classList.add('hidden');
@@ -942,14 +1017,24 @@ function handleProfessionChange() {
   if (courseManager.hasRedirect(selectedProfession)) {
     const redirectUrl = courseManager.getRedirectUrl(selectedProfession);
     if (redirectUrl) {
+      console.log(`Перенаправление на внешний ресурс: ${redirectUrl}`);
       window.location.href = redirectUrl;
       return;
     }
   }
   
   // Если нет перенаправления, переключаемся на эту профессию
+  console.log(`Переключение на профессию: ${selectedProfession}`);
   courseManager.switchProfession(selectedProfession);
-  renderHomePage();
+  
+  // Обновляем список дней для выбранной профессии
+  updateDaysList();
+  
+  // Сбрасываем выбранный урок и возвращаемся на домашнюю страницу
+  courseManager.currentLesson = null;
+  showSection('home');
+  daySelectionContainer.classList.remove('hidden');
+  taskSelectionContainer.classList.add('hidden');
 }
 
 // Выбор дня обучения
@@ -962,19 +1047,12 @@ window.selectDay = function(dayId) {
   }
   
   // Обновляем интерфейс
-  dayHeader.innerText = day.title;
+  dayHeader.innerText = day.title || `День ${day.id}`;
   daySelectionContainer.classList.add('hidden');
   taskSelectionContainer.classList.remove('hidden');
   
-  // Получаем уроки для этого дня и генерируем кнопки
-  const lessons = courseManager.getLessonsForCurrentDay();
-  taskButtonsDiv.innerHTML = '';
-  lessons.forEach(lesson => {
-    const btn = document.createElement('button');
-    btn.innerText = lesson.title;
-    btn.onclick = function() { selectLesson(lesson.id); };
-    taskButtonsDiv.appendChild(btn);
-  });
+  // Обновляем список уроков для выбранного дня
+  updateLessonsList();
 };
 
 // Выбор урока
@@ -983,6 +1061,7 @@ window.selectLesson = function(lessonId) {
   const lesson = courseManager.selectLesson(lessonId);
   if (!lesson) {
     console.error(`Урок с ID ${lessonId} не найден`);
+    alert(`Урок с ID ${lessonId} не найден. Пожалуйста, выберите другой урок.`);
     return;
   }
   
@@ -1005,10 +1084,12 @@ window.selectLesson = function(lessonId) {
         console.log(`Новый URL: ${lesson.contentSource.url}`);
       }
     }
+  } else {
+    console.warn(`Урок ${lessonId} не имеет источника контента`);
   }
   
   // Обновляем интерфейс
-  guideTitle.innerText = `Guide: ${lesson.title}`;
+  guideTitle.innerText = `Guide: ${lesson.title || `Урок ${lesson.id}`}`;
   
   // Сбрасываем все аудио
   hideAllAudio();
@@ -1056,6 +1137,12 @@ window.selectLesson = function(lessonId) {
   
   // Показываем страницу гайда и загружаем контент
   showSection('guide');
+  
+  // Показываем индикатор загрузки перед загрузкой контента
+  const contentSpinner = document.getElementById('content-loading-spinner');
+  if (contentSpinner) contentSpinner.classList.remove('hidden');
+  
+  // Загружаем контент урока
   loadLessonContent();
 };
 
@@ -1100,8 +1187,13 @@ async function loadLessonContent() {
   }
   
   try {
+    // Проверяем, есть ли выбранный урок
+    if (!courseManager.currentLesson) {
+      throw new Error('Не выбран урок для загрузки');
+    }
+    
     // Получаем контент через менеджер курсов
-    console.log('Запрос контента для текущего урока');
+    console.log('Запрос контента для урока:', courseManager.currentLesson.id);
     const content = await courseManager.fetchLessonContent();
     
     if (!content) {
@@ -1110,8 +1202,14 @@ async function loadLessonContent() {
     
     console.log(`Получен контент (${content.length} символов), форматирование...`);
     
+    // Добавляем заголовок, если его нет в контенте
+    let processedContent = content;
+    if (!content.trim().startsWith('#')) {
+      processedContent = `# ${courseManager.currentLesson.title || 'Урок'}\n\n${content}`;
+    }
+    
     // Форматируем контент
-    const formattedHTML = createCollapsibleBlocks(content);
+    const formattedHTML = createCollapsibleBlocks(processedContent);
     
     console.log('Контент отформатирован, отображение...');
     
@@ -1150,15 +1248,28 @@ async function loadLessonContent() {
   } catch (error) {
     console.error('Ошибка при загрузке контента урока:', error);
     
+    // Формируем название урока для отображения в сообщении об ошибке
+    const lessonTitle = courseManager.currentLesson 
+      ? (courseManager.currentLesson.title || `Урок ${courseManager.currentLesson.id}`)
+      : 'Неизвестный урок';
+    
     // Форматируем сообщение об ошибке
     markdownContent.innerHTML = `
       <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
-        <h3>Ошибка загрузки контента</h3>
+        <h3>Ошибка загрузки контента урока "${lessonTitle}"</h3>
         <p>Пожалуйста, обратитесь к руководителю команды.</p>
         <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
-        <button onclick="location.reload()" style="margin-top: 15px; background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
-          Перезагрузить страницу
-        </button>
+        <div style="margin-top: 15px;">
+          <button onclick="goBackToTaskSelection()" style="margin-right: 10px; background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+            Вернуться к списку уроков
+          </button>
+          <button onclick="loadLessonContent()" style="margin-right: 10px; background-color: #f39c12; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+            Повторить загрузку
+          </button>
+          <button onclick="location.reload()" style="background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+            Перезагрузить страницу
+          </button>
+        </div>
       </div>
     `;
     
