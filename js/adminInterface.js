@@ -264,7 +264,8 @@ class AdminInterface {
               <div class="admin-section-actions">
                 <button id="admin-save-course" class="admin-btn admin-btn-primary">Сохранить</button>
                 <button id="admin-export-course" class="admin-btn">Экспорт</button>
-                <button id="admin-import-course" class="admin-btn">Импорт</button>
+                <button id="admin-import-course" class="admin-btn">Импорт курса</button>
+                <button id="admin-import-lessons" class="admin-btn">Импорт уроков</button>
               </div>
             </div>
 
@@ -1063,6 +1064,14 @@ class AdminInterface {
       });
     }
     
+    // Импорт уроков
+    const importLessonsBtn = document.getElementById('admin-import-lessons');
+    if (importLessonsBtn) {
+      importLessonsBtn.addEventListener('click', () => {
+        this.importLessons();
+      });
+    }
+    
     // Экспорт всех данных на вебхук
     const webhookExportBtn = document.getElementById('admin-webhook-export');
     if (webhookExportBtn) {
@@ -1851,6 +1860,261 @@ class AdminInterface {
     };
 
     input.click();
+  }
+  
+  /**
+   * Импорт уроков из JSON файла в текущий курс
+   */
+  importLessons() {
+    if (!this.currentEditing.course) {
+      alert('Сначала выберите курс для импорта уроков');
+      return;
+    }
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          let importedData = JSON.parse(event.target.result);
+          
+          // Определим, что было импортировано: массив уроков или курс с уроками
+          let lessons = [];
+          
+          // Если это массив, предполагаем что это уроки
+          if (Array.isArray(importedData)) {
+            lessons = importedData;
+          }
+          // Если это объект с полем lessons, извлекаем уроки оттуда
+          else if (importedData.lessons && Array.isArray(importedData.lessons)) {
+            lessons = importedData.lessons;
+          }
+          // Если это курс с днями
+          else if (importedData.days && Array.isArray(importedData.days)) {
+            const allDayLessons = [];
+            importedData.days.forEach(day => {
+              if (day.lessons && Array.isArray(day.lessons)) {
+                allDayLessons.push(...day.lessons);
+              }
+            });
+            lessons = allDayLessons;
+          }
+          // Если это уроки из определенного дня
+          else if (importedData.lessons && Array.isArray(importedData.lessons)) {
+            lessons = importedData.lessons;
+          }
+          
+          if (lessons.length === 0) {
+            alert('В импортированном файле не найдены уроки');
+            return;
+          }
+          
+          // Показываем модальное окно для выбора уроков
+          this.showLessonsSelectionModal(lessons);
+          
+        } catch (err) {
+          alert('Ошибка при импорте файла: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    input.click();
+  }
+  
+  /**
+   * Показать модальное окно для выбора уроков для импорта
+   */
+  showLessonsSelectionModal(lessons) {
+    // Создаем модальное окно
+    const modalId = 'import-lessons-modal';
+    let modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'admin-modal';
+    
+    // Создаем содержимое модального окна
+    modal.innerHTML = `
+      <div class="admin-modal-content" style="width: 90%; max-width: 800px; max-height: 80vh;">
+        <div class="admin-modal-header">
+          <h3>Выберите уроки для импорта</h3>
+          <span class="admin-modal-close">&times;</span>
+        </div>
+        <div class="admin-modal-body" style="overflow-y: auto; max-height: 60vh;">
+          <p>Найдено ${lessons.length} уроков. Выберите уроки для импорта в текущий курс.</p>
+          <p>
+            <label>
+              <input type="checkbox" id="select-all-lessons" checked> 
+              Выбрать все
+            </label>
+            &nbsp;|&nbsp;
+            <select id="import-destination">
+              <option value="current-day">В текущий день</option>
+              <option value="new-day">В новый день</option>
+              <option value="special">В специальные уроки</option>
+            </select>
+          </p>
+          <div class="admin-divider" style="height: 1px; background: #ddd; margin: 10px 0;"></div>
+          <div id="lessons-list" style="margin-top: 15px;">
+            ${lessons.map((lesson, index) => `
+              <div class="lesson-item" style="padding: 8px; border-bottom: 1px solid #eee; display: flex; align-items: center;">
+                <input type="checkbox" class="lesson-checkbox" data-index="${index}" checked>
+                <div style="margin-left: 10px; flex: 1;">
+                  <div><strong>${lesson.title || 'Без названия'}</strong></div>
+                  <div style="font-size: 0.85em; color: #666;">ID: ${lesson.id || 'Нет ID'}</div>
+                  ${lesson.contentSource ? `<div style="font-size: 0.85em; color: #666;">Источник: ${lesson.contentSource.type}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="admin-modal-footer" style="padding: 15px; border-top: 1px solid #ddd; text-align: right;">
+          <button id="cancel-import" class="admin-btn">Отмена</button>
+          <button id="import-selected-lessons" class="admin-btn admin-btn-primary" style="margin-left: 10px;">Импортировать выбранные</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Добавляем обработчики событий
+    const closeBtn = modal.querySelector('.admin-modal-close');
+    const cancelBtn = modal.querySelector('#cancel-import');
+    const selectAllCheckbox = modal.querySelector('#select-all-lessons');
+    const lessonCheckboxes = modal.querySelectorAll('.lesson-checkbox');
+    const importBtn = modal.querySelector('#import-selected-lessons');
+    
+    // Закрытие модального окна
+    const closeModal = () => {
+      document.body.removeChild(modal);
+    };
+    
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Выбор всех уроков
+    selectAllCheckbox.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      lessonCheckboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+    });
+    
+    // Импорт выбранных уроков
+    importBtn.addEventListener('click', () => {
+      const selectedLessons = [];
+      lessonCheckboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+          const index = parseInt(checkbox.getAttribute('data-index'));
+          if (!isNaN(index) && index >= 0 && index < lessons.length) {
+            selectedLessons.push(lessons[index]);
+          }
+        }
+      });
+      
+      if (selectedLessons.length === 0) {
+        alert('Не выбрано ни одного урока для импорта');
+        return;
+      }
+      
+      // Определяем куда импортировать уроки
+      const destination = document.getElementById('import-destination').value;
+      
+      // Импортируем уроки в выбранное место
+      this.importSelectedLessons(selectedLessons, destination);
+      
+      // Закрываем модальное окно
+      closeModal();
+    });
+  }
+  
+  /**
+   * Импорт выбранных уроков в текущий курс
+   */
+  importSelectedLessons(lessons, destination) {
+    if (!this.currentEditing.course) return;
+    
+    switch (destination) {
+      case 'current-day':
+        // Проверяем, выбран ли день
+        if (!this.currentEditing.day) {
+          // Если день не выбран, спрашиваем, создать ли новый день
+          if (confirm('Текущий день не выбран. Создать новый день с импортированными уроками?')) {
+            // Создаем новый день
+            const maxId = this.currentEditing.course.days ? 
+              this.currentEditing.course.days.reduce((max, day) => Math.max(max, day.id), 0) : 0;
+            
+            const newDay = {
+              id: maxId + 1,
+              title: `День ${maxId + 1}`,
+              lessons: lessons
+            };
+            
+            // Добавляем день в курс
+            if (!this.currentEditing.course.days) {
+              this.currentEditing.course.days = [];
+            }
+            
+            this.currentEditing.course.days.push(newDay);
+          } else {
+            return; // Пользователь отменил импорт
+          }
+        } else {
+          // Добавляем уроки в текущий день
+          if (!this.currentEditing.day.lessons) {
+            this.currentEditing.day.lessons = [];
+          }
+          
+          this.currentEditing.day.lessons.push(...lessons);
+        }
+        break;
+        
+      case 'new-day':
+        // Создаем новый день
+        const maxId = this.currentEditing.course.days ? 
+          this.currentEditing.course.days.reduce((max, day) => Math.max(max, day.id), 0) : 0;
+        
+        const dayTitle = prompt('Введите название нового дня:', `День ${maxId + 1}`);
+        if (!dayTitle) return; // Пользователь отменил
+        
+        const newDay = {
+          id: maxId + 1,
+          title: dayTitle,
+          lessons: lessons
+        };
+        
+        // Добавляем день в курс
+        if (!this.currentEditing.course.days) {
+          this.currentEditing.course.days = [];
+        }
+        
+        this.currentEditing.course.days.push(newDay);
+        break;
+        
+      case 'special':
+        // Добавляем уроки в специальные уроки
+        if (!this.currentEditing.course.specialLessons) {
+          this.currentEditing.course.specialLessons = [];
+        }
+        
+        this.currentEditing.course.specialLessons.push(...lessons);
+        break;
+    }
+    
+    // Обновляем интерфейс
+    this.loadDaysList();
+    this.loadSpecialLessonsList();
+    
+    // Сохраняем изменения
+    this.saveCoursesToJSON();
+    
+    // Уведомляем пользователя
+    alert(`Успешно импортировано ${lessons.length} уроков`);
   }
 
   /**
