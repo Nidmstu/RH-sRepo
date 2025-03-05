@@ -52,10 +52,24 @@ class CourseManager {
         // Если URL не найден в настройках, проверим другие возможные места
         if (!webhookUrl) {
           // Проверяем наличие в localStorage или других источниках
+          const webhookSettings = localStorage.getItem('webhookSettings');
           const adminWebhookUrl = localStorage.getItem('adminImportWebhook');
           const testImportUrl = localStorage.getItem('testImportUrl');
           
-          if (adminWebhookUrl) {
+          // Приоритет для настроек из админ-панели
+          if (webhookSettings) {
+            try {
+              const settings = JSON.parse(webhookSettings);
+              if (settings.importUrl) {
+                webhookUrl = settings.importUrl;
+                console.log(`Найден URL импорта в настройках вебхуков: ${webhookUrl}`);
+                // Сохраняем для использования другими компонентами
+                localStorage.setItem('importWebhookUrl', webhookUrl);
+              }
+            } catch (e) {
+              console.error('Ошибка при парсинге настроек вебхуков:', e);
+            }
+          } else if (adminWebhookUrl) {
             webhookUrl = adminWebhookUrl;
             console.log(`Найден URL импорта в adminImportWebhook: ${webhookUrl}`);
           } else if (testImportUrl) {
@@ -173,7 +187,7 @@ class CourseManager {
                 // Проверяем, имеет ли объект правильную структуру
                 const hasValidStructure = Object.values(importData).some(value => {
                   return value && typeof value === 'object' && 
-                         (value.days || value.specialLessons || value.title || value.redirectUrl);
+                         (value.days || value.specialLessons || value.title || value.redirectUrl || value.noDayLessons);
                 });
                 
                 if (hasValidStructure) {
@@ -181,6 +195,47 @@ class CourseManager {
                   if (window.devMode && window.devMode.enabled) {
                     console.log(`🔧 [DevMode] Использование корневого объекта как courses (найдены поля days/specialLessons/title)`);
                   }
+                }
+                
+                // Дополнительная проверка на отдельные уроки с вебхуками
+                const validateWebhooks = (obj) => {
+                  // Проверка наличия вебхуков в уроках
+                  let hasWebhooks = false;
+                  
+                  // Проверяем, есть ли дни с уроками
+                  if (obj.days && Array.isArray(obj.days)) {
+                    obj.days.forEach(day => {
+                      if (day.lessons && Array.isArray(day.lessons)) {
+                        day.lessons.forEach(lesson => {
+                          if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
+                            hasWebhooks = true;
+                            // Сохраняем URL вебхука для использования в fetchLessonContent
+                            const webhookUrl = lesson.contentSource.url;
+                            console.log(`Сохраняем URL вебхука для урока ${lesson.id}: ${webhookUrl}`);
+                          }
+                        });
+                      }
+                    });
+                  }
+                  
+                  // Проверяем специальные уроки
+                  if (obj.specialLessons && Array.isArray(obj.specialLessons)) {
+                    obj.specialLessons.forEach(lesson => {
+                      if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
+                        hasWebhooks = true;
+                        // Сохраняем URL вебхука для использования в fetchLessonContent
+                        const webhookUrl = lesson.contentSource.url;
+                        console.log(`Сохраняем URL вебхука для специального урока ${lesson.id}: ${webhookUrl}`);
+                      }
+                    });
+                  }
+                  
+                  return hasWebhooks;
+                };
+                
+                // Если найдены вебхуки в уроках, подтверждаем, что это структура курсов
+                if (validateWebhooks(coursesData)) {
+                  console.log("Найдены вебхуки в структуре курсов, структура валидна");
                 }
               }
             }
@@ -450,9 +505,48 @@ class CourseManager {
           if (window.devMode && window.devMode.enabled) {
             console.log(`🔧 [DevMode] Загрузка контента урока '${this.currentLesson.title}' с URL: ${source.url}`);
           }
+          
+          console.log(`Fetching from: ${source.url}`);
+          console.log(`Using simplified GET request`);
 
-          const response = await fetch(source.url);
+          // Используем более надежный подход для загрузки данных
+          const response = await fetch(source.url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/plain, text/markdown, text/html, application/json, */*'
+            },
+            mode: 'cors',
+            cache: 'no-store' // Всегда получаем свежие данные
+          });
+          
+          console.log(`Response status: ${response.status}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ошибка! Статус: ${response.status}`);
+          }
+          
           content = await response.text();
+          
+          console.log(`Response size: ${content.length} bytes`);
+          console.log(`Response preview: "${content.substring(0, 20)}${content.length > 20 ? '...' : ''}"`);
+          console.log(`Response received successfully!`);
+          console.log(`Raw response: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+
+          // Если это JSON-ответ, пытаемся извлечь текстовое содержимое
+          if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+            try {
+              const jsonData = JSON.parse(content);
+              
+              // Извлекаем содержимое из разных возможных полей
+              if (jsonData.content) content = jsonData.content;
+              else if (jsonData.markdown) content = jsonData.markdown;
+              else if (jsonData.text) content = jsonData.text;
+              else if (jsonData.html) content = jsonData.html;
+              else if (jsonData.data && typeof jsonData.data === 'string') content = jsonData.data;
+            } catch (e) {
+              console.log('Не удалось распарсить JSON, используем ответ как текст');
+            }
+          }
 
           // Добавляем информацию для режима разработчика
           if (window.devMode && window.devMode.enabled) {

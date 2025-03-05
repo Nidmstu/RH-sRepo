@@ -43,13 +43,22 @@ async function initApp() {
 
 // Настройка периодической синхронизации с облаком
 function setupCloudSync() {
-  const syncInterval = 5 * 60 * 1000; // 5 минут
+  const syncInterval = 2 * 60 * 1000; // 2 минуты - более частая синхронизация
   
   // Функция для проверки необходимости синхронизации и её выполнения
   const syncWithCloud = async () => {
     // Проверяем наличие настроек вебхуков
     const webhookSettingsStr = localStorage.getItem('webhookSettings');
-    if (!webhookSettingsStr) return;
+    if (!webhookSettingsStr) {
+      console.log('Настройки вебхуков не найдены, проверяем другие источники');
+      // Проверяем другие источники
+      const importWebhookUrl = localStorage.getItem('importWebhookUrl');
+      if (!importWebhookUrl) return;
+      
+      // Если найден URL импорта, используем его
+      await tryImportFromUrl(importWebhookUrl);
+      return;
+    }
     
     try {
       const webhookSettings = JSON.parse(webhookSettingsStr);
@@ -60,54 +69,146 @@ function setupCloudSync() {
           console.log('🔧 [DevMode] Выполняется периодическая синхронизация с облаком');
         }
         
-        try {
-          // Получаем данные с вебхука
-          const response = await fetch(webhookSettings.importUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const importData = await response.json();
-            
-            // Проверяем наличие данных о курсах
-            if (importData.courses) {
-              // Сравниваем с текущими данными
-              const currentCoursesJson = JSON.stringify(courseManager.courses);
-              const newCoursesJson = JSON.stringify(importData.courses);
-              
-              if (currentCoursesJson !== newCoursesJson) {
-                if (window.devMode && window.devMode.enabled) {
-                  console.log('🔧 [DevMode] Обнаружены изменения данных, применяем обновления из облака');
-                }
-                
-                // Сохраняем резервную копию текущих данных
-                localStorage.setItem('coursesBackup', currentCoursesJson);
-                localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-                
-                // Применяем новые данные
-                courseManager.courses = importData.courses;
-                
-                if (window.devMode && window.devMode.enabled) {
-                  console.log('🔧 [DevMode] Синхронизация с облаком успешно завершена');
-                }
-              } else if (window.devMode && window.devMode.enabled) {
-                console.log('🔧 [DevMode] Данные актуальны, синхронизация не требуется');
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Ошибка при синхронизации с облаком:', error);
-          if (window.devMode && window.devMode.enabled) {
-            console.log(`🔧 [DevMode] Ошибка синхронизации: ${error.message}`);
-          }
-        }
+        await tryImportFromUrl(webhookSettings.importUrl);
       }
     } catch (e) {
       console.error('Ошибка при обработке настроек вебхуков:', e);
+    }
+  };
+  
+  // Функция для импорта данных с указанного URL
+  const tryImportFromUrl = async (url) => {
+    console.log(`Синхронизация с облаком: ${url}`);
+    
+    try {
+      // Получаем данные с вебхука
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json'
+        },
+        cache: 'no-store' // Всегда получаем свежие данные
+      });
+      
+      if (!response.ok) {
+        console.error(`Ошибка при синхронизации: HTTP ${response.status}`);
+        return;
+      }
+      
+      // Получаем текст ответа
+      const responseText = await response.text();
+      
+      // Пытаемся обработать данные
+      try {
+        let importData;
+        
+        // Пробуем распарсить JSON
+        try {
+          importData = JSON.parse(responseText);
+        } catch (jsonError) {
+          console.log('Не удалось распарсить ответ как JSON, ищем JSON в тексте');
+          
+          // Пробуем найти JSON в тексте
+          const jsonRegex = /{[\s\S]*}/;
+          const match = responseText.match(jsonRegex);
+          
+          if (match && match[0]) {
+            importData = JSON.parse(match[0]);
+          } else {
+            throw new Error('Не удалось извлечь JSON из ответа');
+          }
+        }
+        
+        // Ищем данные о курсах в разных форматах
+        let coursesData = null;
+        
+        // Вариант 1: Прямой объект courses
+        if (importData.courses) {
+          coursesData = importData.courses;
+        }
+        // Вариант 2: Данные в поле data
+        else if (importData.data) {
+          if (typeof importData.data === 'object') {
+            coursesData = importData.data;
+          } else if (typeof importData.data === 'string') {
+            // Пытаемся распарсить JSON строку
+            try {
+              const parsedData = JSON.parse(importData.data);
+              coursesData = parsedData.courses || parsedData;
+            } catch (e) {
+              console.log(`Не удалось распарсить JSON в поле data: ${e.message}`);
+            }
+          }
+        }
+        // Вариант 3: Прямое использование root объекта как courses
+        else if (typeof importData === 'object') {
+          // Проверяем структуру
+          const hasValidStructure = Object.values(importData).some(value => {
+            return value && typeof value === 'object' && 
+                  (value.days || value.specialLessons || value.title || value.redirectUrl);
+          });
+          
+          if (hasValidStructure) {
+            coursesData = importData;
+          }
+        }
+        
+        if (coursesData) {
+          // Сравниваем с текущими данными
+          const currentCoursesJson = JSON.stringify(courseManager.courses);
+          const newCoursesJson = JSON.stringify(coursesData);
+          
+          if (currentCoursesJson !== newCoursesJson) {
+            if (window.devMode && window.devMode.enabled) {
+              console.log('🔧 [DevMode] Обнаружены изменения данных, применяем обновления из облака');
+            }
+            
+            // Сохраняем резервную копию текущих данных
+            localStorage.setItem('coursesBackup', currentCoursesJson);
+            localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+            
+            // Применяем новые данные
+            courseManager.courses = coursesData;
+            
+            // Если мы находимся на странице курса, перезагружаем текущие данные
+            if (courseManager.currentDay || courseManager.currentLesson) {
+              console.log('Перезагружаем текущие данные после обновления из облака');
+              
+              // Сохраняем текущие выбранные значения
+              const currentProfession = courseManager.currentProfession;
+              const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
+              const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
+              
+              // Переключаемся на ту же профессию для обновления данных
+              courseManager.switchProfession(currentProfession);
+              
+              // Если был выбран день, пытаемся выбрать его снова
+              if (currentDayId) {
+                courseManager.selectDay(currentDayId);
+                
+                // Если был выбран урок, пытаемся выбрать его снова
+                if (currentLessonId) {
+                  courseManager.selectLesson(currentLessonId);
+                }
+              }
+            }
+            
+            console.log('Синхронизация с облаком успешно завершена');
+          } else if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Данные актуальны, синхронизация не требуется');
+          }
+        } else {
+          console.log('Не удалось найти данные о курсах в ответе');
+        }
+      } catch (parseError) {
+        console.error('Ошибка при обработке данных:', parseError);
+      }
+    } catch (error) {
+      console.error('Ошибка при синхронизации с облаком:', error);
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Ошибка синхронизации: ${error.message}`);
+      }
     }
   };
   
@@ -190,6 +291,18 @@ window.selectLesson = function(lessonId) {
     return;
   }
   
+  // Сохраняем текущий урок
+  const currentLesson = lesson;
+  console.log(`Выбран урок: ${currentLesson.title} (ID: ${currentLesson.id})`);
+  
+  // Логгируем информацию об источнике контента
+  if (currentLesson.contentSource) {
+    console.log(`Источник контента: ${currentLesson.contentSource.type}`);
+    if (currentLesson.contentSource.type === 'webhook') {
+      console.log(`URL вебхука: ${currentLesson.contentSource.url}`);
+    }
+  }
+  
   // Обновляем интерфейс
   guideTitle.innerText = `Guide: ${lesson.title}`;
   
@@ -209,7 +322,7 @@ window.selectLesson = function(lessonId) {
   // Проверяем, есть ли аудио для урока
   const audioInfo = courseManager.getAudioInfo();
   if (audioInfo) {
-    // Логика отображения соответствующего аудио будет добавлена здесь
+    // Логика отображения соответствующего аудио 
     if (lessonId === 'vocabulary') {
       document.getElementById('audio-vocabulary').classList.remove('hidden');
     } else if (lessonId === 'what-prompting-is') {
