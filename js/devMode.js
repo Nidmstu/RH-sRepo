@@ -50,6 +50,7 @@ class DevMode {
         <h3>Режим разработчика</h3>
         <div class="dev-panel-actions">
           <button id="dev-panel-analyze" title="Анализировать данные курсов"><i class="fas fa-chart-bar"></i></button>
+          <button id="dev-panel-debug" title="Показать отладочную информацию"><i class="fas fa-bug"></i></button>
           <button id="dev-panel-sync" title="Синхронизировать с облаком"><i class="fas fa-sync-alt"></i></button>
           <button id="dev-panel-clear" title="Очистить логи"><i class="fas fa-trash"></i></button>
           <button id="dev-panel-minimize" title="Свернуть панель"><i class="fas fa-minus"></i></button>
@@ -87,6 +88,11 @@ class DevMode {
     // Добавляем обработчик для кнопки синхронизации
     document.getElementById('dev-panel-sync').addEventListener('click', () => {
       this.syncWithCloud();
+    });
+    
+    // Добавляем обработчик для кнопки отладки
+    document.getElementById('dev-panel-debug').addEventListener('click', () => {
+      this.showDebugInfo();
     });
   }
   
@@ -1155,6 +1161,43 @@ class DevMode {
   }
   
   /**
+   * Показать подробную информацию о текущем состоянии приложения
+   */
+  showDebugInfo() {
+    if (!window.courseManager) {
+      this.logMessage('CourseManager не инициализирован', 'error');
+      return;
+    }
+    
+    // Выводим текущее состояние
+    this.logMessage(`Текущая профессия: ${window.courseManager.currentProfession || 'не выбрана'}`, 'info');
+    this.logMessage(`Текущий день: ${window.courseManager.currentDay ? window.courseManager.currentDay.id : 'не выбран'}`, 'info');
+    this.logMessage(`Текущий урок: ${window.courseManager.currentLesson ? window.courseManager.currentLesson.id : 'не выбран'}`, 'info');
+    
+    // Проверяем состояние DOM-элементов
+    const daySelectionContainer = document.getElementById('day-selection');
+    const taskSelectionContainer = document.getElementById('task-selection');
+    const homeContainer = document.getElementById('home');
+    const guideContainer = document.getElementById('guide');
+    
+    this.logMessage(`Состояние контейнеров в DOM:`, 'info');
+    this.logMessage(`- home: ${homeContainer ? (homeContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- day-selection: ${daySelectionContainer ? (daySelectionContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- task-selection: ${taskSelectionContainer ? (taskSelectionContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- guide: ${guideContainer ? (guideContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    
+    // Проверяем наличие дней
+    const days = window.courseManager.getDays();
+    this.logMessage(`Доступно дней: ${days ? days.length : 0}`, 'info');
+    
+    if (days && days.length > 0) {
+      days.forEach((day, index) => {
+        this.logMessage(`День ${index+1}: ID=${day.id}, title=${day.title}, уроков: ${day.lessons ? day.lessons.length : 0}`, 'info');
+      });
+    }
+  }
+
+  /**
    * Анализ и вывод подробной информации о курсах, уроках и вебхуках
    */
   analyzeAndDisplayCourses() {
@@ -1163,6 +1206,9 @@ class DevMode {
       this.logMessage('Данные курсов не загружены или недоступны', 'error');
       return;
     }
+    
+    // Показать текущее состояние приложения
+    this.showDebugInfo();
     
     const courses = window.courseManager.courses;
     const courseIds = Object.keys(courses);
@@ -1366,6 +1412,62 @@ class DevMode {
       }
     });
     
+    // Добавляем функцию тестирования вебхуков
+    const testWebhooksButton = document.createElement('button');
+    testWebhooksButton.innerText = 'Проверить вебхуки';
+    testWebhooksButton.style.backgroundColor = '#007bff';
+    testWebhooksButton.style.color = 'white';
+    testWebhooksButton.style.border = 'none';
+    testWebhooksButton.style.padding = '8px 15px';
+    testWebhooksButton.style.borderRadius = '4px';
+    testWebhooksButton.style.cursor = 'pointer';
+    testWebhooksButton.style.margin = '10px 0';
+    
+    testWebhooksButton.onclick = async () => {
+      if (!webhookUrls || webhookUrls.length === 0) {
+        this.logMessage('Нет доступных вебхуков для проверки', 'warning');
+        return;
+      }
+      
+      // Берем первые 3 вебхука для проверки
+      const webhooksToTest = webhookUrls.slice(0, 3);
+      this.logMessage(`Начинаем проверку ${webhooksToTest.length} вебхуков...`, 'info');
+      
+      for (let i = 0; i < webhooksToTest.length; i++) {
+        const url = webhooksToTest[i];
+        this.logMessage(`Проверка вебхука ${i+1}/${webhooksToTest.length}: ${url}`, 'info');
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/plain, text/markdown, text/html, application/json, */*',
+              'Cache-Control': 'no-cache'
+            },
+            mode: 'cors',
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            
+            this.logMessage(`Вебхук ${i+1} ответил успешно! Статус: ${response.status}, Content-Type: ${contentType}, Размер: ${text.length} байт`, 'success');
+          } else {
+            this.logMessage(`Вебхук ${i+1} вернул ошибку: HTTP ${response.status}`, 'error');
+          }
+        } catch (error) {
+          this.logMessage(`Вебхук ${i+1} недоступен: ${error.message}`, 'error');
+        }
+      }
+    };
+    
     // Создаем сводную информацию
     const summaryInfo = document.createElement('div');
     summaryInfo.className = 'dev-summary-info';
@@ -1373,6 +1475,9 @@ class DevMode {
     summaryInfo.style.padding = '10px';
     summaryInfo.style.borderRadius = '4px';
     summaryInfo.style.marginBottom = '15px';
+    
+    // Добавляем кнопку тестирования вебхуков
+    summaryInfo.appendChild(testWebhooksButton);
     
     summaryInfo.innerHTML = `
       <div style="font-weight: bold; color: #56b6c2; margin-bottom: 5px;">Сводная информация:</div>

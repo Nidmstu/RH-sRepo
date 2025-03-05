@@ -290,7 +290,7 @@ async function forceSyncWithCloud() {
             },
             cache: 'no-store',
             mode: 'cors',
-            credentials: 'omit',
+            credentials: 'omit', // Added credentials: 'omit'
             signal: controller.signal
           });
 
@@ -497,6 +497,7 @@ async function tryImportFromUrl(url) {
         'Content-Type': 'application/json'
       },
       cache: 'no-store', // Всегда получаем свежие данные
+      credentials: 'omit', // Added credentials: 'omit'
       signal: controller.signal
     });
 

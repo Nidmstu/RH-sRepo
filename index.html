@@ -7,6 +7,8 @@
   <title>Onboarding for Prompt Engineers</title>
   <!-- Подключаем marked.js для парсинга Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
   <style>
     body {
       margin: 0;
@@ -171,12 +173,12 @@
         height: 100%;
         padding: 15px;
       }
-      
+
       /* Стили для основного интерфейса обучения (не админ панель) */
       #day-selection, #task-selection {
         padding: 0 5%;
       }
-      
+
       #guide {
         display: flex;
         flex-direction: column;
@@ -198,13 +200,13 @@
         width: 50% !important;
         flex: 0 0 50% !important;
       }
-      
+
       /* Разделение интерфейса обучения на планшетах в альбомной ориентации */
       #home.split-view {
         display: flex;
         flex-direction: row;
       }
-      
+
       #day-selection, #task-selection {
         width: 50%;
         padding: 15px;
@@ -212,7 +214,7 @@
         height: 100vh;
         overflow-y: auto;
       }
-      
+
       #day-selection.split-visible, #task-selection.split-visible {
         display: block !important;
       }
@@ -233,13 +235,13 @@
         width: 50% !important;
         flex: 0 0 50% !important;
       }
-      
+
       /* Разделение интерфейса обучения на планшетах в портретной ориентации */
       #home.split-view {
         display: flex;
         flex-direction: row;
       }
-      
+
       #day-selection, #task-selection {
         width: 50%;
         padding: 10px;
@@ -247,7 +249,7 @@
         height: 100vh;
         overflow-y: auto;
       }
-      
+
       #day-selection.split-visible, #task-selection.split-visible {
         display: block !important;
       }
@@ -295,7 +297,7 @@
     <h2 style="color: #3498db; margin-top: 20px;">Ожидание загрузки данных...</h2>
     <p id="global-loading-status" style="font-size: 16px; margin-top: 15px;">Проверка источников данных...</p>
   </div>
-  
+
   <!-- Индикатор загрузки -->
   <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
     <div class="spinner" style="width: 80px; height: 80px; border-width: 8px;"></div>
@@ -307,7 +309,7 @@
       <p style="font-size: 14px; margin-top: 10px; color: #666;">Если проблема повторяется, обратитесь к администратору.</p>
     </div>
   </div>
-  
+
   <!-- Основной контент приложения -->
   <div id="app-content" class="hidden">
     <!-- Домашняя страница -->
@@ -402,19 +404,19 @@
       animation: spin 1.5s linear infinite;
       margin: 0 auto 20px auto;
     }
-    
+
     #loading-spinner p {
       margin: 10px 0;
       font-size: 18px;
       color: #333;
     }
-    
+
     .loading-status {
       font-size: 14px !important;
       color: #666 !important;
       margin-top: 5px;
     }
-    
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -434,7 +436,7 @@
       if (retryButton) {
         retryButton.addEventListener('click', async function(e) {
           e.preventDefault();
-          
+
           // Обновляем статус загрузки
           const statusElement = document.querySelector('.loading-status');
           if (statusElement) {
@@ -442,15 +444,15 @@
             statusElement.style.color = '';
             statusElement.style.fontWeight = '';
           }
-          
+
           // Скрываем контейнер с кнопкой повтора
           const retryContainer = document.getElementById('loading-retry-container');
           if (retryContainer) retryContainer.classList.add('hidden');
-          
+
           // Показываем индикатор загрузки
           const loadingIndicator = document.getElementById('loading-spinner');
           if (loadingIndicator) loadingIndicator.classList.remove('hidden');
-          
+
           // Пытаемся загрузить данные снова
           try {
             if (typeof app === 'object' && app.initApp) {
@@ -460,14 +462,14 @@
             }
           } catch (error) {
             console.error('Ошибка при повторной инициализации:', error);
-            
+
             // Обновляем статус загрузки
             if (statusElement) {
               statusElement.textContent = 'Не удалось загрузить данные';
               statusElement.style.color = '#ff5555';
               statusElement.style.fontWeight = 'bold';
             }
-            
+
             // Показываем контейнер с кнопкой повтора
             if (retryContainer) retryContainer.classList.remove('hidden');
           }
@@ -482,10 +484,10 @@
       // Глобальный доступ к менеджеру курсов и админ-панели
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
-      
+
       // Настраиваем обработчик для кнопки повторной загрузки
       setupRetryHandler();
-      
+
       // Используем модуль app.js для инициализации приложения
       // вместо прямого вызова courseManager.initialize()
       try {
@@ -497,7 +499,7 @@
         }
       } catch (error) {
         console.error('Ошибка при инициализации приложения:', error);
-        
+
         // Обновляем статус загрузки
         const statusElement = document.querySelector('.loading-status');
         if (statusElement) {
@@ -505,7 +507,7 @@
           statusElement.style.color = '#ff5555';
           statusElement.style.fontWeight = 'bold';
         }
-        
+
         // Показываем контейнер с кнопкой повтора
         const retryContainer = document.getElementById('loading-retry-container');
         if (retryContainer) retryContainer.classList.remove('hidden');
@@ -519,7 +521,7 @@
     window.currentTopic = null;
     window.currentDay = null;
     let currentTasks = [];
-    
+
     // Проверяем, является ли устройство планшетом
     const isTablet = window.matchMedia('(max-width: 1024px) and (min-width: 481px)').matches;
 
@@ -584,19 +586,19 @@
       currentTasks = JSON.parse(JSON.stringify(professionTasks[selectedProfession][day]));
       const dayHeader = document.getElementById("day-header");
       if (dayHeader) dayHeader.innerText = "Day " + day;
-      
+
       // Проверяем, планшет ли это
       if (isTablet) {
         // Для планшетов используем разделенный вид
         const home = document.getElementById("home");
         if (home) home.classList.add("split-view");
-        
+
         const daySelection = document.getElementById("day-selection");
         if (daySelection) {
           daySelection.classList.remove("hidden");
           daySelection.classList.add("split-visible");
         }
-        
+
         const taskSelection = document.getElementById("task-selection");
         if (taskSelection) {
           taskSelection.classList.remove("hidden");
@@ -606,11 +608,11 @@
         // Для мобильных и десктопов - обычное поведение
         const daySelection = document.getElementById("day-selection");
         if (daySelection) daySelection.classList.add("hidden");
-        
+
         const taskSelection = document.getElementById("task-selection");
         if (taskSelection) taskSelection.classList.remove("hidden");
       }
-      
+
       const taskButtonsDiv = document.getElementById("task-buttons");
       if (taskButtonsDiv) {
         taskButtonsDiv.innerHTML = "";
@@ -628,13 +630,13 @@
         // Для планшетов просто убираем режим разделенного экрана
         const home = document.getElementById("home");
         if (home) home.classList.remove("split-view");
-        
+
         const daySelection = document.getElementById("day-selection");
         if (daySelection) {
           daySelection.classList.remove("split-visible");
           daySelection.classList.remove("hidden");
         }
-        
+
         const taskSelection = document.getElementById("task-selection");
         if (taskSelection) {
           taskSelection.classList.remove("split-visible");
@@ -655,7 +657,7 @@
       const markdownDiv = document.getElementById("markdown-content");
       if (markdownDiv) markdownDiv.innerHTML = "";
       window.currentTopic = null;
-      
+
       const home = document.getElementById("home");
       if (home) {
         home.classList.remove("hidden");
@@ -664,11 +666,11 @@
           home.classList.add("split-view");
         }
       }
-      
+
       if (window.currentDay !== null) {
         selectDay(window.currentDay);
       }
-      
+
       const guide = document.getElementById("guide");
       if (guide) guide.classList.add("hidden");
     }
@@ -723,24 +725,24 @@
         // Убираем режим разделенного экрана при переключении разделов
         home.classList.remove("split-view");
       }
-      
+
       // Убираем классы видимости для дочерних элементов
       const daySelection = document.getElementById("day-selection");
       if (daySelection) daySelection.classList.remove("split-visible");
-      
+
       const taskSelection = document.getElementById("task-selection");
       if (taskSelection) taskSelection.classList.remove("split-visible");
-      
+
       const guide = document.getElementById("guide");
       if (guide) guide.classList.add("hidden");
-      
+
       const target = document.getElementById(id);
       if (target) target.classList.remove("hidden");
     }
 
     function fetchMarkdownContent() {
       const url = window.currentTopic.contentWebhook;
-      const spinner = document.getElementById("loading-spinner");
+      const spinner = document.getElementById("content-loading-spinner");
       if (spinner) spinner.classList.remove("hidden");
       const markdownDiv = document.getElementById("markdown-content");
       if (markdownDiv) markdownDiv.classList.add("hidden");
@@ -794,6 +796,7 @@
             const response = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
 
+            
             console.log("Response status:", response.status);
 
             if (!response.ok) {
@@ -1336,7 +1339,7 @@ Analyze the AI's response and iterate on your prompt to improve results.
 4. Adjust your prompt accordingly
 
 **Example:**
-"The information is good, but there's too much emphasis on cost and not enough on durability. Let me adjust my prompt to prioritize long-term value and performance in extreme weather conditions."
+"The information is good, but there's toomuch emphasis on cost and not enough on durability. Let me adjust my prompt to prioritize long-term value and performance in extreme weather conditions."
 
 ## Putting It All Together
 
@@ -1703,7 +1706,7 @@ When a prompt is too long and exceeds the model's context window, causing inform
           hasSubHeader = true;
           if (currentSubTitle) {
             subBlocksHtml += renderLevel3Block(currentSubTitle, currentSubContent.join("\n"));
-            currentSubContent = [];
+            currentSubContent =[];
           }
           currentSubTitle = subMatch[1].trim();
         } else {
