@@ -801,18 +801,33 @@
               </div>
               <div class="admin-form">
                 <div class="admin-form-group">
-                  <label for="admin-export-webhook-url">URL для экспорта данных:</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label for="admin-export-webhook-url">URL для экспорта данных:</label>
+                    <button type="button" id="export-webhook-info" class="admin-btn admin-btn-sm" style="margin-left: 10px;">
+                      <i class="fas fa-info-circle"></i> Инфо
+                    </button>
+                  </div>
                   <input type="text" id="admin-export-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/export" 
                          value="https://auto.crm-s.com/webhook/SaveWebhooks">
                 </div>
                 <div class="admin-form-group">
-                  <label for="admin-import-webhook-url">URL для импорта данных:</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label for="admin-import-webhook-url">URL для импорта данных:</label>
+                    <button type="button" id="import-webhook-info" class="admin-btn admin-btn-sm" style="margin-left: 10px;">
+                      <i class="fas fa-info-circle"></i> Инфо
+                    </button>
+                  </div>
                   <input type="text" id="admin-import-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/import">
                 </div>
                 <div class="admin-form-group">
-                  <label for="admin-get-webhooks-url">URL для получения вебхуков:</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label for="admin-get-webhooks-url">URL для получения вебхуков:</label>
+                    <button type="button" id="get-webhooks-info" class="admin-btn admin-btn-sm" style="margin-left: 10px;">
+                      <i class="fas fa-info-circle"></i> Инфо
+                    </button>
+                  </div>
                   <input type="text" id="admin-get-webhooks-url" class="admin-input" 
                          placeholder="https://auto.crm-s.com/webhook-test/GetOnboardingHooks" 
                          value="https://auto.crm-s.com/webhook-test/GetOnboardingHooks">

@@ -1341,6 +1341,38 @@ class AdminInterface {
         }
       });
     }
+
+    // Информационные кнопки для вебхуков
+    const exportWebhookInfoBtn = document.getElementById('export-webhook-info');
+    if (exportWebhookInfoBtn) {
+      exportWebhookInfoBtn.addEventListener('click', () => {
+        this.showWebhookInfoModal('Экспорт данных', 
+          'При использовании этого URL, система отправляет POST-запрос со всеми курсами в формате JSON. ' +
+          'Это позволяет сохранить все данные на внешний сервер. ' +
+          'При нажатии на кнопку "Сохранить настройки" или "Сохранить урок", ' +
+          'система автоматически отправляет обновленные данные на этот URL.');
+      });
+    }
+
+    const importWebhookInfoBtn = document.getElementById('import-webhook-info');
+    if (importWebhookInfoBtn) {
+      importWebhookInfoBtn.addEventListener('click', () => {
+        this.showWebhookInfoModal('Импорт данных', 
+          'При использовании этого URL, система отправляет GET-запрос для получения данных в формате JSON. ' +
+          'Полученные данные заменяют текущие курсы и уроки в системе. ' +
+          'Это позволяет импортировать структуру курсов с внешнего сервера.');
+      });
+    }
+
+    const getWebhooksInfoBtn = document.getElementById('get-webhooks-info');
+    if (getWebhooksInfoBtn) {
+      getWebhooksInfoBtn.addEventListener('click', () => {
+        this.showWebhookInfoModal('Получение вебхуков', 
+          'При использовании этого URL, система отправляет GET-запрос для получения списка всех доступных вебхуков. ' +
+          'Ответ сервера отображается в модальном окне и может содержать информацию о URL для контента уроков, ' +
+          'тестов и другие данные, необходимые для работы системы.');
+      });
+    }
   }
 
   /**
@@ -2965,6 +2997,56 @@ class AdminInterface {
           const jsonData = JSON.parse(responseText);
           
           // Обновляем содержимое модального окна
+
+  /**
+   * Показать модальное окно с информацией о вебхуке
+   */
+  showWebhookInfoModal(title, description) {
+    // Создаем и показываем модальное окно с информацией
+    const modalId = 'webhook-info-modal';
+    let modal = document.getElementById(modalId);
+    
+    if (modal) {
+      // Если модальное окно уже существует, удаляем его
+      document.body.removeChild(modal);
+    }
+    
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'admin-modal';
+    modal.innerHTML = `
+      <div class="admin-modal-content" style="max-width: 500px;">
+        <div class="admin-modal-header">
+          <h3>${title}</h3>
+          <span class="admin-modal-close">&times;</span>
+        </div>
+        <div class="admin-modal-body">
+          <p style="margin-bottom: 20px; line-height: 1.5;">${description}</p>
+        </div>
+        <div class="admin-modal-actions" style="text-align: right; padding: 15px 20px; background-color: #f5f5f5; border-top: 1px solid #ddd;">
+          <button id="close-info-modal" class="admin-btn admin-btn-primary">Закрыть</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Добавляем обработчики для закрытия модального окна
+    modal.querySelector('.admin-modal-close').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('#close-info-modal').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    // Закрытие по клику вне контента
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
+
           modal.querySelector('.admin-modal-body').innerHTML = `
             <div class="webhooks-data">
               <pre>${JSON.stringify(jsonData, null, 2)}</pre>
