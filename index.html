@@ -292,12 +292,16 @@
   <!-- Индикатор загрузки -->
   <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
     <div class="spinner"></div>
-    <p>Загрузка данных курсов...</p>
+    <h2>Загрузка данных курсов...</h2>
     <p class="loading-status">Инициализация...</p>
+    <div id="loading-retry-container" class="hidden" style="margin-top: 20px;">
+      <p>Не удалось загрузить данные. Возможно, проблемы с подключением.</p>
+      <button onclick="location.reload()">Повторить попытку</button>
+    </div>
   </div>
   
   <!-- Основной контент приложения -->
-  <div id="app-content">
+  <div id="app-content" class="hidden">
     <!-- Домашняя страница -->
     <div id="home" class="container center">
     <div id="day-selection">

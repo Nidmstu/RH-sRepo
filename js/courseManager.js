@@ -16,12 +16,16 @@ class CourseManager {
    */
   async initialize() {
     try {
+      console.log('CourseManager: Начало инициализации...');
+      
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
       
       // Проверяем, есть ли уже загруженные данные
       if (this.courses && Object.keys(this.courses).length > 0) {
         console.log('CourseManager: Данные уже загружены, пропускаем инициализацию');
+        // Все равно уведомляем о наличии курсов
+        this.notifyCoursesUpdated();
         return true;
       }
 

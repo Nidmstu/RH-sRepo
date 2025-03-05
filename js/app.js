@@ -25,40 +25,49 @@ async function initApp() {
   // Показываем индикатор загрузки перед началом инициализации
   const loadingIndicator = document.getElementById('loading-spinner');
   const appContent = document.getElementById('app-content');
+  const retryContainer = document.getElementById('loading-retry-container');
   
-  // Скрываем основной контент и показываем индикатор загрузки
+  // Показываем индикатор загрузки и скрываем контент
+  if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+  if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
-  if (loadingIndicator) {
-    loadingIndicator.classList.remove('hidden');
-    loadingIndicator.innerHTML = `
-      <div class="spinner"></div>
-      <p>Загрузка данных с сервера...</p>
-      <p class="loading-status">Подключение к серверу...</p>
-    `;
-  }
   
   // Настраиваем обработчики событий
   setupEventListeners();
   
   try {
+    // Устанавливаем таймаут для случая, если загрузка затянется
+    const loadingTimeout = setTimeout(() => {
+      console.log('Превышен таймаут загрузки данных (30 секунд)');
+      updateLoadingStatus('Загрузка данных занимает больше времени, чем обычно...', false);
+    }, 30000); // 30 секунд таймаут
+    
     // Обновление статуса загрузки
     updateLoadingStatus('Синхронизация с облаком...');
     
-    // Сначала дожидаемся синхронизации с облаком и получения актуальных данных
+    // Принудительная синхронизация с облаком перед запуском
     console.log('Принудительная синхронизация с облаком перед запуском приложения...');
     const syncResult = await forceSyncWithCloud();
     console.log('Результат синхронизации с облаком:', syncResult);
     
+    // Проверяем результат синхронизации
+    if (!syncResult || !syncResult.success) {
+      console.log('Синхронизация с облаком не удалась, пробуем инициализировать с существующими данными');
+    }
+    
     // Обновление статуса загрузки
     updateLoadingStatus('Инициализация менеджера курсов...');
     
-    // Только после успешной синхронизации инициализируем менеджер
+    // Инициализируем менеджер курсов
     console.log('Инициализация менеджера курсов...');
     const success = await courseManager.initialize();
+    
+    // Очищаем таймаут загрузки
+    clearTimeout(loadingTimeout);
+    
     if (!success) {
       updateLoadingStatus('Ошибка загрузки данных курсов', true);
-      alert('Не удалось загрузить данные курсов. Попробуйте перезагрузить страницу.');
-      if (loadingIndicator) loadingIndicator.classList.add('hidden');
+      if (retryContainer) retryContainer.classList.remove('hidden');
       return;
 
 // Функция для вывода диагностической информации
@@ -113,11 +122,15 @@ function logDiagnostics(message, data) {
     // Короткая задержка, чтобы пользователь увидел сообщение о завершении
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // Короткая задержка перед скрытием индикатора загрузки
+    console.log('Приложение инициализировано успешно, показываем интерфейс через 1 секунду');
+    await new Promise(resolve => setTimeout(resolve, 1000));  // Задержка 1 секунда
+    
     // Скрываем индикатор загрузки и показываем основной контент
     if (loadingIndicator) loadingIndicator.classList.add('hidden');
     if (appContent) appContent.classList.remove('hidden');
     
-    console.log('Приложение инициализировано успешно');
+    console.log('Приложение инициализировано успешно и готово к работе');
   } catch (error) {
     console.error('Ошибка при инициализации приложения:', error);
     updateLoadingStatus('Ошибка: ' + (error.message || 'Не удалось загрузить данные'), true);
