@@ -43,36 +43,42 @@ async function initApp() {
 
 // Настройка периодической синхронизации с облаком
 function setupCloudSync() {
-  const syncInterval = 2 * 60 * 1000; // 2 минуты - более частая синхронизация
+  const syncInterval = 60 * 1000; // 1 минута - более частая синхронизация для оперативного обновления
   
   // Функция для проверки необходимости синхронизации и её выполнения
   const syncWithCloud = async () => {
     // Проверяем наличие настроек вебхуков
     const webhookSettingsStr = localStorage.getItem('webhookSettings');
-    if (!webhookSettingsStr) {
-      console.log('Настройки вебхуков не найдены, проверяем другие источники');
-      // Проверяем другие источники
-      const importWebhookUrl = localStorage.getItem('importWebhookUrl');
-      if (!importWebhookUrl) return;
-      
-      // Если найден URL импорта, используем его
-      await tryImportFromUrl(importWebhookUrl);
-      return;
+    let importWebhookUrl = null;
+    
+    if (webhookSettingsStr) {
+      try {
+        const webhookSettings = JSON.parse(webhookSettingsStr);
+        if (webhookSettings.importUrl) {
+          importWebhookUrl = webhookSettings.importUrl;
+        }
+      } catch (e) {
+        console.error('Ошибка при парсинге настроек вебхуков:', e);
+      }
     }
     
-    try {
-      const webhookSettings = JSON.parse(webhookSettingsStr);
-      
-      // Проверяем URL для импорта
-      if (webhookSettings.importUrl) {
-        if (window.devMode && window.devMode.enabled) {
-          console.log('🔧 [DevMode] Выполняется периодическая синхронизация с облаком');
-        }
-        
-        await tryImportFromUrl(webhookSettings.importUrl);
+    // Если URL не найден в webhookSettings, проверяем другие источники
+    if (!importWebhookUrl) {
+      importWebhookUrl = localStorage.getItem('importWebhookUrl') || 
+                          localStorage.getItem('adminImportWebhook') || 
+                          localStorage.getItem('testImportUrl');
+    }
+    
+    // Если найден URL импорта, используем его
+    if (importWebhookUrl) {
+      if (window.devMode && window.devMode.enabled) {
+        console.log('🔧 [DevMode] Выполняется периодическая синхронизация с облаком');
+        console.log(`🔧 [DevMode] URL для импорта: ${importWebhookUrl}`);
       }
-    } catch (e) {
-      console.error('Ошибка при обработке настроек вебхуков:', e);
+      
+      await tryImportFromUrl(importWebhookUrl);
+    } else {
+      console.log('URL вебхука для импорта не найден, синхронизация пропущена');
     }
   };
   
@@ -126,35 +132,61 @@ function setupCloudSync() {
         // Вариант 1: Прямой объект courses
         if (importData.courses) {
           coursesData = importData.courses;
+          if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Найдены курсы в поле courses');
+          }
         }
         // Вариант 2: Данные в поле data
         else if (importData.data) {
           if (typeof importData.data === 'object') {
             coursesData = importData.data;
+            if (window.devMode && window.devMode.enabled) {
+              console.log('🔧 [DevMode] Найдены курсы в поле data (объект)');
+            }
           } else if (typeof importData.data === 'string') {
             // Пытаемся распарсить JSON строку
             try {
               const parsedData = JSON.parse(importData.data);
               coursesData = parsedData.courses || parsedData;
+              if (window.devMode && window.devMode.enabled) {
+                console.log('🔧 [DevMode] Найдены курсы в поле data (JSON строка)');
+              }
             } catch (e) {
               console.log(`Не удалось распарсить JSON в поле data: ${e.message}`);
             }
           }
         }
-        // Вариант 3: Прямое использование root объекта как courses
+        // Вариант 3: Данные в поле content как объект
+        else if (importData.content && typeof importData.content === 'object') {
+          coursesData = importData.content;
+          if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Найдены курсы в поле content (объект)');
+          }
+        }
+        // Вариант 4: Прямое использование root объекта как courses
         else if (typeof importData === 'object') {
           // Проверяем структуру
           const hasValidStructure = Object.values(importData).some(value => {
             return value && typeof value === 'object' && 
-                  (value.days || value.specialLessons || value.title || value.redirectUrl);
+                  (value.days || value.specialLessons || value.title || value.redirectUrl || value.noDayLessons);
           });
           
           if (hasValidStructure) {
             coursesData = importData;
+            if (window.devMode && window.devMode.enabled) {
+              console.log('🔧 [DevMode] Использование корневого объекта как courses');
+            }
           }
         }
         
         if (coursesData) {
+          // Проверка и валидация структуры
+          const isValid = validateCoursesStructure(coursesData);
+          if (!isValid) {
+            console.error('Неверная структура данных курсов');
+            return;
+          }
+          
           // Сравниваем с текущими данными
           const currentCoursesJson = JSON.stringify(courseManager.courses);
           const newCoursesJson = JSON.stringify(coursesData);
@@ -168,33 +200,47 @@ function setupCloudSync() {
             localStorage.setItem('coursesBackup', currentCoursesJson);
             localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
             
+            // Кешируем все URL вебхуков из уроков для быстрого доступа
+            cacheWebhookUrls(coursesData);
+            
             // Применяем новые данные
             courseManager.courses = coursesData;
             
-            // Если мы находимся на странице курса, перезагружаем текущие данные
-            if (courseManager.currentDay || courseManager.currentLesson) {
-              console.log('Перезагружаем текущие данные после обновления из облака');
+            // Если мы находимся на странице курса, полностью обновляем интерфейс
+            if (courseManager.currentProfession) {
+              console.log('Обновляем интерфейс после синхронизации с облаком');
               
               // Сохраняем текущие выбранные значения
               const currentProfession = courseManager.currentProfession;
               const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
               const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
               
+              // Обновляем список профессий в селекторе
+              updateProfessionSelector();
+              
               // Переключаемся на ту же профессию для обновления данных
               courseManager.switchProfession(currentProfession);
+              
+              // Обновляем список дней
+              updateDaysList();
               
               // Если был выбран день, пытаемся выбрать его снова
               if (currentDayId) {
                 courseManager.selectDay(currentDayId);
+                updateLessonsList(); // Обновляем список уроков
                 
-                // Если был выбран урок, пытаемся выбрать его снова
+                // Если был выбран урок, пытаемся выбрать его снова и обновить контент
                 if (currentLessonId) {
                   courseManager.selectLesson(currentLessonId);
+                  // Перезагружаем контент текущего урока
+                  if (document.getElementById('guide').classList.contains('hidden') === false) {
+                    loadLessonContent();
+                  }
                 }
               }
             }
             
-            console.log('Синхронизация с облаком успешно завершена');
+            console.log('Синхронизация с облаком успешно завершена, интерфейс обновлен');
           } else if (window.devMode && window.devMode.enabled) {
             console.log('🔧 [DevMode] Данные актуальны, синхронизация не требуется');
           }
@@ -210,6 +256,149 @@ function setupCloudSync() {
         console.log(`🔧 [DevMode] Ошибка синхронизации: ${error.message}`);
       }
     }
+  };
+  
+  // Функция для валидации структуры данных курсов
+  const validateCoursesStructure = (coursesData) => {
+    if (!coursesData || typeof coursesData !== 'object') {
+      return false;
+    }
+    
+    // Проверяем наличие хотя бы одного курса с правильной структурой
+    const courseKeys = Object.keys(coursesData);
+    return courseKeys.length > 0 && 
+      courseKeys.some(key => {
+        const course = coursesData[key];
+        return course && typeof course === 'object' && 
+               (course.days || course.specialLessons || course.redirectUrl || course.noDayLessons);
+      });
+  };
+  
+  // Функция для кеширования всех URL вебхуков из уроков
+  const cacheWebhookUrls = (coursesData) => {
+    const webhookUrls = {};
+    
+    // Проходим по всем курсам
+    Object.keys(coursesData).forEach(professionId => {
+      const course = coursesData[professionId];
+      
+      // Проверяем дни и уроки в них
+      if (course.days && Array.isArray(course.days)) {
+        course.days.forEach(day => {
+          if (day.lessons && Array.isArray(day.lessons)) {
+            day.lessons.forEach(lesson => {
+              if (lesson.contentSource && lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+                const key = `${professionId}_${day.id}_${lesson.id}`;
+                webhookUrls[key] = lesson.contentSource.url;
+              }
+            });
+          }
+        });
+      }
+      
+      // Проверяем специальные уроки
+      if (course.specialLessons && Array.isArray(course.specialLessons)) {
+        course.specialLessons.forEach(lesson => {
+          if (lesson.contentSource && lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+            const key = `${professionId}_special_${lesson.id}`;
+            webhookUrls[key] = lesson.contentSource.url;
+          }
+        });
+      }
+      
+      // Проверяем уроки без дней
+      if (course.noDayLessons && Array.isArray(course.noDayLessons)) {
+        course.noDayLessons.forEach(lesson => {
+          if (lesson.contentSource && lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+            const key = `${professionId}_noday_${lesson.id}`;
+            webhookUrls[key] = lesson.contentSource.url;
+          }
+        });
+      }
+    });
+    
+    // Сохраняем кеш URL вебхуков в localStorage
+    localStorage.setItem('webhookUrlsCache', JSON.stringify(webhookUrls));
+    
+    if (window.devMode && window.devMode.enabled) {
+      console.log(`🔧 [DevMode] Кешировано ${Object.keys(webhookUrls).length} URL вебхуков для уроков`);
+    }
+  };
+  
+  // Функция для обновления селектора профессий
+  const updateProfessionSelector = () => {
+    const professionSelect = document.getElementById('profession-select');
+    if (!professionSelect) return;
+    
+    // Сохраняем текущее выбранное значение
+    const currentValue = professionSelect.value;
+    
+    // Получаем список профессий
+    const professions = courseManager.getProfessions();
+    
+    // Очищаем селектор
+    professionSelect.innerHTML = '';
+    
+    // Добавляем опции для каждой профессии
+    professions.forEach(professionId => {
+      const course = courseManager.courses[professionId];
+      const option = document.createElement('option');
+      option.value = professionId;
+      option.textContent = course.title || professionId;
+      professionSelect.appendChild(option);
+    });
+    
+    // Восстанавливаем выбранное значение, если оно все еще доступно
+    if (professions.includes(currentValue)) {
+      professionSelect.value = currentValue;
+    }
+  };
+  
+  // Функция для обновления списка дней
+  const updateDaysList = () => {
+    const daySelectionContainer = document.getElementById('day-selection');
+    if (!daySelectionContainer) return;
+    
+    // Получаем список дней
+    const days = courseManager.getDays();
+    
+    // Очищаем контейнер
+    const container = daySelectionContainer.querySelector('.content-cards') || daySelectionContainer;
+    container.innerHTML = '';
+    
+    // Добавляем карточки для каждого дня
+    days.forEach(day => {
+      const card = document.createElement('div');
+      card.className = 'course-card';
+      card.innerHTML = `
+        <h3>${day.title || `День ${day.id}`}</h3>
+        <p>${day.description || 'Нажмите, чтобы просмотреть уроки'}</p>
+      `;
+      card.onclick = () => selectDay(day.id);
+      container.appendChild(card);
+    });
+  };
+  
+  // Функция для обновления списка уроков
+  const updateLessonsList = () => {
+    if (!courseManager.currentDay) return;
+    
+    const taskButtonsDiv = document.getElementById('task-buttons');
+    if (!taskButtonsDiv) return;
+    
+    // Очищаем список уроков
+    taskButtonsDiv.innerHTML = '';
+    
+    // Получаем уроки для текущего дня
+    const lessons = courseManager.getLessonsForCurrentDay();
+    
+    // Добавляем кнопки для каждого урока
+    lessons.forEach(lesson => {
+      const btn = document.createElement('button');
+      btn.innerText = lesson.title;
+      btn.onclick = function() { selectLesson(lesson.id); };
+      taskButtonsDiv.appendChild(btn);
+    });
   };
   
   // Запускаем синхронизацию при запуске приложения и периодически
@@ -291,15 +480,24 @@ window.selectLesson = function(lessonId) {
     return;
   }
   
-  // Сохраняем текущий урок
-  const currentLesson = lesson;
-  console.log(`Выбран урок: ${currentLesson.title} (ID: ${currentLesson.id})`);
+  // Сохраняем текущий урок и логируем информацию
+  console.log(`Выбран урок: ${lesson.title} (ID: ${lesson.id})`);
   
   // Логгируем информацию об источнике контента
-  if (currentLesson.contentSource) {
-    console.log(`Источник контента: ${currentLesson.contentSource.type}`);
-    if (currentLesson.contentSource.type === 'webhook') {
-      console.log(`URL вебхука: ${currentLesson.contentSource.url}`);
+  if (lesson.contentSource) {
+    console.log(`Источник контента: ${lesson.contentSource.type}`);
+    if (lesson.contentSource.type === 'webhook') {
+      console.log(`URL вебхука: ${lesson.contentSource.url}`);
+      
+      // Проверяем, не изменился ли URL вебхука по сравнению с кешированным
+      const cacheKey = `${courseManager.currentProfession}_${courseManager.currentDay ? courseManager.currentDay.id : 'special'}_${lesson.id}`;
+      const cachedUrl = getCachedWebhookUrl(cacheKey);
+      
+      if (cachedUrl && cachedUrl !== lesson.contentSource.url) {
+        console.log(`Обнаружено изменение URL вебхука для урока ${lesson.id}`);
+        console.log(`Предыдущий URL: ${cachedUrl}`);
+        console.log(`Новый URL: ${lesson.contentSource.url}`);
+      }
     }
   }
   
@@ -319,14 +517,34 @@ window.selectLesson = function(lessonId) {
     testButton.classList.add('hidden');
   }
   
-  // Проверяем, есть ли аудио для урока
+  // Проверяем и отображаем аудио для урока
   const audioInfo = courseManager.getAudioInfo();
   if (audioInfo) {
-    // Логика отображения соответствующего аудио 
+    // Логика отображения соответствующего аудио
     if (lessonId === 'vocabulary') {
-      document.getElementById('audio-vocabulary').classList.remove('hidden');
+      const vocabAudio = document.getElementById('audio-vocabulary');
+      if (vocabAudio) {
+        vocabAudio.classList.remove('hidden');
+        // Обновляем источник аудио, если он изменился
+        if (audioInfo.trackUrl) {
+          const iframe = vocabAudio.querySelector('iframe');
+          if (iframe && iframe.src !== audioInfo.trackUrl) {
+            iframe.src = audioInfo.trackUrl;
+          }
+        }
+      }
     } else if (lessonId === 'what-prompting-is') {
-      document.getElementById('audio-first-lesson').classList.remove('hidden');
+      const firstLessonAudio = document.getElementById('audio-first-lesson');
+      if (firstLessonAudio) {
+        firstLessonAudio.classList.remove('hidden');
+        // Обновляем источник аудио, если он изменился
+        if (audioInfo.trackUrl) {
+          const iframe = firstLessonAudio.querySelector('iframe');
+          if (iframe && iframe.src !== audioInfo.trackUrl) {
+            iframe.src = audioInfo.trackUrl;
+          }
+        }
+      }
     }
   }
   
@@ -334,6 +552,20 @@ window.selectLesson = function(lessonId) {
   showSection('guide');
   loadLessonContent();
 };
+
+// Получение кешированного URL вебхука по ключу
+function getCachedWebhookUrl(key) {
+  try {
+    const cacheStr = localStorage.getItem('webhookUrlsCache');
+    if (cacheStr) {
+      const cache = JSON.parse(cacheStr);
+      return cache[key];
+    }
+  } catch (e) {
+    console.error('Ошибка при получении кешированного URL вебхука:', e);
+  }
+  return null;
+}
 
 // Открытие теста
 function openTest(lesson) {
