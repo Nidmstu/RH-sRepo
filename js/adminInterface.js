@@ -2773,6 +2773,11 @@ class AdminInterface {
     const targetUrl = webhookUrl;
     console.log('ЭКСПОРТ: Отправка данных на URL:', targetUrl);
     
+    // Добавляем информацию для режима разработчика
+    if (window.devMode && window.devMode.enabled) {
+      console.log(`🔧 [DevMode] Экспорт данных курсов на URL: ${targetUrl}`);
+    }
+    
     // Подготавливаем данные для отправки
     const data = {
       courses: window.courseManager.courses,
@@ -2787,6 +2792,11 @@ class AdminInterface {
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
     
+    // Добавляем заголовок для идентификации запросов в режиме разработчика
+    if (window.devMode && window.devMode.enabled) {
+      xhr.setRequestHeader('X-DevMode', 'true');
+    }
+    
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) {
         console.log('ЭКСПОРТ: XHR статус:', xhr.status);
@@ -2794,8 +2804,18 @@ class AdminInterface {
         
         if (xhr.status >= 200 && xhr.status < 300) {
           this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Экспорт данных успешно выполнен, получен ответ: ${xhr.responseText.substring(0, 100)}${xhr.responseText.length > 100 ? '...' : ''}`);
+          }
         } else {
           this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Ошибка при экспорте данных: ${xhr.status} ${xhr.statusText}`);
+          }
         }
       }
     };
@@ -2803,21 +2823,42 @@ class AdminInterface {
     xhr.onerror = (e) => {
       console.error('ЭКСПОРТ: XHR ошибка:', e);
       this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
+      
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Ошибка соединения при экспорте данных:`, e);
+      }
     };
     
     xhr.timeout = 15000; // 15 секунд таймаут
     xhr.ontimeout = () => {
       this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
+      
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Таймаут соединения (15 сек) при экспорте данных на URL: ${targetUrl}`);
+      }
     };
     
     try {
       // Преобразовываем JSON и отправляем данные
       const jsonData = JSON.stringify(data);
       console.log('ЭКСПОРТ: Размер данных для отправки:', jsonData.length, 'байт');
+      
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Отправка данных размером ${jsonData.length} байт на URL: ${targetUrl}`);
+      }
+      
       xhr.send(jsonData);
     } catch (e) {
       console.error('ЭКСПОРТ: Ошибка при отправке запроса:', e);
       this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
+      
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Исключение при отправке данных: ${e.message}`);
+      }
     }
   }
   
@@ -2832,8 +2873,30 @@ class AdminInterface {
     
     this.showWebhookStatus('Получение данных с вебхука...', 'info');
     
-    fetch(webhookUrl)
+    // Добавляем информацию для режима разработчика
+    if (window.devMode && window.devMode.enabled) {
+      console.log(`🔧 [DevMode] Импорт данных с URL: ${webhookUrl}`);
+    }
+    
+    // Создаём заголовки запроса с информацией о режиме разработчика
+    const headers = new Headers();
+    if (window.devMode && window.devMode.enabled) {
+      headers.append('X-DevMode', 'true');
+    }
+    
+    fetch(webhookUrl, { 
+      method: 'GET',
+      headers: headers,
+      mode: 'cors',
+      cache: 'no-cache'
+    })
       .then(response => {
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Получен ответ с кодом: ${response.status} ${response.statusText}`);
+          console.log(`🔧 [DevMode] Заголовки ответа:`, Object.fromEntries(response.headers.entries()));
+        }
+        
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -2845,17 +2908,57 @@ class AdminInterface {
           throw new Error('Полученные данные не содержат информацию о курсах');
         }
         
-        // Применяем полученные данные
-        window.courseManager.courses = data.courses;
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          const courseCount = Object.keys(data.courses).length;
+          console.log(`🔧 [DevMode] Получены данные курсов (${courseCount} курсов)`);
+          console.log(`🔧 [DevMode] Идентификаторы курсов: ${Object.keys(data.courses).join(', ')}`);
+        }
         
-        // Обновляем интерфейс
-        this.loadCoursesList();
+        // Сохраняем копию текущих курсов для возможности отката
+        const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
         
-        this.showWebhookStatus('Данные успешно импортированы', 'success');
+        try {
+          // Применяем полученные данные
+          window.courseManager.courses = data.courses;
+          
+          // Обновляем интерфейс
+          this.loadCoursesList();
+          
+          this.showWebhookStatus('Данные успешно импортированы', 'success');
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Данные успешно импортированы и применены`);
+          }
+          
+          // Сохраняем резервную копию в localStorage
+          localStorage.setItem('coursesBackup', JSON.stringify(backupCourses));
+          localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+        } catch (e) {
+          // В случае ошибки при применении данных, восстанавливаем бэкап
+          window.courseManager.courses = backupCourses;
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Ошибка при применении импортированных данных: ${e.message}`);
+            console.log(`🔧 [DevMode] Восстановлена предыдущая версия курсов`);
+          }
+          
+          throw new Error(`Ошибка при применении данных: ${e.message}`);
+        }
       })
       .catch(error => {
         console.error('Import error:', error);
         this.showWebhookStatus(`Ошибка при импорте данных: ${error.message}`, 'error');
+        
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Ошибка импорта данных с ${webhookUrl}: ${error.message}`);
+          if (error.stack) {
+            console.log(`🔧 [DevMode] Стек ошибки: ${error.stack}`);
+          }
+        }
       });
   }
   
@@ -2877,6 +2980,12 @@ class AdminInterface {
     };
     
     localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+    
+    // Добавляем информацию для режима разработчика
+    if (window.devMode && window.devMode.enabled) {
+      console.log(`🔧 [DevMode] Получение вебхуков с URL: ${url}`);
+      console.log(`🔧 [DevMode] Текущие настройки вебхуков:`, webhookSettings);
+    }
     
     this.showWebhookStatus('Получение вебхуков с сервера...', 'info');
     

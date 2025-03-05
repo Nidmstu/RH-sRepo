@@ -1,4 +1,3 @@
-
 /**
  * Course Manager Module
  * Отвечает за загрузку и управление всеми данными курсов
@@ -132,95 +131,99 @@ class CourseManager {
         return lesson;
       }
     }
-    
+
     // Затем ищем в специальных уроках
     const specialLesson = this.getSpecialLessons().find(l => l.id === lessonId);
     if (specialLesson) {
       this.currentLesson = specialLesson;
       return specialLesson;
     }
-    
+
     return null;
   }
 
   /**
    * Загрузить контент для урока
    */
-  async fetchLessonContent(lesson = this.currentLesson) {
-    if (!lesson) {
-      throw new Error('Урок не выбран');
-    }
+  async fetchLessonContent() {
+    if (!this.currentLesson) return null;
+
+    const source = this.currentLesson.contentSource;
+    if (!source) return null;
+
+    // Показываем индикатор загрузки
+    this.showLoadingIndicator();
 
     try {
-      const contentSource = lesson.contentSource;
-      
-      // Если источник - вебхук
-      if (contentSource.type === 'webhook') {
+      let content = '';
+
+      if (source.type === 'webhook' && source.url) {
+        // Пытаемся загрузить контент с вебхука
         try {
-          console.log(`Загрузка контента с вебхука: ${contentSource.url}`);
-          
-          const response = await fetch(contentSource.url, {
-            method: 'GET',
-            headers: {
-              'Accept': 'text/plain, text/markdown, application/json, */*'
-            },
-            mode: 'cors',
-            cache: 'no-cache'
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Загрузка контента урока '${this.currentLesson.title}' с URL: ${source.url}`);
           }
-          
-          let content = await response.text();
-          
-          // Если ответ выглядит как JSON, попробуем извлечь текст
-          if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
-            try {
-              const json = JSON.parse(content);
-              if (json.text) content = json.text;
-              else if (json.content) content = json.content;
-              else if (json.markdown) content = json.markdown;
-            } catch (e) {
-              console.log('Не удалось распарсить JSON, используем ответ как текст');
-            }
+
+          const response = await fetch(source.url);
+          content = await response.text();
+
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Контент урока успешно загружен (${content.length} символов)`);
           }
-          
-          return content;
         } catch (error) {
-          console.error(`Ошибка при загрузке с вебхука: ${error.message}`);
-          
-          // Используем резервный контент, если есть
-          if (contentSource.fallbackType === 'local' && contentSource.fallbackId) {
-            console.log(`Используем локальный резервный контент: ${contentSource.fallbackId}`);
-            return this.fallbacks[contentSource.fallbackId] || 
-                   `# ${lesson.title}\n\nНе удалось загрузить контент для этого урока.`;
+          console.error('Ошибка загрузки контента с вебхука:', error);
+
+          // Если есть резервный источник, используем его
+          if (source.fallbackType === 'local' && source.fallbackId) {
+            console.log('Используем резервный локальный контент:', source.fallbackId);
+
+            // Добавляем информацию для режима разработчика
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Использование резервного контента с ID: ${source.fallbackId}`);
+            }
+
+            content = await this.fetchLocalContent(source.fallbackId);
+          } else {
+            throw error;
           }
         }
+      } else if (source.type === 'local' && source.id) {
+        // Загружаем локальный контент
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Загрузка локального контента с ID: ${source.id}`);
+        }
+
+        content = await this.fetchLocalContent(source.id);
+      } else if (source.type === 'markdown' && source.content) {
+        // Используем встроенный Markdown контент
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Использование встроенного Markdown контента (${source.content.length} символов)`);
+        }
+
+        content = source.content;
       }
-      
-      // Если источник - локальный
-      else if (contentSource.type === 'local' && contentSource.id) {
-        return this.fallbacks[contentSource.id] || 
-               `# ${lesson.title}\n\nКонтент не найден.`;
-      }
-      
-      // Если источник - непосредственно маркдаун
-      else if (contentSource.type === 'markdown' && contentSource.content) {
-        return contentSource.content;
-      }
-      
-      // Если не удалось получить контент никаким способом
-      return `# ${lesson.title}\n\nНе удалось загрузить контент для этого урока.`;
+
+      // Скрываем индикатор загрузки
+      this.hideLoadingIndicator();
+
+      return content;
     } catch (error) {
-      console.error('Ошибка при загрузке контента:', error);
-      return `# ${lesson.title}\n\nПроизошла ошибка при загрузке контента:\n\n${error.message}`;
+      console.error('Ошибка при загрузке контента урока:', error);
+
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Ошибка при загрузке контента урока: ${error.message}`);
+      }
+
+      // Скрываем индикатор загрузки
+      this.hideLoadingIndicator();
+
+      throw error;
     }
   }
 
-  /**
-   * Загрузить тест для урока
-   */
   async fetchTest(lesson = this.currentLesson) {
     if (!lesson || !lesson.testSource) {
       return null;
@@ -228,7 +231,7 @@ class CourseManager {
 
     try {
       const testSource = lesson.testSource;
-      
+
       // Если источник - вебхук
       if (testSource.type === 'webhook') {
         try {
@@ -240,13 +243,13 @@ class CourseManager {
             mode: 'cors',
             cache: 'no-cache'
           });
-          
+
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
-          
+
           let content = await response.text();
-          
+
           // Если ответ выглядит как JSON, попробуем извлечь текст
           if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
             try {
@@ -258,11 +261,11 @@ class CourseManager {
               console.log('Не удалось распарсить JSON, используем ответ как текст');
             }
           }
-          
+
           return content;
         } catch (error) {
           console.error(`Ошибка при загрузке теста с вебхука: ${error.message}`);
-          
+
           // Используем резервный контент, если есть
           if (testSource.fallbackType === 'markdown' && testSource.fallbackId) {
             try {
@@ -276,7 +279,7 @@ class CourseManager {
           }
         }
       }
-      
+
       // Если источник - локальный markdown
       else if (testSource.type === 'markdown' && testSource.id) {
         try {
@@ -288,7 +291,7 @@ class CourseManager {
           console.error(`Не удалось загрузить локальный тест: ${e.message}`);
         }
       }
-      
+
       return null;
     } catch (error) {
       console.error('Ошибка при загрузке теста:', error);
@@ -305,12 +308,12 @@ class CourseManager {
     }
 
     const taskSource = lesson.taskSource;
-    
+
     // Если источник - непосредственно маркдаун
     if (taskSource.type === 'markdown' && taskSource.content) {
       return taskSource.content;
     }
-    
+
     return null;
   }
 
@@ -321,8 +324,30 @@ class CourseManager {
     if (!lesson || !lesson.audioSource) {
       return null;
     }
-    
+
     return lesson.audioSource;
+  }
+
+  showLoadingIndicator() {
+    //Implementation for showing loading indicator
+  }
+
+  hideLoadingIndicator() {
+    //Implementation for hiding loading indicator
+  }
+
+  async fetchLocalContent(id) {
+    try {
+      const response = await fetch(`data/content/${id}.md`);
+      if (response.ok) {
+        return await response.text();
+      } else {
+        throw new Error(`Не удалось загрузить локальный контент с ID ${id}: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки локального контента:", error);
+      return null;
+    }
   }
 }
 
