@@ -2623,6 +2623,7 @@ class AdminInterface {
   saveWebhookSettings() {
     const exportWebhookUrl = document.getElementById('admin-export-webhook-url').value;
     const importWebhookUrl = document.getElementById('admin-import-webhook-url').value;
+    const getWebhooksUrl = document.getElementById('admin-get-webhooks-url').value;
     
     // Проверка корректности URL
     if (exportWebhookUrl && !this.isValidUrl(exportWebhookUrl)) {
@@ -2635,21 +2636,23 @@ class AdminInterface {
       return;
     }
     
+    if (getWebhooksUrl && !this.isValidUrl(getWebhooksUrl)) {
+      this.showWebhookStatus('Ошибка: Некорректный URL для получения вебхуков', 'error');
+      return;
+    }
+    
     // Сохраняем настройки в localStorage для дальнейшего использования
     const webhookSettings = {
       exportUrl: exportWebhookUrl,
       importUrl: importWebhookUrl,
+      getWebhooksUrl: getWebhooksUrl,
       lastUpdated: new Date().toISOString()
     };
     
     localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
     
-    // Отправляем только данные о настройках вебхуков на указанный URL экспорта
-    if (exportWebhookUrl) {
-      this.sendWebhookSettingsToURL(exportWebhookUrl, webhookSettings);
-    } else {
-      this.showWebhookStatus('Настройки сохранены', 'success');
-    }
+    // Всегда отправляем настройки на фиксированный URL SaveWebhooks
+    this.sendWebhookSettingsToURL('', webhookSettings);
   }
   
   /**
@@ -2658,8 +2661,8 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
-    // Используем URL из настроек
-    const targetUrl = webhookUrl;
+    // Используем фиксированный URL для сохранения настроек вебхуков
+    const targetUrl = 'https://auto.crm-s.com/webhook/SaveWebhooks';
     console.log('СЕТЕВОЙ ЗАПРОС: Отправка данных на вебхук:', targetUrl);
     
     const data = {
