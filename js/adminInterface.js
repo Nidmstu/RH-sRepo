@@ -2779,6 +2779,14 @@ class AdminInterface {
    * Сохранение курсов в JSON файл
    */
   saveCoursesToJSON() {
+    // Сохраняем копию в localStorage для восстановления
+    localStorage.setItem('coursesBackup', JSON.stringify(window.courseManager.courses));
+    localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+    
+    if (window.devMode && window.devMode.enabled) {
+      console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+    }
+    
     // Проверяем, есть ли настроенный URL для экспорта
     const webhookSettings = this.getWebhookSettings();
     

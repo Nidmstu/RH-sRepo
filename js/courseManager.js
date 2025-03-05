@@ -16,20 +16,77 @@ class CourseManager {
    */
   async initialize() {
     try {
-      // Загружаем структуру курсов
-      const coursesResponse = await fetch('data/courses.json');
-      if (!coursesResponse.ok) {
-        throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+      // Пытаемся загрузить структуру курсов из JSON файла
+      try {
+        const coursesResponse = await fetch('data/courses.json');
+        if (coursesResponse.ok) {
+          this.courses = await coursesResponse.json();
+          console.log('Курсы успешно загружены из файла courses.json');
+          
+          // Сохраняем копию в localStorage для резервного восстановления
+          localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+          localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+          
+          if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+          }
+        } else {
+          throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+        }
+      } catch (coursesError) {
+        console.error('Ошибка при загрузке courses.json:', coursesError);
+        
+        // Пытаемся восстановить из localStorage
+        const backupStr = localStorage.getItem('coursesBackup');
+        if (backupStr) {
+          try {
+            this.courses = JSON.parse(backupStr);
+            const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
+            console.log(`Курсы восстановлены из резервной копии (${timestamp})`);
+            
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Загружена резервная копия курсов из localStorage от ${timestamp}`);
+            }
+          } catch (backupError) {
+            console.error('Ошибка при восстановлении из резервной копии:', backupError);
+            this.courses = {};
+          }
+        } else {
+          console.warn('Резервная копия курсов не найдена, используется пустой объект');
+          this.courses = {};
+        }
       }
-      this.courses = await coursesResponse.json();
 
       // Загружаем резервный контент
-      const fallbacksResponse = await fetch('data/fallbacks.json');
-      if (!fallbacksResponse.ok) {
-        console.warn('Не удалось загрузить резервный контент, будет использоваться базовый');
-        this.fallbacks = {};
-      } else {
-        this.fallbacks = await fallbacksResponse.json();
+      try {
+        const fallbacksResponse = await fetch('data/fallbacks.json');
+        if (fallbacksResponse.ok) {
+          this.fallbacks = await fallbacksResponse.json();
+          
+          // Сохраняем копию в localStorage
+          localStorage.setItem('fallbacksBackup', JSON.stringify(this.fallbacks));
+          localStorage.setItem('fallbacksBackupTimestamp', new Date().toISOString());
+        } else {
+          throw new Error(`Не удалось загрузить резервный контент: ${fallbacksResponse.status}`);
+        }
+      } catch (fallbacksError) {
+        console.warn('Ошибка при загрузке fallbacks.json:', fallbacksError);
+        
+        // Пытаемся восстановить из localStorage
+        const backupStr = localStorage.getItem('fallbacksBackup');
+        if (backupStr) {
+          try {
+            this.fallbacks = JSON.parse(backupStr);
+            const timestamp = localStorage.getItem('fallbacksBackupTimestamp') || 'неизвестно';
+            console.log(`Резервный контент восстановлен из копии (${timestamp})`);
+          } catch (backupError) {
+            console.error('Ошибка при восстановлении резервного контента:', backupError);
+            this.fallbacks = {};
+          }
+        } else {
+          console.warn('Резервная копия fallbacks не найдена, используется пустой объект');
+          this.fallbacks = {};
+        }
       }
 
       console.log('CourseManager инициализирован успешно');
@@ -348,6 +405,57 @@ class CourseManager {
       console.error("Ошибка загрузки локального контента:", error);
       return null;
     }
+  }
+
+  /**
+   * Сохранить резервную копию данных
+   */
+  saveBackup() {
+    if (this.courses) {
+      localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+      localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+      
+      if (window.devMode && window.devMode.enabled) {
+        console.log('🔧 [DevMode] Сохранена резервная копия курсов');
+      }
+    }
+    
+    if (this.fallbacks) {
+      localStorage.setItem('fallbacksBackup', JSON.stringify(this.fallbacks));
+      localStorage.setItem('fallbacksBackupTimestamp', new Date().toISOString());
+    }
+  }
+
+  /**
+   * Восстановить из резервной копии
+   */
+  restoreFromBackup() {
+    const coursesBackup = localStorage.getItem('coursesBackup');
+    const fallbacksBackup = localStorage.getItem('fallbacksBackup');
+    
+    let restored = false;
+    
+    if (coursesBackup) {
+      try {
+        this.courses = JSON.parse(coursesBackup);
+        const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
+        console.log(`Восстановлены курсы из резервной копии (${timestamp})`);
+        restored = true;
+      } catch (e) {
+        console.error('Ошибка при восстановлении курсов из резервной копии:', e);
+      }
+    }
+    
+    if (fallbacksBackup) {
+      try {
+        this.fallbacks = JSON.parse(fallbacksBackup);
+        console.log('Восстановлен резервный контент из копии');
+      } catch (e) {
+        console.error('Ошибка при восстановлении резервного контента:', e);
+      }
+    }
+    
+    return restored;
   }
 }
 
