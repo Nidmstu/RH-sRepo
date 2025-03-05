@@ -2890,6 +2890,7 @@ class AdminInterface {
     if (window.devMode && window.devMode.enabled) {
       headers.append('X-DevMode', 'true');
     }
+    headers.append('Accept', 'application/json, text/plain, */*');
     
     fetch(webhookUrl, { 
       method: 'GET',
@@ -2907,12 +2908,113 @@ class AdminInterface {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        return response.json();
+        
+        // Получаем Content-Type заголовок
+        const contentType = response.headers.get('content-type') || '';
+        
+        // Сначала пробуем получить текст, а потом уже решаем, как его обрабатывать
+        return response.text().then(text => {
+          return { text, contentType };
+        });
       })
-      .then(data => {
-        // Проверяем, что полученные данные содержат курсы
+      .then(({ text, contentType }) => {
+        let data;
+        
+        // Пытаемся определить, что за данные мы получили
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Получены данные (${text.length} символов) с Content-Type: ${contentType}`);
+          console.log(`🔧 [DevMode] Первые 100 символов:`, text.substring(0, 100));
+        }
+        
+        // Пробуем распарсить JSON
+        try {
+          data = JSON.parse(text);
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Данные успешно распарсены как JSON`);
+          }
+        } catch (e) {
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Не удалось распарсить как JSON: ${e.message}`);
+          }
+          
+          // Если это не JSON, возможно, это plain text представление JSON
+          // Пытаемся распарсить данные из вида, где JSON содержится в поле "data"
+          if (text.includes('"data"')) {
+            try {
+              const regex = /"data"\s*:\s*"(.*?)"/s;
+              const match = text.match(regex);
+              
+              if (match && match[1]) {
+                let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                
+                // Иногда кавычки могут быть экранированы несколько раз
+                while (jsonString.includes('\\')) {
+                  jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                }
+                
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Извлечен JSON из поля "data"`, jsonString.substring(0, 100));
+                }
+                
+                data = { courses: JSON.parse(jsonString) };
+              }
+            } catch (innerError) {
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Не удалось распарсить данные из поля data: ${innerError.message}`);
+              }
+            }
+          }
+        }
+        
+        // Если данные все еще не определены, пробуем искать JSON в тексте
+        if (!data) {
+          try {
+            // Ищем любую JSON структуру в тексте
+            const jsonRegex = /{[\s\S]*}/;
+            const match = text.match(jsonRegex);
+            
+            if (match && match[0]) {
+              const possibleJson = match[0];
+              data = JSON.parse(possibleJson);
+              
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Извлечен JSON из текста`);
+              }
+            }
+          } catch (e) {
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Не удалось извлечь JSON из текста: ${e.message}`);
+            }
+          }
+        }
+        
+        // Если данные все еще не определены, сдаемся
+        if (!data) {
+          throw new Error('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.');
+        }
+        
+        // Проверяем наличие поля courses
         if (!data.courses) {
-          throw new Error('Полученные данные не содержат информацию о курсах');
+          // Может быть, сам data и есть courses
+          if (typeof data === 'object' && Object.keys(data).length > 0) {
+            // Проверяем, есть ли в объекте хотя бы один ключ с объектом, содержащим days/specialLessons
+            const courseCandidate = Object.values(data).find(item => 
+              item && typeof item === 'object' && 
+              (item.days || item.specialLessons || item.title)
+            );
+            
+            if (courseCandidate) {
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Используем полученный объект как courses`);
+              }
+              data = { courses: data };
+            }
+          }
+          
+          // Если все еще нет courses, выбрасываем ошибку
+          if (!data.courses) {
+            throw new Error('Полученные данные не содержат информацию о курсах');
+          }
         }
         
         // Добавляем информацию для режима разработчика
