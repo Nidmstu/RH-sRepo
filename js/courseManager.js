@@ -16,6 +16,9 @@ class CourseManager {
    */
   async initialize() {
     try {
+      // Подписчики на изменение курсов
+      this.courseUpdateCallbacks = [];
+      
       // Получаем настройки вебхуков из localStorage
       const webhookSettingsStr = localStorage.getItem('webhookSettings');
       let importWebhookUrl = localStorage.getItem('importWebhookUrl');
@@ -268,6 +271,9 @@ class CourseManager {
                 console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
                 console.log('🔧 [DevMode] Идентификаторы загруженных курсов:', Object.keys(this.courses));
               }
+              
+              // Уведомляем подписчиков об обновлении данных
+              this.notifyCoursesUpdated();
               
               // Данные успешно загружены с вебхука, прерываем дальнейшее выполнение
               return true;
@@ -779,6 +785,31 @@ class CourseManager {
     }
     
     return restored;
+  }
+  
+  /**
+   * Добавляет подписчика на обновление курсов
+   * @param {Function} callback - Функция, вызываемая при обновлении курсов
+   */
+  onCoursesUpdated(callback) {
+    if (typeof callback === 'function') {
+      this.courseUpdateCallbacks.push(callback);
+    }
+  }
+  
+  /**
+   * Вызывает все зарегистрированные подписчики при обновлении курсов
+   */
+  notifyCoursesUpdated() {
+    if (this.courseUpdateCallbacks && Array.isArray(this.courseUpdateCallbacks)) {
+      this.courseUpdateCallbacks.forEach(callback => {
+        try {
+          callback(this.courses);
+        } catch (error) {
+          console.error('Ошибка при вызове подписчика обновления курсов:', error);
+        }
+      });
+    }
   }
 }
 

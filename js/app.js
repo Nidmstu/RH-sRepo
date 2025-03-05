@@ -29,13 +29,29 @@ async function initApp() {
     return;
   }
   
+  // Подписываемся на обновления курсов
+  courseManager.onCoursesUpdated((courses) => {
+    console.log('Получено обновление курсов, обновляем интерфейс');
+    
+    // Обновляем список профессий
+    updateProfessionSelector();
+    
+    // Обновляем списки дней и уроков, если выбрана профессия
+    if (courseManager.currentProfession) {
+      updateDaysList();
+      if (courseManager.currentDay) {
+        updateLessonsList();
+      }
+    }
+  });
+  
   // Настраиваем обработчики событий
   setupEventListeners();
   
   // Отображаем начальный интерфейс
   renderHomePage();
   
-  // Настраиваем периодическую синхронизацию с облаком (каждые 5 минут)
+  // Настраиваем периодическую синхронизацию с облаком (каждую минуту)
   setupCloudSync();
   
   console.log('Приложение инициализировано успешно');
@@ -44,6 +60,47 @@ async function initApp() {
 // Настройка периодической синхронизации с облаком
 function setupCloudSync() {
   const syncInterval = 60 * 1000; // 1 минута - более частая синхронизация для оперативного обновления
+  
+  // Функция для применения обновленной конфигурации курсов
+  const applyCoursesConfig = (coursesData) => {
+    if (window.devMode && window.devMode.enabled) {
+      console.log('🔧 [DevMode] Применение новой конфигурации курсов к приложению');
+    }
+    
+    // Сохраняем текущие выбранные значения
+    const currentProfession = courseManager.currentProfession;
+    const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
+    const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
+    
+    // Применяем новые данные
+    courseManager.courses = coursesData;
+    
+    // Обновляем список профессий в селекторе
+    updateProfessionSelector();
+    
+    // Переключаемся на ту же профессию для обновления данных
+    courseManager.switchProfession(currentProfession);
+    
+    // Обновляем список дней
+    updateDaysList();
+    
+    // Если был выбран день, пытаемся выбрать его снова
+    if (currentDayId) {
+      courseManager.selectDay(currentDayId);
+      updateLessonsList(); // Обновляем список уроков
+      
+      // Если был выбран урок, пытаемся выбрать его снова и обновить контент
+      if (currentLessonId) {
+        courseManager.selectLesson(currentLessonId);
+        // Перезагружаем контент текущего урока
+        if (document.getElementById('guide').classList.contains('hidden') === false) {
+          loadLessonContent();
+        }
+      }
+    }
+    
+    console.log('Данные курсов обновлены из импортированного JSON');
+  };
   
   // Функция для проверки необходимости синхронизации и её выполнения
   const syncWithCloud = async () => {
@@ -203,42 +260,8 @@ function setupCloudSync() {
             // Кешируем все URL вебхуков из уроков для быстрого доступа
             cacheWebhookUrls(coursesData);
             
-            // Применяем новые данные
-            courseManager.courses = coursesData;
-            
-            // Если мы находимся на странице курса, полностью обновляем интерфейс
-            if (courseManager.currentProfession) {
-              console.log('Обновляем интерфейс после синхронизации с облаком');
-              
-              // Сохраняем текущие выбранные значения
-              const currentProfession = courseManager.currentProfession;
-              const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
-              const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
-              
-              // Обновляем список профессий в селекторе
-              updateProfessionSelector();
-              
-              // Переключаемся на ту же профессию для обновления данных
-              courseManager.switchProfession(currentProfession);
-              
-              // Обновляем список дней
-              updateDaysList();
-              
-              // Если был выбран день, пытаемся выбрать его снова
-              if (currentDayId) {
-                courseManager.selectDay(currentDayId);
-                updateLessonsList(); // Обновляем список уроков
-                
-                // Если был выбран урок, пытаемся выбрать его снова и обновить контент
-                if (currentLessonId) {
-                  courseManager.selectLesson(currentLessonId);
-                  // Перезагружаем контент текущего урока
-                  if (document.getElementById('guide').classList.contains('hidden') === false) {
-                    loadLessonContent();
-                  }
-                }
-              }
-            }
+            // Применяем новую конфигурацию курсов
+            applyCoursesConfig(coursesData);
             
             console.log('Синхронизация с облаком успешно завершена, интерфейс обновлен');
           } else if (window.devMode && window.devMode.enabled) {
