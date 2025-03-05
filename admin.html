@@ -240,7 +240,7 @@
       font-size: 0.8rem;
       color: #777;
     }
-    
+
     .admin-list-item-source {
       font-size: 0.75rem;
       color: #006699;
@@ -687,6 +687,66 @@
         margin-bottom: 12px;
       }
     }
+
+    /* Стили для кнопок справки */
+    .admin-help-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      margin-left: 5px;
+      color: #3498db;
+      cursor: pointer;
+      font-size: 0.9rem;
+      vertical-align: middle;
+      transition: color 0.2s ease;
+    }
+
+    .admin-help-btn:hover {
+      color: #2980b9;
+    }
+
+    /* Стили для модальных окон */
+    .admin-help-modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .admin-help-modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+      position: relative;
+    }
+
+    .admin-help-modal-title {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #3498db;
+    }
+
+    .admin-help-modal-close {
+      color: #aaa;
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .admin-help-modal-close:hover {
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -722,7 +782,7 @@
     <div class="admin-content">
       <!-- Начальный экран -->
       <div id="admin-welcome" class="admin-panel-section">
-        <div style="text-align: center; padding: 50px 0;">
+        <div class="admin-welcome-content" style="text-align: center; padding: 50px 0;">
           <h2>Добро пожаловать в панель управления</h2>
           <p>Выберите курс в боковом меню или создайте новый</p>
         </div>
@@ -793,7 +853,7 @@
               </button>
               <div id="admin-no-day-lessons-list" class="admin-list"></div>
             </div>
-            
+
             <!-- Настройки вебхуков -->
             <div id="admin-tab-webhooks" class="admin-tab-pane hidden">
               <div class="admin-section-header">
@@ -805,17 +865,20 @@
                   <input type="text" id="admin-export-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/export" 
                          value="https://auto.crm-s.com/webhook/SaveWebhooks">
+                  <button class="admin-help-btn" data-modal="export-modal"><i class="fas fa-question-circle"></i></button>
                 </div>
                 <div class="admin-form-group">
                   <label for="admin-import-webhook-url">URL для импорта данных:</label>
                   <input type="text" id="admin-import-webhook-url" class="admin-input" 
                          placeholder="https://example.com/webhook/import">
+                  <button class="admin-help-btn" data-modal="import-modal"><i class="fas fa-question-circle"></i></button>
                 </div>
                 <div class="admin-form-group">
                   <label for="admin-get-webhooks-url">URL для получения вебхуков:</label>
                   <input type="text" id="admin-get-webhooks-url" class="admin-input" 
                          placeholder="https://auto.crm-s.com/webhook-test/GetOnboardingHooks" 
                          value="https://auto.crm-s.com/webhook-test/GetOnboardingHooks">
+                  <button class="admin-help-btn" data-modal="get-modal"><i class="fas fa-question-circle"></i></button>
                 </div>
                 <div style="margin-top: 20px;">
                   <button id="admin-save-webhooks" class="admin-btn admin-btn-primary">
@@ -877,6 +940,30 @@
     </div>
   </div>
 
+  <div class="admin-help-modal" id="export-modal">
+    <div class="admin-help-modal-content">
+      <span class="admin-help-modal-close" onclick="closeModal('export-modal')">&times;</span>
+      <h3 class="admin-help-modal-title">URL для экспорта данных</h3>
+      <p>Этот URL используется для экспорта данных о курсах.  При отправке запроса на этот URL, сервер отправит данные в формате JSON.</p>
+    </div>
+  </div>
+
+  <div class="admin-help-modal" id="import-modal">
+    <div class="admin-help-modal-content">
+      <span class="admin-help-modal-close" onclick="closeModal('import-modal')">&times;</span>
+      <h3 class="admin-help-modal-title">URL для импорта данных</h3>
+      <p>Этот URL используется для импорта данных о курсах.  При отправке POST запроса на этот URL с данными в формате JSON, данные будут импортированы.</p>
+    </div>
+  </div>
+
+  <div class="admin-help-modal" id="get-modal">
+    <div class="admin-help-modal-content">
+      <span class="admin-help-modal-close" onclick="closeModal('get-modal')">&times;</span>
+      <h3 class="admin-help-modal-title">URL для получения вебхуков</h3>
+      <p>Этот URL используется для получения списка всех настроенных вебхуков.  При отправке GET запроса на этот URL, сервер вернет список вебхуков в формате JSON.</p>
+    </div>
+  </div>
+
   <script type="module">
     import courseManager from './js/courseManager.js';
     import adminInterface from './js/adminInterface.js';
@@ -895,6 +982,26 @@
       // Глобальный доступ к менеджеру курсов и административному интерфейсу
       window.courseManager = courseManager;
       window.adminInterface = adminInterface;
+
+
+      // Обработчики для кнопок справки
+      const helpButtons = document.querySelectorAll('.admin-help-btn');
+      helpButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const modalId = button.dataset.modal;
+          openModal(modalId);
+        });
+      });
+
+      function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'block';
+      }
+
+      function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'none';
+      }
     });
   </script>
 </body>

@@ -1341,6 +1341,61 @@ class AdminInterface {
         }
       });
     }
+    
+    // Обработчики для кнопок справки
+    const helpButtons = document.querySelectorAll('.admin-help-btn');
+    if (helpButtons && helpButtons.length > 0) {
+      helpButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const helpType = btn.getAttribute('data-help');
+          if (helpType) {
+            const modalId = `help-modal-${helpType}`;
+            const modal = document.getElementById(modalId);
+            
+            if (modal) {
+              modal.style.display = 'block';
+              
+              // Обработчик закрытия модального окна по клику на крестик
+              const closeBtn = modal.querySelector('.admin-help-modal-close');
+              if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                  modal.style.display = 'none';
+                });
+              }
+              
+              // Закрытие по клику вне содержимого
+              modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                  modal.style.display = 'none';
+                }
+              });
+            }
+          }
+        });
+      });
+    }
+    
+    // Обработчики закрытия для всех модальных окон справки
+    const helpModals = document.querySelectorAll('.admin-help-modal');
+    if (helpModals && helpModals.length > 0) {
+      helpModals.forEach(modal => {
+        const closeBtn = modal.querySelector('.admin-help-modal-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+          });
+        }
+        
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+      });
+    }
   }
 
   /**
