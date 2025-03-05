@@ -45,18 +45,27 @@ async function initApp() {
     // Обновление статуса загрузки
     updateLoadingStatus('Загрузка данных курсов...');
     
-    // Сначала попытаемся обновить данные из облака
+    // ВАЖНО: Сначала полностью завершаем синхронизацию с облаком
+    // перед инициализацией менеджера курсов
     try {
       updateLoadingStatus('Синхронизация с облаком...');
-      await forceSyncWithCloud();
-      updateLoadingStatus('Синхронизация завершена, инициализация менеджера курсов...');
+      const syncResult = await forceSyncWithCloud();
+      
+      if (syncResult && syncResult.success) {
+        updateLoadingStatus('Синхронизация завершена успешно, данные обновлены');
+        console.log('Синхронизация с облаком выполнена успешно:', syncResult);
+      } else {
+        updateLoadingStatus('Синхронизация с облаком не внесла изменений');
+        console.log('Синхронизация с облаком не обновила данные:', syncResult);
+      }
     } catch (syncError) {
       console.warn('Ошибка при синхронизации с облаком:', syncError);
       updateLoadingStatus('Синхронизация не удалась, загрузка локальных данных...');
     }
     
-    // Инициализируем менеджер курсов
-    console.log('Инициализация менеджера курсов...');
+    // Теперь инициализируем менеджер курсов
+    updateLoadingStatus('Инициализация менеджера курсов...');
+    console.log('Инициализация менеджера курсов после синхронизации...');
     const success = await courseManager.initialize();
     
     // Очищаем таймаут загрузки
@@ -188,7 +197,7 @@ async function forceSyncWithCloud() {
         if (webhookSettings.importUrl) {
           importWebhookUrl = webhookSettings.importUrl;
           console.log(`Найден URL импорта в настройках вебхуков: ${importWebhookUrl}`);
-          updateLoadingStatus(`Найден URL импорта данных`);
+          updateLoadingStatus(`Найден URL импорта данных в настройках вебхуков`);
         }
       } catch (e) {
         console.error('Ошибка при парсинге настроек вебхуков:', e);
@@ -202,12 +211,15 @@ async function forceSyncWithCloud() {
       if (localStorage.getItem('adminImportWebhook')) {
         importWebhookUrl = localStorage.getItem('adminImportWebhook');
         console.log(`Найден URL импорта в adminImportWebhook: ${importWebhookUrl}`);
+        updateLoadingStatus(`Найден URL импорта в настройках админки`);
       } else if (localStorage.getItem('importWebhookUrl')) {
         importWebhookUrl = localStorage.getItem('importWebhookUrl');
         console.log(`Найден URL импорта в importWebhookUrl: ${importWebhookUrl}`);
+        updateLoadingStatus(`Найден URL импорта в настройках`);
       } else if (localStorage.getItem('testImportUrl')) {
         importWebhookUrl = localStorage.getItem('testImportUrl');
         console.log(`Найден URL импорта в testImportUrl: ${importWebhookUrl}`);
+        updateLoadingStatus(`Найден тестовый URL импорта`);
       }
     }
     
@@ -222,26 +234,119 @@ async function forceSyncWithCloud() {
         // Очищаем текущие данные курсов, чтобы гарантировать загрузку новых
         courseManager.courses = null;
         
+        // Обновляем статус
+        updateLoadingStatus(`Отправка запроса на ${importWebhookUrl.split('/').slice(-1)[0]}`);
+        
         // Пытаемся получить новые данные с сервера
         console.log(`Выполняется импорт данных с URL: ${importWebhookUrl}`);
-        const result = await tryImportFromUrl(importWebhookUrl);
         
-        if (result && result.success) {
-          console.log('Синхронизация успешно завершена, получены актуальные данные курсов');
-          if (window.devMode && window.devMode.enabled) {
-            console.log('🔧 [DevMode] Принудительная синхронизация успешно завершена');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // Увеличенный таймаут до 20 секунд
+        
+        try {
+          const response = await fetch(importWebhookUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            },
+            cache: 'no-store',
+            mode: 'cors',
+            credentials: 'omit',
+            signal: controller.signal
+          });
+          
+          // Очищаем таймаут после получения ответа
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ошибка! Статус: ${response.status}`);
           }
-          resolve({success: true, updated: result.updated});
-        } else {
-          console.log('Принудительная синхронизация не выполнила обновление: ', result?.error || 'данные уже актуальны');
-          resolve({success: false, error: result?.error});
+          
+          const responseText = await response.text();
+          console.log(`Получен ответ от сервера, размер: ${responseText.length} байт`);
+          updateLoadingStatus(`Получен ответ от сервера (${responseText.length} байт)`);
+          
+          let coursesData = null;
+          
+          // Пытаемся распарсить JSON
+          try {
+            const importData = JSON.parse(responseText);
+            console.log('Успешно распарсен JSON из ответа, анализ данных...');
+            
+            // Проверяем разные форматы ответа
+            if (importData.courses) {
+              coursesData = importData.courses;
+              console.log('Найдены курсы в поле courses');
+            } else if (importData.data && typeof importData.data === 'object') {
+              coursesData = importData.data;
+              console.log('Найдены курсы в поле data (объект)');
+            } else if (importData.content && typeof importData.content === 'object') {
+              coursesData = importData.content;
+              console.log('Найдены курсы в поле content (объект)');
+            } else {
+              // Проверка формата корневого объекта как структуры курсов
+              const hasValidStructure = Object.values(importData).some(value => {
+                return value && typeof value === 'object' && 
+                  (value.days || value.specialLessons || value.title || value.redirectUrl);
+              });
+              
+              if (hasValidStructure) {
+                coursesData = importData;
+                console.log('Корневой объект используется как структура курсов');
+              }
+            }
+          } catch (e) {
+            console.error('Ошибка при парсинге JSON:', e);
+            updateLoadingStatus(`Ошибка при обработке данных: ${e.message}`);
+            resolve({success: false, error: 'Ошибка парсинга JSON'});
+            return;
+          }
+          
+          if (coursesData) {
+            // Применяем новые данные
+            courseManager.courses = coursesData;
+            
+            // Сохраняем резервную копию
+            localStorage.setItem('coursesBackup', JSON.stringify(coursesData));
+            localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+            
+            console.log('Синхронизация успешно завершена, получены актуальные данные курсов');
+            if (window.devMode && window.devMode.enabled) {
+              console.log('🔧 [DevMode] Принудительная синхронизация успешно завершена');
+              console.log('🔧 [DevMode] Сохранена резервная копия курсов');
+            }
+            
+            updateLoadingStatus(`Данные успешно обновлены`);
+            resolve({success: true, updated: true, data: coursesData});
+          } else {
+            console.error('Не удалось найти данные о курсах в ответе');
+            updateLoadingStatus(`Не удалось найти данные о курсах в ответе`);
+            resolve({success: false, error: 'Данные о курсах не найдены'});
+          }
+        } catch (fetchError) {
+          // Очищаем таймаут при ошибке
+          clearTimeout(timeoutId);
+          
+          console.error('Ошибка при получении данных:', fetchError);
+          updateLoadingStatus(`Ошибка при получении данных: ${fetchError.message}`);
+          
+          if (fetchError.name === 'AbortError') {
+            resolve({success: false, error: 'Таймаут запроса'});
+          } else {
+            resolve({success: false, error: fetchError.message});
+          }
         }
       } catch (e) {
         console.error('Ошибка при принудительной синхронизации:', e);
+        updateLoadingStatus(`Ошибка синхронизации: ${e.message}`);
         reject(e);
       }
     } else {
       console.log('URL вебхука для импорта не найден, синхронизация пропущена');
+      updateLoadingStatus('URL вебхука для импорта не найден');
       resolve({success: false, error: 'URL импорта не найден'});
     }
   });

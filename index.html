@@ -421,6 +421,53 @@
     import adminPanel from './js/admin.js';
     import app from './js/app.js';
 
+    // Добавляем обработчик событий для повторной загрузки данных
+    function setupRetryHandler() {
+      const retryButton = document.querySelector('#loading-retry-container button');
+      if (retryButton) {
+        retryButton.addEventListener('click', async function(e) {
+          e.preventDefault();
+          
+          // Обновляем статус загрузки
+          const statusElement = document.querySelector('.loading-status');
+          if (statusElement) {
+            statusElement.textContent = 'Повторная загрузка данных...';
+            statusElement.style.color = '';
+            statusElement.style.fontWeight = '';
+          }
+          
+          // Скрываем контейнер с кнопкой повтора
+          const retryContainer = document.getElementById('loading-retry-container');
+          if (retryContainer) retryContainer.classList.add('hidden');
+          
+          // Показываем индикатор загрузки
+          const loadingIndicator = document.getElementById('loading-spinner');
+          if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+          
+          // Пытаемся загрузить данные снова
+          try {
+            if (typeof app === 'object' && app.initApp) {
+              await app.initApp();
+            } else {
+              await courseManager.initialize();
+            }
+          } catch (error) {
+            console.error('Ошибка при повторной инициализации:', error);
+            
+            // Обновляем статус загрузки
+            if (statusElement) {
+              statusElement.textContent = 'Не удалось загрузить данные';
+              statusElement.style.color = '#ff5555';
+              statusElement.style.fontWeight = 'bold';
+            }
+            
+            // Показываем контейнер с кнопкой повтора
+            if (retryContainer) retryContainer.classList.remove('hidden');
+          }
+        });
+      }
+    }
+
     // Инициализируем приложение после загрузки DOM
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Page loaded, initializing application...");
@@ -429,13 +476,32 @@
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
       
+      // Настраиваем обработчик для кнопки повторной загрузки
+      setupRetryHandler();
+      
       // Используем модуль app.js для инициализации приложения
       // вместо прямого вызова courseManager.initialize()
-      if (typeof app === 'object' && app.initApp) {
-        await app.initApp();
-      } else {
-        // Если модуль app недоступен, инициализируем менеджер курсов напрямую
-        await courseManager.initialize();
+      try {
+        if (typeof app === 'object' && app.initApp) {
+          await app.initApp();
+        } else {
+          // Если модуль app недоступен, инициализируем менеджер курсов напрямую
+          await courseManager.initialize();
+        }
+      } catch (error) {
+        console.error('Ошибка при инициализации приложения:', error);
+        
+        // Обновляем статус загрузки
+        const statusElement = document.querySelector('.loading-status');
+        if (statusElement) {
+          statusElement.textContent = 'Ошибка при загрузке данных';
+          statusElement.style.color = '#ff5555';
+          statusElement.style.fontWeight = 'bold';
+        }
+        
+        // Показываем контейнер с кнопкой повтора
+        const retryContainer = document.getElementById('loading-retry-container');
+        if (retryContainer) retryContainer.classList.remove('hidden');
       }
     });
   </script>

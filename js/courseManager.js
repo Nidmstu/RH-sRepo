@@ -22,14 +22,16 @@ class CourseManager {
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
       
-      // Выводим текущее состояние
+      // Выводим текущее состояние и проверяем наличие данных
       console.log('CourseManager: Текущее состояние courses:', this.courses ? Object.keys(this.courses) : 'null');
       
-      // Проверяем, есть ли уже загруженные данные
+      // Проверяем, есть ли уже загруженные данные из предыдущей синхронизации
       if (this.courses && Object.keys(this.courses).length > 0) {
-        console.log('CourseManager: Данные уже загружены, пропускаем инициализацию');
+        console.log('CourseManager: Данные уже загружены из синхронизации, продолжаем с ними');
         console.log('CourseManager: Количество загруженных профессий:', Object.keys(this.courses).length);
-        // Все равно уведомляем о наличии курсов
+        console.log('CourseManager: Идентификаторы профессий:', Object.keys(this.courses).join(', '));
+        
+        // Уведомляем об имеющихся курсах
         this.notifyCoursesUpdated();
         return true;
       }
