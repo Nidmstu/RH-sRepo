@@ -3017,7 +3017,123 @@ class AdminInterface {
           const jsonData = JSON.parse(responseText);
           
           // Обновляем содержимое модального окна
-
+          modal.querySelector('.admin-modal-body').innerHTML = `
+            <div class="webhooks-data">
+              <pre>${JSON.stringify(jsonData, null, 2)}</pre>
+            </div>
+            <div class="admin-modal-actions">
+              <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
+              <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
+                <i class="fas fa-copy"></i> Скопировать
+              </button>
+            </div>
+          `;
+          
+          // Добавляем обработчики для кнопок
+          modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+          
+          modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
+            try {
+              navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2))
+                .then(() => {
+                  alert('Данные скопированы в буфер обмена');
+                })
+                .catch(err => {
+                  console.error('Ошибка при копировании: ', err);
+                  
+                  // Альтернативный способ копирования
+                  const textArea = document.createElement('textarea');
+                  textArea.value = JSON.stringify(jsonData, null, 2);
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                  alert('Данные скопированы в буфер обмена');
+                });
+            } catch (err) {
+              console.error('Ошибка при копировании: ', err);
+              alert('Не удалось скопировать данные: ' + err.message);
+            }
+          });
+          
+          this.showWebhookStatus('Вебхуки успешно получены', 'success');
+        } catch (e) {
+          // Если это не JSON, просто отображаем текст
+          modal.querySelector('.admin-modal-body').innerHTML = `
+            <div class="webhooks-data">
+              <pre>${responseText}</pre>
+            </div>
+            <div class="admin-modal-actions">
+              <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
+              <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
+                <i class="fas fa-copy"></i> Скопировать
+              </button>
+            </div>
+          `;
+          
+          // Добавляем обработчики для кнопок
+          modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+          
+          modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
+            try {
+              navigator.clipboard.writeText(responseText)
+                .then(() => {
+                  alert('Данные скопированы в буфер обмена');
+                })
+                .catch(err => {
+                  console.error('Ошибка при копировании: ', err);
+                  
+                  // Альтернативный способ копирования
+                  const textArea = document.createElement('textarea');
+                  textArea.value = responseText;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                  alert('Данные скопированы в буфер обмена');
+                });
+            } catch (err) {
+              console.error('Ошибка при копировании: ', err);
+              alert('Не удалось скопировать данные: ' + err.message);
+            }
+          });
+          
+          this.showWebhookStatus('Вебхуки успешно получены (не JSON формат)', 'success');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при получении вебхуков:', error);
+        
+        // Отображаем ошибку в модальном окне
+        modal.querySelector('.admin-modal-body').innerHTML = `
+          <div style="color: #721c24; background-color: #f8d7da; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0;">Ошибка при получении вебхуков</h4>
+            <p>${error.message}</p>
+          </div>
+          <div class="admin-modal-actions">
+            <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
+            <button id="retry-webhooks" class="admin-btn admin-btn-primary">Повторить</button>
+          </div>
+        `;
+        
+        // Добавляем обработчики для кнопок
+        modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+        
+        modal.querySelector('#retry-webhooks').addEventListener('click', () => {
+          document.body.removeChild(modal);
+          this.getWebhooksFromServer(url);
+        });
+        
+        this.showWebhookStatus(`Ошибка при получении вебхуков: ${error.message}`, 'error');
+      });
+  }
+  
   /**
    * Показать модальное окно с информацией о вебхуке
    */
