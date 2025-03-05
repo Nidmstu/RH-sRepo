@@ -17,17 +17,24 @@ class CourseManager {
   async initialize() {
     try {
       console.log('CourseManager: Начало инициализации...');
+      console.log('CourseManager: Текущее время:', new Date().toISOString());
       
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
       
+      // Выводим текущее состояние
+      console.log('CourseManager: Текущее состояние courses:', this.courses ? Object.keys(this.courses) : 'null');
+      
       // Проверяем, есть ли уже загруженные данные
       if (this.courses && Object.keys(this.courses).length > 0) {
         console.log('CourseManager: Данные уже загружены, пропускаем инициализацию');
+        console.log('CourseManager: Количество загруженных профессий:', Object.keys(this.courses).length);
         // Все равно уведомляем о наличии курсов
         this.notifyCoursesUpdated();
         return true;
       }
+      
+      console.log('CourseManager: Данные не найдены, начинаю загрузку...');
 
       // Получаем настройки вебхуков из localStorage в порядке приоритета
       let importWebhookUrl = null;
@@ -303,10 +310,29 @@ class CourseManager {
 
                 this.courses = coursesData;
                 console.log('Курсы успешно загружены с вебхука импорта');
+                console.log('Загружены следующие профессии:', Object.keys(this.courses));
+                
+                // Подробный лог информации о загруженных курсах
+                Object.keys(this.courses).forEach(profId => {
+                  const course = this.courses[profId];
+                  console.log(`Профессия ${profId}: ${course.title || 'Без названия'}`);
+                  
+                  if (course.days) {
+                    console.log(`- Дней обучения: ${course.days.length}`);
+                    course.days.forEach(day => {
+                      console.log(`  - День ${day.id}: ${day.title} (${day.lessons ? day.lessons.length : 0} уроков)`);
+                    });
+                  }
+                  
+                  if (course.specialLessons) {
+                    console.log(`- Специальных уроков: ${course.specialLessons.length}`);
+                  }
+                });
 
                 // Сохраняем копию в localStorage для резервного восстановления
                 localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
                 localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+                console.log('Резервная копия сохранена в localStorage, метка времени:', new Date().toISOString());
 
                 if (window.devMode && window.devMode.enabled) {
                   console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');

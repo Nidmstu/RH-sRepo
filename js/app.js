@@ -43,20 +43,7 @@ async function initApp() {
     }, 30000); // 30 секунд таймаут
     
     // Обновление статуса загрузки
-    updateLoadingStatus('Синхронизация с облаком...');
-    
-    // Принудительная синхронизация с облаком перед запуском
-    console.log('Принудительная синхронизация с облаком перед запуском приложения...');
-    const syncResult = await forceSyncWithCloud();
-    console.log('Результат синхронизации с облаком:', syncResult);
-    
-    // Проверяем результат синхронизации
-    if (!syncResult || !syncResult.success) {
-      console.log('Синхронизация с облаком не удалась, пробуем инициализировать с существующими данными');
-    }
-    
-    // Обновление статуса загрузки
-    updateLoadingStatus('Инициализация менеджера курсов...');
+    updateLoadingStatus('Загрузка данных курсов...');
     
     // Инициализируем менеджер курсов
     console.log('Инициализация менеджера курсов...');
@@ -66,9 +53,24 @@ async function initApp() {
     clearTimeout(loadingTimeout);
     
     if (!success) {
+      console.error('Ошибка инициализации менеджера курсов');
       updateLoadingStatus('Ошибка загрузки данных курсов', true);
       if (retryContainer) retryContainer.classList.remove('hidden');
       return;
+    }
+    
+    console.log('Инициализация менеджера курсов завершена успешно');
+    
+    // Проверяем, что данные курсов действительно загружены
+    if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
+      console.error('Объект courses не был загружен правильно');
+      updateLoadingStatus('Данные курсов не загружены', true);
+      if (retryContainer) retryContainer.classList.remove('hidden');
+      return;
+    }
+    
+    console.log('Данные курсов успешно загружены:', Object.keys(courseManager.courses));
+    updateLoadingStatus('Данные курсов успешно загружены');
 
 // Функция для вывода диагностической информации
 function logDiagnostics(message, data) {

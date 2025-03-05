@@ -291,12 +291,13 @@
 <body>
   <!-- Индикатор загрузки -->
   <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-    <div class="spinner"></div>
-    <h2>Загрузка данных курсов...</h2>
-    <p class="loading-status">Инициализация...</p>
-    <div id="loading-retry-container" class="hidden" style="margin-top: 20px;">
-      <p>Не удалось загрузить данные. Возможно, проблемы с подключением.</p>
-      <button onclick="location.reload()">Повторить попытку</button>
+    <div class="spinner" style="width: 80px; height: 80px; border-width: 8px;"></div>
+    <h2 style="color: #3498db; margin-top: 20px;">Загрузка данных курсов...</h2>
+    <p class="loading-status" style="font-size: 16px; margin-top: 15px;">Инициализация...</p>
+    <div id="loading-retry-container" class="hidden" style="margin-top: 20px; background-color: #ffeeee; padding: 15px; border-radius: 5px; border-left: 4px solid #ff5555;">
+      <p style="font-weight: bold; color: #cc0000;">Не удалось загрузить данные. Возможно, проблемы с подключением.</p>
+      <button onclick="location.reload()" style="background-color: #ff5555; margin-top: 10px;">Повторить загрузку</button>
+      <p style="font-size: 14px; margin-top: 10px; color: #666;">Если проблема повторяется, обратитесь к администратору.</p>
     </div>
   </div>
   
