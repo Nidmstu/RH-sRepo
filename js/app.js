@@ -531,14 +531,26 @@ async function tryImportFromUrl(url) {
       // Пытаемся распарсить JSON
       try {
         updateLoadingStatus('Обработка данных в формате JSON...');
-        // Перед попыткой парсинга, проверяем структуру текста
-        const trimmedText = responseText.trim();
-        if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
-          importData = JSON.parse(trimmedText);
-          console.log('Успешно распарсен JSON из ответа');
-        } else {
-          // Если текст не начинается с { или [, пытаемся найти JSON в нём
-          throw new Error('Ответ не содержит JSON напрямую');
+        // Всегда пытаемся парсить ответ как JSON, независимо от Content-Type
+        try {
+          // Пробуем парсить весь текст ответа как JSON
+          importData = JSON.parse(responseText.trim());
+          console.log('Успешно распарсен JSON из полного ответа');
+        } catch (initialParseError) {
+          // Если не получилось, проверяем структуру текста
+          const trimmedText = responseText.trim();
+          if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
+            // Если ответ начинается с { или [, возможно проблема в декодировании
+            try {
+              importData = JSON.parse(trimmedText);
+              console.log('Успешно распарсен JSON из ответа после обрезки');
+            } catch (e) {
+              throw initialParseError; // Если снова не получилось, возвращаемся к исходной ошибке
+            }
+          } else {
+            // Если текст не начинается с { или [, пытаемся найти JSON в нём
+            throw new Error('Ответ не содержит JSON напрямую, поиск JSON внутри ответа');
+          }
         }
       } catch (jsonError) {
         updateLoadingStatus('Поиск JSON данных в ответе...');
