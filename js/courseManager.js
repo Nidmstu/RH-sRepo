@@ -16,44 +16,152 @@ class CourseManager {
    */
   async initialize() {
     try {
-      // Пытаемся загрузить структуру курсов из JSON файла
-      try {
-        const coursesResponse = await fetch('data/courses.json');
-        if (coursesResponse.ok) {
-          this.courses = await coursesResponse.json();
-          console.log('Курсы успешно загружены из файла courses.json');
-          
-          // Сохраняем копию в localStorage для резервного восстановления
-          localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
-          localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-          
-          if (window.devMode && window.devMode.enabled) {
-            console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
-          }
+      // Получаем URL вебхука для импорта из localStorage
+      const importWebhookUrl = localStorage.getItem('importWebhookUrl');
+      
+      if (window.devMode && window.devMode.enabled) {
+        console.log('🔧 [DevMode] Начало инициализации CourseManager');
+        if (importWebhookUrl) {
+          console.log(`🔧 [DevMode] Будет использован вебхук для импорта: ${importWebhookUrl}`);
         } else {
-          throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+          console.log('🔧 [DevMode] URL вебхука для импорта не найден в localStorage, будет использован локальный файл');
         }
-      } catch (coursesError) {
-        console.error('Ошибка при загрузке courses.json:', coursesError);
-        
-        // Пытаемся восстановить из localStorage
-        const backupStr = localStorage.getItem('coursesBackup');
-        if (backupStr) {
-          try {
-            this.courses = JSON.parse(backupStr);
-            const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
-            console.log(`Курсы восстановлены из резервной копии (${timestamp})`);
+      }
+      
+      // Пытаемся загрузить структуру курсов с вебхука импорта, если он настроен
+      if (importWebhookUrl) {
+        try {
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Отправка запроса на вебхук импорта: ${importWebhookUrl}`);
+          }
+          
+          const importResponse = await fetch(importWebhookUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (importResponse.ok) {
+            const importData = await importResponse.json();
             
             if (window.devMode && window.devMode.enabled) {
-              console.log(`🔧 [DevMode] Загружена резервная копия курсов из localStorage от ${timestamp}`);
+              console.log('🔧 [DevMode] Успешно получены данные с вебхука импорта');
+              console.log('🔧 [DevMode] Размер полученных данных:', JSON.stringify(importData).length, 'байт');
             }
-          } catch (backupError) {
-            console.error('Ошибка при восстановлении из резервной копии:', backupError);
+            
+            // Проверяем структуру полученных данных
+            if (importData.courses) {
+              this.courses = importData.courses;
+              console.log('Курсы успешно загружены с вебхука импорта');
+              
+              // Сохраняем копию в localStorage для резервного восстановления
+              localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+              localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+              
+              if (window.devMode && window.devMode.enabled) {
+                console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+              }
+            } else {
+              throw new Error('Полученные данные не содержат информацию о курсах');
+            }
+          } else {
+            throw new Error(`Ошибка запроса к вебхуку импорта: ${importResponse.status}`);
+          }
+        } catch (importError) {
+          console.error('Ошибка при загрузке данных с вебхука импорта:', importError);
+          
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Ошибка при загрузке с вебхука: ${importError.message}`);
+            console.log('🔧 [DevMode] Переключение на загрузку из локального файла');
+          }
+          
+          // При ошибке пытаемся загрузить из локального файла
+          try {
+            const coursesResponse = await fetch('data/courses.json');
+            if (coursesResponse.ok) {
+              this.courses = await coursesResponse.json();
+              console.log('Курсы успешно загружены из файла courses.json');
+              
+              // Сохраняем копию в localStorage для резервного восстановления
+              localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+              localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+              
+              if (window.devMode && window.devMode.enabled) {
+                console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+              }
+            } else {
+              throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+            }
+          } catch (coursesError) {
+            console.error('Ошибка при загрузке courses.json:', coursesError);
+            
+            // Пытаемся восстановить из localStorage
+            const backupStr = localStorage.getItem('coursesBackup');
+            if (backupStr) {
+              try {
+                this.courses = JSON.parse(backupStr);
+                const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
+                console.log(`Курсы восстановлены из резервной копии (${timestamp})`);
+                
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Загружена резервная копия курсов из localStorage от ${timestamp}`);
+                }
+              } catch (backupError) {
+                console.error('Ошибка при восстановлении из резервной копии:', backupError);
+                this.courses = {};
+              }
+            } else {
+              console.warn('Резервная копия курсов не найдена, используется пустой объект');
+              this.courses = {};
+            }
+          }
+        }
+      } else {
+        // Если URL вебхука не настроен, загружаем из локального файла
+        try {
+          if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Загрузка курсов из локального файла courses.json');
+          }
+          
+          const coursesResponse = await fetch('data/courses.json');
+          if (coursesResponse.ok) {
+            this.courses = await coursesResponse.json();
+            console.log('Курсы успешно загружены из файла courses.json');
+            
+            // Сохраняем копию в localStorage для резервного восстановления
+            localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+            localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+            
+            if (window.devMode && window.devMode.enabled) {
+              console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+            }
+          } else {
+            throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+          }
+        } catch (coursesError) {
+          console.error('Ошибка при загрузке courses.json:', coursesError);
+          
+          // Пытаемся восстановить из localStorage
+          const backupStr = localStorage.getItem('coursesBackup');
+          if (backupStr) {
+            try {
+              this.courses = JSON.parse(backupStr);
+              const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
+              console.log(`Курсы восстановлены из резервной копии (${timestamp})`);
+              
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Загружена резервная копия курсов из localStorage от ${timestamp}`);
+              }
+            } catch (backupError) {
+              console.error('Ошибка при восстановлении из резервной копии:', backupError);
+              this.courses = {};
+            }
+          } else {
+            console.warn('Резервная копия курсов не найдена, используется пустой объект');
             this.courses = {};
           }
-        } else {
-          console.warn('Резервная копия курсов не найдена, используется пустой объект');
-          this.courses = {};
         }
       }
 
@@ -459,6 +567,11 @@ class CourseManager {
   }
 }
 
-// Экспортируем синглтон
+// Создаем экземпляр класса
 const courseManager = new CourseManager();
+
+// Экспортируем как именованный экспорт для совместимости
+export { courseManager };
+
+// Также экспортируем как экспорт по умолчанию
 export default courseManager;

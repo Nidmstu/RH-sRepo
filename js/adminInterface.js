@@ -2908,6 +2908,13 @@ class AdminInterface {
       return;
     }
     
+    // Сохраняем URL импорта в localStorage для использования в CourseManager
+    localStorage.setItem('importWebhookUrl', importWebhookUrl);
+    
+    if (window.devMode && window.devMode.enabled) {
+      console.log(`🔧 [DevMode] URL импорта сохранен в localStorage: ${importWebhookUrl}`);
+    }
+    
     if (getWebhooksUrl && !this.isValidUrl(getWebhooksUrl)) {
       this.showWebhookStatus('Ошибка: Некорректный URL для получения вебхуков', 'error');
       return;
