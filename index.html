@@ -419,20 +419,24 @@
     import { courseManager } from './js/courseManager.js';
     import devMode from './js/devMode.js';
     import adminPanel from './js/admin.js';
+    import app from './js/app.js';
 
     // Инициализируем приложение после загрузки DOM
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Page loaded, initializing application...");
 
-      // Инициализируем менеджер курсов
-      await courseManager.initialize();
-
-      // При необходимости можно открыть админ-панель
-      // adminPanel.show();
-
       // Глобальный доступ к менеджеру курсов и админ-панели
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
+      
+      // Используем модуль app.js для инициализации приложения
+      // вместо прямого вызова courseManager.initialize()
+      if (typeof app === 'object' && app.initApp) {
+        await app.initApp();
+      } else {
+        // Если модуль app недоступен, инициализируем менеджер курсов напрямую
+        await courseManager.initialize();
+      }
     });
   </script>
 

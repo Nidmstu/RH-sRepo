@@ -45,6 +45,16 @@ async function initApp() {
     // Обновление статуса загрузки
     updateLoadingStatus('Загрузка данных курсов...');
     
+    // Сначала попытаемся обновить данные из облака
+    try {
+      updateLoadingStatus('Синхронизация с облаком...');
+      await forceSyncWithCloud();
+      updateLoadingStatus('Синхронизация завершена, инициализация менеджера курсов...');
+    } catch (syncError) {
+      console.warn('Ошибка при синхронизации с облаком:', syncError);
+      updateLoadingStatus('Синхронизация не удалась, загрузка локальных данных...');
+    }
+    
     // Инициализируем менеджер курсов
     console.log('Инициализация менеджера курсов...');
     const success = await courseManager.initialize();
@@ -743,10 +753,23 @@ function setupEventListeners() {
 
 // Отображение домашней страницы
 function renderHomePage() {
+  // Проверяем, загружены ли данные курсов
+  if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
+    console.error('Ошибка: данные курсов не загружены, невозможно отобразить домашнюю страницу');
+    updateLoadingStatus('Ошибка: данные курсов не загружены', true);
+    return;
+  }
+  
+  console.log('Отображение домашней страницы с загруженными курсами:', Object.keys(courseManager.courses));
   showSection('home');
   daySelectionContainer.classList.remove('hidden');
   taskSelectionContainer.classList.add('hidden');
 }
+
+// Экспортируем функцию инициализации для использования из index.html
+export default {
+  initApp
+};
 
 // Обработчик смены профессии
 function handleProfessionChange() {

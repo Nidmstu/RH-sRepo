@@ -97,7 +97,10 @@ class CourseManager {
           const testImportUrl = localStorage.getItem('testImportUrl');
 
           // Приоритет для настроек из админ-панели
-          if (webhookSettings) {
+          if (adminWebhookUrl) {
+            webhookUrl = adminWebhookUrl;
+            console.log(`Найден URL импорта в adminImportWebhook: ${webhookUrl}`);
+          } else if (webhookSettings) {
             try {
               const settings = JSON.parse(webhookSettings);
               if (settings.importUrl) {
@@ -109,14 +112,13 @@ class CourseManager {
             } catch (e) {
               console.error('Ошибка при парсинге настроек вебхуков:', e);
             }
-          } else if (adminWebhookUrl) {
-            webhookUrl = adminWebhookUrl;
-            console.log(`Найден URL импорта в adminImportWebhook: ${webhookUrl}`);
           } else if (testImportUrl) {
             webhookUrl = testImportUrl;
             console.log(`Найден URL импорта в testImportUrl: ${webhookUrl}`);
           }
         }
+        
+        console.log('Попытка загрузки данных с URL:', webhookUrl);
 
         if (webhookUrl) {
           if (window.devMode && window.devMode.enabled) {
