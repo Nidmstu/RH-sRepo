@@ -86,202 +86,224 @@ class CourseManager {
             console.log(`🔧 [DevMode] Отправка запроса на вебхук импорта: ${webhookUrl}`);
           }
 
-          const importResponse = await fetch(webhookUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json, text/plain, */*',
-              'Content-Type': 'application/json'
-            },
-            cache: 'no-store'  // Всегда получаем свежие данные
-          });
+          // Устанавливаем таймаут для запроса (10 секунд максимум)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
+          try {
+            const importResponse = await fetch(webhookUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+              },
+              cache: 'no-store',  // Всегда получаем свежие данные
+              signal: controller.signal
+            });
+            
+            // Очищаем таймаут после получения ответа
+            clearTimeout(timeoutId);
 
-          if (importResponse.ok) {
-            // Пытаемся получить JSON из ответа
-            let importData;
-            const responseText = await importResponse.text();
+            if (importResponse.ok) {
+              // Пытаемся получить JSON из ответа
+              let importData;
+              const responseText = await importResponse.text();
 
-            try {
-              // Пытаемся распарсить JSON напрямую
-              importData = JSON.parse(responseText);
-
-              if (window.devMode && window.devMode.enabled) {
-                console.log('🔧 [DevMode] Успешно получены данные с вебхука импорта');
-                console.log('🔧 [DevMode] Размер полученных данных:', responseText.length, 'байт');
-              }
-            } catch (jsonError) {
-              // Если не удалось распарсить напрямую, ищем JSON в тексте
-              if (window.devMode && window.devMode.enabled) {
-                console.log(`🔧 [DevMode] Ошибка при парсинге JSON: ${jsonError.message}`);
-                console.log('🔧 [DevMode] Попытка найти JSON в тексте ответа');
-              }
+              console.log('Получен ответ от вебхука, размер:', responseText.length, 'байт');
 
               try {
-                // Ищем любую JSON структуру в тексте
-                const jsonRegex = /{[\s\S]*}/;
-                const match = responseText.match(jsonRegex);
+                // Пытаемся распарсить JSON напрямую
+                importData = JSON.parse(responseText);
 
-                if (match && match[0]) {
-                  importData = JSON.parse(match[0]);
-                  if (window.devMode && window.devMode.enabled) {
-                    console.log('🔧 [DevMode] Найден и распарсен JSON в тексте ответа');
-                  }
-                }
-              } catch (extractError) {
                 if (window.devMode && window.devMode.enabled) {
-                  console.log(`🔧 [DevMode] Не удалось извлечь JSON из текста: ${extractError.message}`);
+                  console.log('🔧 [DevMode] Успешно получены данные с вебхука импорта');
+                  console.log('🔧 [DevMode] Размер полученных данных:', responseText.length, 'байт');
                 }
-                throw new Error('Не удалось распарсить JSON из ответа');
-              }
-            }
+              } catch (jsonError) {
+                // Если не удалось распарсить напрямую, ищем JSON в тексте
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Ошибка при парсинге JSON: ${jsonError.message}`);
+                  console.log('🔧 [DevMode] Попытка найти JSON в тексте ответа');
+                }
 
-            // Проверяем наличие данных о курсах в разных форматах
-            let coursesData = null;
-
-            if (importData) {
-              if (window.devMode && window.devMode.enabled) {
-                console.log(`🔧 [DevMode] Анализ полученных данных:`, Object.keys(importData));
-              }
-
-              // Способ 1: Прямой объект courses
-              if (importData.courses) {
-                coursesData = importData.courses;
-                if (window.devMode && window.devMode.enabled) {
-                  console.log(`🔧 [DevMode] Найдены курсы в поле 'courses'`);
-                }
-              } 
-              // Способ 2: Данные в поле data как объект
-              else if (importData.data && typeof importData.data === 'object') {
-                coursesData = importData.data;
-                if (window.devMode && window.devMode.enabled) {
-                  console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (объект)`);
-                }
-              } 
-              // Способ 3: Данные в поле content как объект
-              else if (importData.content && typeof importData.content === 'object') {
-                coursesData = importData.content;
-                if (window.devMode && window.devMode.enabled) {
-                  console.log(`🔧 [DevMode] Найдены курсы в поле 'content' (объект)`);
-                }
-              } 
-              // Способ 4: Данные в поле data как строка JSON
-              else if (importData.data && typeof importData.data === 'string') {
-                // Пытаемся распарсить JSON в строке
                 try {
-                  const parsedData = JSON.parse(importData.data);
-                  if (parsedData.courses) {
-                    coursesData = parsedData.courses;
+                  // Ищем любую JSON структуру в тексте
+                  const jsonRegex = /{[\s\S]*}/;
+                  const match = responseText.match(jsonRegex);
+
+                  if (match && match[0]) {
+                    importData = JSON.parse(match[0]);
                     if (window.devMode && window.devMode.enabled) {
-                      console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> courses)`);
-                    }
-                  } else {
-                    coursesData = parsedData;
-                    if (window.devMode && window.devMode.enabled) {
-                      console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> весь объект)`);
+                      console.log('🔧 [DevMode] Найден и распарсен JSON в тексте ответа');
                     }
                   }
-                } catch (e) {
+                } catch (extractError) {
                   if (window.devMode && window.devMode.enabled) {
-                    console.log(`🔧 [DevMode] Ошибка при парсинге строки data: ${e.message}`);
+                    console.log(`🔧 [DevMode] Не удалось извлечь JSON из текста: ${extractError.message}`);
                   }
+                  throw new Error('Не удалось распарсить JSON из ответа');
                 }
               }
-              // Способ 5: Прямое использование root объекта как courses
-              else if (typeof importData === 'object') {
-                // Проверяем, имеет ли объект правильную структуру
-                const hasValidStructure = Object.values(importData).some(value => {
-                  return value && typeof value === 'object' && 
-                         (value.days || value.specialLessons || value.title || value.redirectUrl || value.noDayLessons);
-                });
 
-                if (hasValidStructure) {
-                  coursesData = importData;
-                  if (window.devMode && window.devMode.enabled) {
-                    console.log(`🔧 [DevMode] Использование корневого объекта как courses (найдены поля days/specialLessons/title)`);
-                  }
-                }
+              // Проверяем наличие данных о курсах в разных форматах
+              let coursesData = null;
 
-                // Дополнительная проверка на отдельные уроки с вебхуками
-                const validateWebhooks = (obj) => {
-                  // Проверка наличия вебхуков в уроках
-                  let hasWebhooks = false;
-
-                  // Проверяем, есть ли дни с уроками
-                  if (obj.days && Array.isArray(obj.days)) {
-                    obj.days.forEach(day => {
-                      if (day.lessons && Array.isArray(day.lessons)) {
-                        day.lessons.forEach(lesson => {
-                          if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
-                            hasWebhooks = true;
-                            // Сохраняем URL вебхука для использования в fetchLessonContent
-                            const webhookUrl = lesson.contentSource.url;
-                            console.log(`Сохраняем URL вебхука для урока ${lesson.id}: ${webhookUrl}`);
-                          }
-                        });
-                      }
-                    });
-                  }
-
-                  // Проверяем специальные уроки
-                  if (obj.specialLessons && Array.isArray(obj.specialLessons)) {
-                    obj.specialLessons.forEach(lesson => {
-                      if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
-                        hasWebhooks = true;
-                        // Сохраняем URL вебхука для использования в fetchLessonContent
-                        const webhookUrl = lesson.contentSource.url;
-                        console.log(`Сохраняем URL вебхука для специального урока ${lesson.id}: ${webhookUrl}`);
-                      }
-                    });
-                  }
-
-                  return hasWebhooks;
-                };
-
-                // Если найдены вебхуки в уроках, подтверждаем, что это структура курсов
-                if (validateWebhooks(coursesData)) {
-                  console.log("Найдены вебхуки в структуре курсов, структура валидна");
-                }
-              }
-            }
-
-            if (coursesData) {
-              // Дополнительная проверка структуры данных курсов
-              const courseKeys = Object.keys(coursesData);
-              const validStructure = courseKeys.length > 0 && 
-                courseKeys.some(key => {
-                  const course = coursesData[key];
-                  return course && typeof course === 'object' && 
-                         (course.days || course.specialLessons || course.redirectUrl);
-                });
-
-              if (!validStructure) {
+              if (importData) {
                 if (window.devMode && window.devMode.enabled) {
-                  console.log(`🔧 [DevMode] Полученная структура данных не соответствует формату курсов`, coursesData);
+                  console.log(`🔧 [DevMode] Анализ полученных данных:`, Object.keys(importData));
                 }
-                throw new Error('Формат данных не соответствует структуре курсов');
+
+                // Способ 1: Прямой объект courses
+                if (importData.courses) {
+                  coursesData = importData.courses;
+                  if (window.devMode && window.devMode.enabled) {
+                    console.log(`🔧 [DevMode] Найдены курсы в поле 'courses'`);
+                  }
+                } 
+                // Способ 2: Данные в поле data как объект
+                else if (importData.data && typeof importData.data === 'object') {
+                  coursesData = importData.data;
+                  if (window.devMode && window.devMode.enabled) {
+                    console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (объект)`);
+                  }
+                } 
+                // Способ 3: Данные в поле content как объект
+                else if (importData.content && typeof importData.content === 'object') {
+                  coursesData = importData.content;
+                  if (window.devMode && window.devMode.enabled) {
+                    console.log(`🔧 [DevMode] Найдены курсы в поле 'content' (объект)`);
+                  }
+                } 
+                // Способ 4: Данные в поле data как строка JSON
+                else if (importData.data && typeof importData.data === 'string') {
+                  // Пытаемся распарсить JSON в строке
+                  try {
+                    const parsedData = JSON.parse(importData.data);
+                    if (parsedData.courses) {
+                      coursesData = parsedData.courses;
+                      if (window.devMode && window.devMode.enabled) {
+                        console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> courses)`);
+                      }
+                    } else {
+                      coursesData = parsedData;
+                      if (window.devMode && window.devMode.enabled) {
+                        console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> весь объект)`);
+                      }
+                    }
+                  } catch (e) {
+                    if (window.devMode && window.devMode.enabled) {
+                      console.log(`🔧 [DevMode] Ошибка при парсинге строки data: ${e.message}`);
+                    }
+                  }
+                }
+                // Способ 5: Прямое использование root объекта как courses
+                else if (typeof importData === 'object') {
+                  // Проверяем, имеет ли объект правильную структуру
+                  const hasValidStructure = Object.values(importData).some(value => {
+                    return value && typeof value === 'object' && 
+                          (value.days || value.specialLessons || value.title || value.redirectUrl || value.noDayLessons);
+                  });
+
+                  if (hasValidStructure) {
+                    coursesData = importData;
+                    if (window.devMode && window.devMode.enabled) {
+                      console.log(`🔧 [DevMode] Использование корневого объекта как courses (найдены поля days/specialLessons/title)`);
+                    }
+                  }
+
+                  // Дополнительная проверка на отдельные уроки с вебхуками
+                  const validateWebhooks = (obj) => {
+                    // Проверка наличия вебхуков в уроках
+                    let hasWebhooks = false;
+
+                    // Проверяем, есть ли дни с уроками
+                    if (obj.days && Array.isArray(obj.days)) {
+                      obj.days.forEach(day => {
+                        if (day.lessons && Array.isArray(day.lessons)) {
+                          day.lessons.forEach(lesson => {
+                            if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
+                              hasWebhooks = true;
+                              // Сохраняем URL вебхука для использования в fetchLessonContent
+                              const webhookUrl = lesson.contentSource.url;
+                              console.log(`Сохраняем URL вебхука для урока ${lesson.id}: ${webhookUrl}`);
+                            }
+                          });
+                        }
+                      });
+                    }
+
+                    // Проверяем специальные уроки
+                    if (obj.specialLessons && Array.isArray(obj.specialLessons)) {
+                      obj.specialLessons.forEach(lesson => {
+                        if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
+                          hasWebhooks = true;
+                          // Сохраняем URL вебхука для использования в fetchLessonContent
+                          const webhookUrl = lesson.contentSource.url;
+                          console.log(`Сохраняем URL вебхука для специального урока ${lesson.id}: ${webhookUrl}`);
+                        }
+                      });
+                    }
+
+                    return hasWebhooks;
+                  };
+
+                  // Если найдены вебхуки в уроках, подтверждаем, что это структура курсов
+                  if (validateWebhooks(coursesData)) {
+                    console.log("Найдены вебхуки в структуре курсов, структура валидна");
+                  }
+                }
               }
 
-              this.courses = coursesData;
-              console.log('Курсы успешно загружены с вебхука импорта');
+              if (coursesData) {
+                // Дополнительная проверка структуры данных курсов
+                const courseKeys = Object.keys(coursesData);
+                const validStructure = courseKeys.length > 0 && 
+                  courseKeys.some(key => {
+                    const course = coursesData[key];
+                    return course && typeof course === 'object' && 
+                          (course.days || course.specialLessons || course.redirectUrl);
+                  });
 
-              // Сохраняем копию в localStorage для резервного восстановления
-              localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
-              localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+                if (!validStructure) {
+                  if (window.devMode && window.devMode.enabled) {
+                    console.log(`🔧 [DevMode] Полученная структура данных не соответствует формату курсов`, coursesData);
+                  }
+                  throw new Error('Формат данных не соответствует структуре курсов');
+                }
 
-              if (window.devMode && window.devMode.enabled) {
-                console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
-                console.log('🔧 [DevMode] Идентификаторы загруженных курсов:', Object.keys(this.courses));
+                this.courses = coursesData;
+                console.log('Курсы успешно загружены с вебхука импорта');
+
+                // Сохраняем копию в localStorage для резервного восстановления
+                localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+                localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+
+                if (window.devMode && window.devMode.enabled) {
+                  console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+                  console.log('🔧 [DevMode] Идентификаторы загруженных курсов:', Object.keys(this.courses));
+                }
+
+                // Уведомляем подписчиков об обновлении данных
+                this.notifyCoursesUpdated();
+
+                // Данные успешно загружены с вебхука, прерываем дальнейшее выполнение
+                return true;
+              } else {
+                throw new Error('Полученные данные не содержат информацию о курсах');
               }
-
-              // Уведомляем подписчиков об обновлении данных
-              this.notifyCoursesUpdated();
-
-              // Данные успешно загружены с вебхука, прерываем дальнейшее выполнение
-              return true;
             } else {
-              throw new Error('Полученные данные не содержат информацию о курсах');
+              throw new Error(`Ошибка запроса к вебхуку импорта: ${importResponse.status}`);
             }
-          } else {
-            throw new Error(`Ошибка запроса к вебхуку импорта: ${importResponse.status}`);
+          } catch (fetchError) {
+            // Очищаем таймаут, если ошибка произошла до его истечения
+            clearTimeout(timeoutId);
+            
+            // Ошибка fetch (может быть таймаут, сетевая ошибка и т.д.)
+            if (fetchError.name === 'AbortError') {
+              throw new Error('Таймаут запроса к вебхуку импорта');
+            } else {
+              throw fetchError;
+            }
           }
         } else {
           throw new Error('URL вебхука для импорта не найден');
