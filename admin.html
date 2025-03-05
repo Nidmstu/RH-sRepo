@@ -206,34 +206,6 @@
       font-style: italic;
     }
 
-
-  .json-example {
-    margin-top: 15px;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-  }
-
-  .json-example h4 {
-    margin-top: 0;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: #495057;
-  }
-
-  .json-example pre {
-    margin: 0;
-    padding: 10px;
-    background-color: #f1f3f5;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 0.85rem;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
     .admin-list-item {
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
@@ -972,28 +944,7 @@
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('export-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для экспорта данных</h3>
-      <p>Этот URL используется для экспорта данных о курсах. При отправке запроса на этот URL, сервер отправит данные в формате JSON.</p>
-      <div class="json-example">
-        <h4>Пример отправляемого JSON:</h4>
-        <pre>{
-  "courses": {
-    "prompt-engineer": {
-      "title": "Prompt Engineering Onboarding",
-      "days": [
-        {
-          "id": 1,
-          "title": "День 1",
-          "lessons": [...]
-        }
-      ],
-      "specialLessons": [...]
-    }
-  },
-  "timestamp": "2023-07-25T15:30:45.123Z",
-  "source": "onboarding-app",
-  "type": "full_courses_export"
-}</pre>
-      </div>
+      <p>Этот URL используется для экспорта данных о курсах.  При отправке запроса на этот URL, сервер отправит данные в формате JSON.</p>
     </div>
   </div>
 
@@ -1001,35 +952,7 @@
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('import-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для импорта данных</h3>
-      <p>Этот URL используется для импорта данных о курсах. При отправке POST запроса на этот URL с данными в формате JSON, данные будут импортированы.</p>
-      <div class="json-example">
-        <h4>Пример получаемого JSON:</h4>
-        <pre>{
-  "courses": {
-    "prompt-engineer": {
-      "title": "Prompt Engineering Onboarding",
-      "days": [
-        {
-          "id": 1,
-          "title": "День 1",
-          "lessons": [
-            {
-              "id": "lesson-1",
-              "title": "Введение в промпт-инжиниринг",
-              "contentSource": {
-                "type": "webhook",
-                "url": "https://example.com/api/content"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  },
-  "status": "success",
-  "timestamp": "2023-07-25T15:35:12.456Z"
-}</pre>
-      </div>
+      <p>Этот URL используется для импорта данных о курсах.  При отправке POST запроса на этот URL с данными в формате JSON, данные будут импортированы.</p>
     </div>
   </div>
 
@@ -1037,28 +960,7 @@
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('get-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для получения вебхуков</h3>
-      <p>Этот URL используется для получения списка всех настроенных вебхуков. При отправке GET запроса на этот URL, сервер вернет список вебхуков в формате JSON.</p>
-      <div class="json-example">
-        <h4>Пример получаемого JSON:</h4>
-        <pre>{
-  "webhooks": [
-    {
-      "id": "export_hook",
-      "url": "https://auto.crm-s.com/webhook/SaveWebhooks",
-      "type": "export",
-      "description": "Экспорт данных курсов"
-    },
-    {
-      "id": "import_hook",
-      "url": "https://auto.crm-s.com/webhook/GetCourses",
-      "type": "import",
-      "description": "Импорт данных курсов"
-    }
-  ],
-  "total": 2,
-  "timestamp": "2023-07-25T15:40:22.789Z"
-}</pre>
-      </div>
+      <p>Этот URL используется для получения списка всех настроенных вебхуков.  При отправке GET запроса на этот URL, сервер вернет список вебхуков в формате JSON.</p>
     </div>
   </div>
 
