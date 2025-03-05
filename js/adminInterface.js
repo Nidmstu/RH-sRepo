@@ -1191,6 +1191,118 @@ class AdminInterface {
       });
     }
 
+  /**
+   * Отображает модальное окно с информацией о типе вебхука
+   */
+  showWebhookInfoModal(infoType) {
+    let title = '';
+    let content = '';
+    
+    switch(infoType) {
+      case 'export':
+        title = 'URL для экспорта данных';
+        content = `
+          <p>При указании этого URL приложение будет отправлять данные курсов при сохранении изменений.</p>
+          <p><strong>Что происходит при запросе:</strong></p>
+          <ul>
+            <li>Отправляется POST-запрос с полными данными курсов в формате JSON</li>
+            <li>В теле запроса содержится объект, включающий все курсы, метку времени и тип экспорта</li>
+            <li>Сервер должен вернуть статус 2xx для успешной операции</li>
+          </ul>
+          <p>Пример URL: <code>https://auto.crm-s.com/webhook/SaveWebhooks</code></p>
+          <p><strong>Формат отправляемых данных:</strong></p>
+          <pre>{
+  "courses": { ... данные всех курсов ... },
+  "timestamp": "2023-01-01T12:00:00.000Z",
+  "source": "onboarding-app",
+  "type": "full_courses_export"
+}</pre>
+        `;
+        break;
+      case 'import':
+        title = 'URL для импорта данных';
+        content = `
+          <p>При нажатии на кнопку "Протестировать импорт" приложение запросит данные с этого URL.</p>
+          <p><strong>Что происходит при запросе:</strong></p>
+          <ul>
+            <li>Отправляется GET-запрос к указанному URL</li>
+            <li>Сервер должен вернуть JSON с данными курсов в соответствующем формате</li>
+            <li>Полученные данные заменят текущие данные курсов в приложении</li>
+          </ul>
+          <p><strong>Ожидаемый формат данных в ответе:</strong></p>
+          <pre>{
+  "courses": {
+    "prompt-engineer": { ... },
+    "lead-generator": { ... }
+  }
+}</pre>
+          <p><strong>Важно!</strong> Импорт данных полностью заменит существующие курсы в приложении.</p>
+        `;
+        break;
+      case 'get-webhooks':
+        title = 'URL для получения вебхуков';
+        content = `
+          <p>При нажатии на кнопку "Получить вебхуки" приложение запросит с этого URL список доступных вебхуков.</p>
+          <p><strong>Что происходит при запросе:</strong></p>
+          <ul>
+            <li>Отправляется GET-запрос к указанному URL</li>
+            <li>Ожидается, что сервер вернет список вебхуков, которые можно использовать в приложении</li>
+            <li>Полученная информация отображается в модальном окне для дальнейшего использования</li>
+          </ul>
+          <p>Пример URL: <code>https://auto.crm-s.com/webhook-test/GetOnboardingHooks</code></p>
+          <p>Данная функция полезна для получения справочной информации о доступных эндпоинтах API.</p>
+        `;
+        break;
+      default:
+        title = 'Информация о вебхуке';
+        content = 'Информация по данному типу вебхука не найдена.';
+    }
+    
+    // Создаем модальное окно
+    const modalId = 'webhook-info-modal';
+    let modal = document.getElementById(modalId);
+    
+    if (modal) {
+      document.body.removeChild(modal);
+    }
+    
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'admin-modal';
+    modal.innerHTML = `
+      <div class="admin-modal-content">
+        <div class="admin-modal-header">
+          <h3>${title}</h3>
+          <span class="admin-modal-close">&times;</span>
+        </div>
+        <div class="admin-modal-body">
+          ${content}
+        </div>
+        <div class="admin-modal-actions">
+          <button id="close-info-modal" class="admin-btn">Закрыть</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Добавляем обработчики для закрытия модального окна
+    modal.querySelector('.admin-modal-close').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('#close-info-modal').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    // Закрытие по клику вне контента
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
+
+
     // Переключение типа источника контента
     const contentSourceType = document.getElementById('admin-content-source-type');
     if (contentSourceType) {
@@ -1339,6 +1451,18 @@ class AdminInterface {
         } else {
           this.showWebhookStatus('URL для получения вебхуков не указан', 'error');
         }
+      });
+    }
+    
+    // Обработчики для информационных кнопок рядом с полями вебхуков
+    const infoButtons = document.querySelectorAll('.admin-info-btn');
+    if (infoButtons && infoButtons.length > 0) {
+      infoButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const infoType = btn.getAttribute('data-info');
+          this.showWebhookInfoModal(infoType);
+        });
       });
     }
   }
