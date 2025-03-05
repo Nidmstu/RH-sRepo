@@ -24,21 +24,39 @@ async function initApp() {
   
   // Показываем индикатор загрузки перед началом инициализации
   const loadingIndicator = document.getElementById('loading-spinner');
-  if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+  const appContent = document.getElementById('app-content');
+  
+  // Скрываем основной контент и показываем индикатор загрузки
+  if (appContent) appContent.classList.add('hidden');
+  if (loadingIndicator) {
+    loadingIndicator.classList.remove('hidden');
+    loadingIndicator.innerHTML = `
+      <div class="spinner"></div>
+      <p>Загрузка данных с сервера...</p>
+      <p class="loading-status">Подключение к серверу...</p>
+    `;
+  }
   
   // Настраиваем обработчики событий
   setupEventListeners();
   
   try {
+    // Обновление статуса загрузки
+    updateLoadingStatus('Синхронизация с облаком...');
+    
     // Сначала дожидаемся синхронизации с облаком и получения актуальных данных
     console.log('Принудительная синхронизация с облаком перед запуском приложения...');
     const syncResult = await forceSyncWithCloud();
     console.log('Результат синхронизации с облаком:', syncResult);
     
+    // Обновление статуса загрузки
+    updateLoadingStatus('Инициализация менеджера курсов...');
+    
     // Только после успешной синхронизации инициализируем менеджер
     console.log('Инициализация менеджера курсов...');
     const success = await courseManager.initialize();
     if (!success) {
+      updateLoadingStatus('Ошибка загрузки данных курсов', true);
       alert('Не удалось загрузить данные курсов. Попробуйте перезагрузить страницу.');
       if (loadingIndicator) loadingIndicator.classList.add('hidden');
       return;
@@ -89,21 +107,51 @@ function logDiagnostics(message, data) {
     // Отображаем начальный интерфейс только после полной инициализации
     renderHomePage();
     
-    // Скрываем индикатор загрузки
+    // Обновление статуса загрузки
+    updateLoadingStatus('Загрузка завершена, подготовка интерфейса...');
+    
+    // Короткая задержка, чтобы пользователь увидел сообщение о завершении
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Скрываем индикатор загрузки и показываем основной контент
     if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    if (appContent) appContent.classList.remove('hidden');
     
     console.log('Приложение инициализировано успешно');
   } catch (error) {
     console.error('Ошибка при инициализации приложения:', error);
+    updateLoadingStatus('Ошибка: ' + (error.message || 'Не удалось загрузить данные'), true);
     alert('Произошла ошибка при загрузке данных. Попробуйте перезагрузить страницу.');
-    if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    
+    // Даже при ошибке пытаемся показать интерфейс через 3 секунды
+    setTimeout(() => {
+      if (loadingIndicator) loadingIndicator.classList.add('hidden');
+      if (appContent) appContent.classList.remove('hidden');
+    }, 3000);
   }
+}
+
+// Функция для обновления статуса загрузки
+function updateLoadingStatus(message, isError = false) {
+  const statusElement = document.querySelector('.loading-status');
+  if (statusElement) {
+    statusElement.textContent = message;
+    if (isError) {
+      statusElement.style.color = '#ff5555';
+      statusElement.style.fontWeight = 'bold';
+    } else {
+      statusElement.style.color = '';
+      statusElement.style.fontWeight = '';
+    }
+  }
+  console.log('Статус загрузки:', message);
 }
 
 // Принудительная синхронизация с облаком (возвращает Promise)
 async function forceSyncWithCloud() {
   return new Promise(async (resolve, reject) => {
     console.log('Принудительная синхронизация с облаком...');
+    updateLoadingStatus('Поиск URL для импорта данных...');
     
     // Проверяем наличие настроек вебхуков
     const webhookSettingsStr = localStorage.getItem('webhookSettings');
@@ -115,9 +163,11 @@ async function forceSyncWithCloud() {
         if (webhookSettings.importUrl) {
           importWebhookUrl = webhookSettings.importUrl;
           console.log(`Найден URL импорта в настройках вебхуков: ${importWebhookUrl}`);
+          updateLoadingStatus(`Найден URL импорта данных`);
         }
       } catch (e) {
         console.error('Ошибка при парсинге настроек вебхуков:', e);
+        updateLoadingStatus('Ошибка при чтении настроек вебхуков');
       }
     }
     
@@ -235,9 +285,15 @@ async function tryImportFromUrl(url) {
   console.log(`Синхронизация с облаком: ${url}`);
   
   try {
+    // Обновление статуса загрузки
+    updateLoadingStatus(`Отправка запроса на сервер...`);
+    
     // Добавляем таймаут для запроса с максимальным временем ожидания
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      updateLoadingStatus('Превышено время ожидания ответа от сервера', true);
+    }, 15000); // 15 секунд
     
     // Получаем данные с вебхука
     console.log(`Отправка запроса на URL импорта: ${url}`);
@@ -260,6 +316,7 @@ async function tryImportFromUrl(url) {
     }
     
     // Получаем текст ответа
+    updateLoadingStatus('Получен ответ от сервера, обработка данных...');
     const responseText = await response.text();
     console.log(`Получен ответ от сервера, размер: ${responseText.length} байт`);
     
@@ -269,9 +326,11 @@ async function tryImportFromUrl(url) {
       
       // Пробуем распарсить JSON
       try {
+        updateLoadingStatus('Обработка данных в формате JSON...');
         importData = JSON.parse(responseText);
         console.log('Успешно распарсен JSON из ответа');
       } catch (jsonError) {
+        updateLoadingStatus('Поиск JSON данных в ответе...');
         console.log('Не удалось распарсить ответ как JSON, ищем JSON в тексте');
         
         // Пробуем найти JSON в тексте
@@ -376,12 +435,15 @@ async function tryImportFromUrl(url) {
           cacheWebhookUrls(coursesData);
           
           // Применяем новую конфигурацию курсов
+          updateLoadingStatus('Применение новой конфигурации курсов...');
           applyCoursesConfig(coursesData);
           
           console.log('Синхронизация с облаком успешно завершена, интерфейс обновлен');
+          updateLoadingStatus('Синхронизация завершена успешно');
           return { success: true, updated: true };
         } else {
           console.log('Данные актуальны, синхронизация не требуется');
+          updateLoadingStatus('Данные актуальны, синхронизация не требуется');
           return { success: true, updated: false };
         }
       } else {
@@ -820,7 +882,8 @@ function openTest(lesson) {
 
 // Загрузка контента урока
 async function loadLessonContent() {
-  loadingSpinner.classList.remove('hidden');
+  const contentSpinner = document.getElementById('content-loading-spinner');
+  if (contentSpinner) contentSpinner.classList.remove('hidden');
   markdownContent.classList.add('hidden');
   
   try {
@@ -832,7 +895,8 @@ async function loadLessonContent() {
     
     // Отображаем контент
     markdownContent.innerHTML = formattedHTML;
-    loadingSpinner.classList.add('hidden');
+    const contentSpinner = document.getElementById('content-loading-spinner');
+    if (contentSpinner) contentSpinner.classList.add('hidden');
     markdownContent.classList.remove('hidden');
     
     // Проверяем, есть ли задание для этого урока
@@ -857,7 +921,8 @@ async function loadLessonContent() {
         <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
       </div>
     `;
-    loadingSpinner.classList.add('hidden');
+    const contentSpinner = document.getElementById('content-loading-spinner');
+    if (contentSpinner) contentSpinner.classList.add('hidden');
     markdownContent.classList.remove('hidden');
   }
 }

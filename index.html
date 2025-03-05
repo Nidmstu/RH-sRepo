@@ -289,8 +289,17 @@
   </style>
 </head>
 <body>
-  <!-- Домашняя страница -->
-  <div id="home" class="container center">
+  <!-- Индикатор загрузки -->
+  <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+    <div class="spinner"></div>
+    <p>Загрузка данных курсов...</p>
+    <p class="loading-status">Инициализация...</p>
+  </div>
+  
+  <!-- Основной контент приложения -->
+  <div id="app-content">
+    <!-- Домашняя страница -->
+    <div id="home" class="container center">
     <div id="day-selection">
       <h1>Prompt Engineering Onboarding</h1>
       <p>
@@ -328,9 +337,9 @@
   <!-- Страница гайда -->
   <div id="guide" class="container hidden">
     <h1 id="guide-title">Guide:</h1>
-    <div id="loading-spinner" class="center">
+    <div id="content-loading-spinner" class="center hidden">
       <div class="spinner"></div>
-      <p>Loading, please wait...</p>
+      <p>Загрузка содержимого...</p>
     </div>
 
     <!-- Аудио-блок для первого урока -->
@@ -367,7 +376,38 @@
     <div class="center" style="margin-top:20px;">
       <button onclick="goBackToTaskSelection()">Back</button>
     </div>
+    </div>
   </div>
+
+  <style>
+    /* Улучшенные стили для индикатора загрузки */
+    #loading-spinner .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1.5s linear infinite;
+      margin: 0 auto 20px auto;
+    }
+    
+    #loading-spinner p {
+      margin: 10px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .loading-status {
+      font-size: 14px !important;
+      color: #666 !important;
+      margin-top: 5px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 
   <script type="module">
     // Импортируем модули приложения
