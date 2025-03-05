@@ -3217,6 +3217,7 @@ class AdminInterface {
           data = JSON.parse(text);
           if (window.devMode && window.devMode.enabled) {
             console.log(`🔧 [DevMode] Данные успешно распарсены как JSON`);
+            console.log(`🔧 [DevMode] Структура данных:`, Object.keys(data));
           }
         } catch (e) {
           if (window.devMode && window.devMode.enabled) {
@@ -3279,29 +3280,48 @@ class AdminInterface {
           throw new Error('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.');
         }
         
-        // Проверяем наличие поля courses
-        if (!data.courses) {
-          // Может быть, сам data и есть courses
-          if (typeof data === 'object' && Object.keys(data).length > 0) {
-            // Проверяем, есть ли в объекте хотя бы один ключ с объектом, содержащим days/specialLessons
-            const courseCandidate = Object.values(data).find(item => 
-              item && typeof item === 'object' && 
-              (item.days || item.specialLessons || item.title)
-            );
-            
-            if (courseCandidate) {
-              if (window.devMode && window.devMode.enabled) {
-                console.log(`🔧 [DevMode] Используем полученный объект как courses`);
-              }
-              data = { courses: data };
-            }
+        // УЛУЧШЕННАЯ ПРОВЕРКА СТРУКТУРЫ КУРСОВ
+        let coursesData = null;
+        
+        // Вариант 1: Данные уже содержат поле courses
+        if (data.courses) {
+          coursesData = data.courses;
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Найдены данные курсов в поле 'courses'`);
           }
+        } 
+        // Вариант 2: Данные сами являются courses 
+        else if (typeof data === 'object' && Object.keys(data).length > 0) {
+          // Проверяем наличие структуры курсов (первый уровень должен содержать объекты с days/specialLessons)
+          const hasCoursesStructure = Object.values(data).some(item => 
+            item && typeof item === 'object' && 
+            (item.days || item.specialLessons || item.title || item.redirectUrl)
+          );
           
-          // Если все еще нет courses, выбрасываем ошибку
-          if (!data.courses) {
-            throw new Error('Полученные данные не содержат информацию о курсах');
+          if (hasCoursesStructure) {
+            coursesData = data;
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Используем полученный объект как courses`);
+            }
+          } else if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Структура данных не соответствует формату курсов:`, 
+              Object.keys(data).map(key => ({
+                key, 
+                type: typeof data[key], 
+                hasValidProps: data[key] && typeof data[key] === 'object' ? 
+                  Object.keys(data[key]) : 'not-object'
+              }))
+            );
           }
         }
+        
+        // Финальная проверка
+        if (!coursesData) {
+          throw new Error('Полученные данные не содержат информацию о курсах в ожидаемом формате');
+        }
+        
+        // Создаем объект с курсами для обновления
+        data = { courses: coursesData };
         
         // Добавляем информацию для режима разработчика
         if (window.devMode && window.devMode.enabled) {

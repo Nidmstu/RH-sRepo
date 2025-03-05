@@ -121,20 +121,46 @@ class CourseManager {
             let coursesData = null;
             
             if (importData) {
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Анализ полученных данных:`, Object.keys(importData));
+              }
+              
+              // Способ 1: Прямой объект courses
               if (importData.courses) {
                 coursesData = importData.courses;
-              } else if (importData.data && typeof importData.data === 'object') {
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Найдены курсы в поле 'courses'`);
+                }
+              } 
+              // Способ 2: Данные в поле data как объект
+              else if (importData.data && typeof importData.data === 'object') {
                 coursesData = importData.data;
-              } else if (importData.content && typeof importData.content === 'object') {
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (объект)`);
+                }
+              } 
+              // Способ 3: Данные в поле content как объект
+              else if (importData.content && typeof importData.content === 'object') {
                 coursesData = importData.content;
-              } else if (importData.data && typeof importData.data === 'string') {
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Найдены курсы в поле 'content' (объект)`);
+                }
+              } 
+              // Способ 4: Данные в поле data как строка JSON
+              else if (importData.data && typeof importData.data === 'string') {
                 // Пытаемся распарсить JSON в строке
                 try {
                   const parsedData = JSON.parse(importData.data);
                   if (parsedData.courses) {
                     coursesData = parsedData.courses;
+                    if (window.devMode && window.devMode.enabled) {
+                      console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> courses)`);
+                    }
                   } else {
                     coursesData = parsedData;
+                    if (window.devMode && window.devMode.enabled) {
+                      console.log(`🔧 [DevMode] Найдены курсы в поле 'data' (JSON строка -> весь объект)`);
+                    }
                   }
                 } catch (e) {
                   if (window.devMode && window.devMode.enabled) {
@@ -142,9 +168,40 @@ class CourseManager {
                   }
                 }
               }
+              // Способ 5: Прямое использование root объекта как courses
+              else if (typeof importData === 'object') {
+                // Проверяем, имеет ли объект правильную структуру
+                const hasValidStructure = Object.values(importData).some(value => {
+                  return value && typeof value === 'object' && 
+                         (value.days || value.specialLessons || value.title || value.redirectUrl);
+                });
+                
+                if (hasValidStructure) {
+                  coursesData = importData;
+                  if (window.devMode && window.devMode.enabled) {
+                    console.log(`🔧 [DevMode] Использование корневого объекта как courses (найдены поля days/specialLessons/title)`);
+                  }
+                }
+              }
             }
             
             if (coursesData) {
+              // Дополнительная проверка структуры данных курсов
+              const courseKeys = Object.keys(coursesData);
+              const validStructure = courseKeys.length > 0 && 
+                courseKeys.some(key => {
+                  const course = coursesData[key];
+                  return course && typeof course === 'object' && 
+                         (course.days || course.specialLessons || course.redirectUrl);
+                });
+              
+              if (!validStructure) {
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Полученная структура данных не соответствует формату курсов`, coursesData);
+                }
+                throw new Error('Формат данных не соответствует структуре курсов');
+              }
+              
               this.courses = coursesData;
               console.log('Курсы успешно загружены с вебхука импорта');
               
@@ -154,6 +211,7 @@ class CourseManager {
               
               if (window.devMode && window.devMode.enabled) {
                 console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
+                console.log('🔧 [DevMode] Идентификаторы загруженных курсов:', Object.keys(this.courses));
               }
               
               // Данные успешно загружены с вебхука, прерываем дальнейшее выполнение
