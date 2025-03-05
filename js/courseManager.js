@@ -44,9 +44,6 @@ class CourseManager {
         }
       }
       
-      // Флаг для отслеживания успешной загрузки с вебхука
-      let webhookLoadSuccess = false;
-      
       // Пытаемся загрузить структуру курсов с вебхука импорта, если он настроен
       if (importWebhookUrl) {
         try {
@@ -57,58 +54,17 @@ class CourseManager {
           const importResponse = await fetch(importWebhookUrl, {
             method: 'GET',
             headers: {
-              'Accept': 'application/json, text/plain, */*',
+              'Accept': 'application/json',
               'Content-Type': 'application/json'
             }
           });
           
           if (importResponse.ok) {
-            // Сначала получаем текст ответа
-            const responseText = await importResponse.text();
-            let importData;
+            const importData = await importResponse.json();
             
             if (window.devMode && window.devMode.enabled) {
               console.log('🔧 [DevMode] Успешно получены данные с вебхука импорта');
-              console.log('🔧 [DevMode] Размер полученных данных:', responseText.length, 'байт');
-            }
-            
-            // Пробуем распарсить ответ как JSON
-            try {
-              importData = JSON.parse(responseText);
-            } catch (e) {
-              if (window.devMode && window.devMode.enabled) {
-                console.log(`🔧 [DevMode] Не удалось распарсить ответ как JSON: ${e.message}`);
-              }
-              
-              // Пробуем извлечь JSON из поля data, если оно есть
-              if (responseText.includes('"data"')) {
-                try {
-                  const regex = /"data"\s*:\s*"(.*?)"/s;
-                  const match = responseText.match(regex);
-                  
-                  if (match && match[1]) {
-                    let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
-                    while (jsonString.includes('\\')) {
-                      jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
-                    }
-                    
-                    if (window.devMode && window.devMode.enabled) {
-                      console.log(`🔧 [DevMode] Извлечен JSON из поля "data"`);
-                    }
-                    
-                    importData = JSON.parse(jsonString);
-                  }
-                } catch (innerError) {
-                  if (window.devMode && window.devMode.enabled) {
-                    console.log(`🔧 [DevMode] Не удалось извлечь JSON из поля data: ${innerError.message}`);
-                  }
-                }
-              }
-              
-              // Если не удалось распарсить, бросаем исключение
-              if (!importData) {
-                throw new Error('Не удалось распарсить ответ от вебхука');
-              }
+              console.log('🔧 [DevMode] Размер полученных данных:', JSON.stringify(importData).length, 'байт');
             }
             
             // Проверяем структуру полученных данных
@@ -123,31 +79,9 @@ class CourseManager {
               if (window.devMode && window.devMode.enabled) {
                 console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
               }
-              webhookLoadSuccess = true;
-              return true;
-            } else if (typeof importData === 'object' && Object.keys(importData).length > 0) {
-              // Проверяем, может быть сам объект и есть структура курсов
-              const hasCourseLikeStructure = Object.values(importData).some(value => 
-                value && typeof value === 'object' && (value.days || value.specialLessons || value.title)
-              );
-              
-              if (hasCourseLikeStructure) {
-                this.courses = importData;
-                console.log('Курсы успешно загружены с вебхука импорта');
-                
-                // Сохраняем копию в localStorage для резервного восстановления
-                localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
-                localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-                
-                if (window.devMode && window.devMode.enabled) {
-                  console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
-                }
-                webhookLoadSuccess = true;
-                return true;
-              }
+            } else {
+              throw new Error('Полученные данные не содержат информацию о курсах');
             }
-            
-            throw new Error('Полученные данные не содержат информацию о курсах');
           } else {
             throw new Error(`Ошибка запроса к вебхуку импорта: ${importResponse.status}`);
           }
@@ -157,11 +91,6 @@ class CourseManager {
           if (window.devMode && window.devMode.enabled) {
             console.log(`🔧 [DevMode] Ошибка при загрузке с вебхука: ${importError.message}`);
             console.log('🔧 [DevMode] Переключение на загрузку из локального файла');
-          }
-          
-          // Проверяем, успешно ли загружены данные с вебхука
-          if (webhookLoadSuccess) {
-            return true;
           }
           
           // При ошибке пытаемся загрузить из локального файла
@@ -205,18 +134,12 @@ class CourseManager {
             }
           }
         }
-      }
-      
-      // Если загрузка с вебхука успешна, больше не пытаемся загружать из локального файла
-      if (webhookLoadSuccess) {
-        return true;
-      }
-      
-      // Если URL вебхука не настроен или загрузка не удалась, загружаем из локального файла
-      try {
-        if (window.devMode && window.devMode.enabled) {
-          console.log('🔧 [DevMode] Загрузка курсов из локального файла courses.json');
-        }
+      } else {
+        // Если URL вебхука не настроен, загружаем из локального файла
+        try {
+          if (window.devMode && window.devMode.enabled) {
+            console.log('🔧 [DevMode] Загрузка курсов из локального файла courses.json');
+          }
           
           const coursesResponse = await fetch('data/courses.json');
           if (coursesResponse.ok) {
