@@ -154,22 +154,6 @@ async function initApp() {
         }
       }
     });
-
-    // Теперь, когда у нас есть данные, подписываемся на их обновления
-    courseManager.onCoursesUpdated((courses) => {
-      console.log('Получено обновление курсов, обновляем интерфейс');
-      
-      // Обновляем список профессий
-      updateProfessionSelector();
-      
-      // Обновляем списки дней и уроков, если выбрана профессия
-      if (courseManager.currentProfession) {
-        updateDaysList();
-        if (courseManager.currentDay) {
-          updateLessonsList();
-        }
-      }
-    });
     
     // Устанавливаем периодическую синхронизацию с облаком
     setupCloudSyncInterval();
