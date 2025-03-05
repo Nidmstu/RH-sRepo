@@ -26,15 +26,10 @@ async function initApp() {
   const loadingIndicator = document.getElementById('loading-spinner');
   if (loadingIndicator) loadingIndicator.classList.remove('hidden');
   
-  // Инициализируем менеджер курсов
-  const success = await courseManager.initialize();
-  if (!success) {
-    alert('Не удалось загрузить данные курсов. Попробуйте перезагрузить страницу.');
-    if (loadingIndicator) loadingIndicator.classList.add('hidden');
-    return;
-  }
+  // Сначала настраиваем обработчики событий
+  setupEventListeners();
   
-  // Подписываемся на обновления курсов
+  // Подписываемся на обновления курсов перед инициализацией
   courseManager.onCoursesUpdated((courses) => {
     console.log('Получено обновление курсов, обновляем интерфейс');
     
@@ -50,14 +45,22 @@ async function initApp() {
     }
   });
   
-  // Настраиваем обработчики событий
-  setupEventListeners();
+  // Инициализируем менеджер курсов
+  const success = await courseManager.initialize();
+  if (!success) {
+    alert('Не удалось загрузить данные курсов. Попробуйте перезагрузить страницу.');
+    if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    return;
+  }
+  
+  // Выполняем синхронизацию с облаком до отображения интерфейса
+  await syncWithCloud();
   
   // Устанавливаем периодическую синхронизацию с облаком
-  await setupCloudSync();
+  setupPeriodicSync();
   
-  // Дополнительное ожидание для гарантии, что данные полностью загружены
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Важно: Дополнительное ожидание для гарантии, что данные полностью загружены
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Отображаем начальный интерфейс только после полной инициализации
   renderHomePage();
@@ -68,57 +71,55 @@ async function initApp() {
   console.log('Приложение инициализировано успешно');
 }
 
-// Настройка периодической синхронизации с облаком
-async function setupCloudSync() {
-  const syncInterval = 60 * 1000; // 1 минута - более частая синхронизация для оперативного обновления
+// Функция для применения обновленной конфигурации курсов
+function applyCoursesConfig(coursesData) {
+  if (window.devMode && window.devMode.enabled) {
+    console.log('🔧 [DevMode] Применение новой конфигурации курсов к приложению');
+  }
   
-  // Выполняем первую синхронизацию и ждем ее завершения
-  await syncWithCloud();
+  // Сохраняем текущие выбранные значения
+  const currentProfession = courseManager.currentProfession;
+  const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
+  const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
   
-  // Функция для применения обновленной конфигурации курсов
-  const applyCoursesConfig = (coursesData) => {
-    if (window.devMode && window.devMode.enabled) {
-      console.log('🔧 [DevMode] Применение новой конфигурации курсов к приложению');
-    }
+  // Применяем новые данные
+  courseManager.courses = coursesData;
+  
+  // Уведомляем о обновлении
+  courseManager.notifyCoursesUpdated();
+  
+  // Обновляем список профессий в селекторе
+  updateProfessionSelector();
+  
+  // Переключаемся на ту же профессию для обновления данных
+  courseManager.switchProfession(currentProfession);
+  
+  // Обновляем список дней
+  updateDaysList();
+  
+  // Если был выбран день, пытаемся выбрать его снова
+  if (currentDayId) {
+    courseManager.selectDay(currentDayId);
+    updateLessonsList(); // Обновляем список уроков
     
-    // Сохраняем текущие выбранные значения
-    const currentProfession = courseManager.currentProfession;
-    const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
-    const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
-    
-    // Применяем новые данные
-    courseManager.courses = coursesData;
-    
-    // Обновляем список профессий в селекторе
-    updateProfessionSelector();
-    
-    // Переключаемся на ту же профессию для обновления данных
-    courseManager.switchProfession(currentProfession);
-    
-    // Обновляем список дней
-    updateDaysList();
-    
-    // Если был выбран день, пытаемся выбрать его снова
-    if (currentDayId) {
-      courseManager.selectDay(currentDayId);
-      updateLessonsList(); // Обновляем список уроков
-      
-      // Если был выбран урок, пытаемся выбрать его снова и обновить контент
-      if (currentLessonId) {
-        courseManager.selectLesson(currentLessonId);
-        // Перезагружаем контент текущего урока
-        if (document.getElementById('guide').classList.contains('hidden') === false) {
-          loadLessonContent();
-        }
+    // Если был выбран урок, пытаемся выбрать его снова и обновить контент
+    if (currentLessonId) {
+      courseManager.selectLesson(currentLessonId);
+      // Перезагружаем контент текущего урока
+      if (document.getElementById('guide').classList.contains('hidden') === false) {
+        loadLessonContent();
       }
     }
-    
-    console.log('Данные курсов обновлены из импортированного JSON');
-  };
+  }
   
-  // Функция для проверки необходимости синхронизации и её выполнения
-  const syncWithCloud = () => {
-    return new Promise(async (resolve) => {
+  console.log('Данные курсов обновлены из импортированного JSON');
+}
+
+// Функция для синхронизации с облаком
+async function syncWithCloud() {
+  return new Promise(async (resolve) => {
+    console.log('Выполняется синхронизация данных с облаком...');
+    
     // Проверяем наличие настроек вебхуков
     const webhookSettingsStr = localStorage.getItem('webhookSettings');
     let importWebhookUrl = null;
@@ -137,19 +138,21 @@ async function setupCloudSync() {
     // Если URL не найден в webhookSettings, проверяем другие источники
     if (!importWebhookUrl) {
       importWebhookUrl = localStorage.getItem('importWebhookUrl') || 
-                          localStorage.getItem('adminImportWebhook') || 
-                          localStorage.getItem('testImportUrl');
+                        localStorage.getItem('adminImportWebhook') || 
+                        localStorage.getItem('testImportUrl');
     }
     
     // Если найден URL импорта, используем его
     if (importWebhookUrl) {
       if (window.devMode && window.devMode.enabled) {
-        console.log('🔧 [DevMode] Выполняется периодическая синхронизация с облаком');
+        console.log('🔧 [DevMode] Выполняется синхронизация с облаком');
         console.log(`🔧 [DevMode] URL для импорта: ${importWebhookUrl}`);
       }
       
       try {
+        console.log(`Синхронизация с вебхуком: ${importWebhookUrl}`);
         await tryImportFromUrl(importWebhookUrl);
+        console.log('Синхронизация с вебхуком успешно завершена');
       } catch (e) {
         console.error('Ошибка при синхронизации:', e);
       }
@@ -157,10 +160,20 @@ async function setupCloudSync() {
       console.log('URL вебхука для импорта не найден, синхронизация пропущена');
     }
     
-    // Всегда сигнализируем о завершении синхронизации
+    // Сигнализируем о завершении синхронизации
     resolve();
-    });
-  };
+  });
+}
+
+// Настройка периодической синхронизации с облаком
+function setupPeriodicSync() {
+  const syncInterval = 60 * 1000; // 1 минута - более частая синхронизация для оперативного обновления
+  
+  // Запускаем периодическую синхронизацию
+  setInterval(syncWithCloud, syncInterval);
+  
+  console.log(`Настроена периодическая синхронизация с облаком каждые ${syncInterval/1000} секунд`);
+}
   
   // Функция для импорта данных с указанного URL
   const tryImportFromUrl = async (url) => {
