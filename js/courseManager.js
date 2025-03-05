@@ -18,11 +18,11 @@ class CourseManager {
     try {
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
-      
+
       // Получаем настройки вебхуков из localStorage
       const webhookSettingsStr = localStorage.getItem('webhookSettings');
       let importWebhookUrl = localStorage.getItem('importWebhookUrl');
-      
+
       // Если есть настройки вебхуков, пробуем использовать URL из них
       if (webhookSettingsStr) {
         try {
@@ -37,7 +37,7 @@ class CourseManager {
           console.error('Ошибка при парсинге настроек вебхуков:', e);
         }
       }
-      
+
       if (window.devMode && window.devMode.enabled) {
         console.log('🔧 [DevMode] Начало инициализации CourseManager');
         if (importWebhookUrl) {
@@ -46,19 +46,19 @@ class CourseManager {
           console.log('🔧 [DevMode] URL вебхука для импорта не найден в настройках, будет использован локальный файл');
         }
       }
-      
+
       // Всегда пытаемся сначала загрузить с вебхука
       try {
         // Определяем URL для импорта, даже если он не был явно указан
         let webhookUrl = importWebhookUrl;
-        
+
         // Если URL не найден в настройках, проверим другие возможные места
         if (!webhookUrl) {
           // Проверяем наличие в localStorage или других источниках
           const webhookSettings = localStorage.getItem('webhookSettings');
           const adminWebhookUrl = localStorage.getItem('adminImportWebhook');
           const testImportUrl = localStorage.getItem('testImportUrl');
-          
+
           // Приоритет для настроек из админ-панели
           if (webhookSettings) {
             try {
@@ -80,12 +80,12 @@ class CourseManager {
             console.log(`Найден URL импорта в testImportUrl: ${webhookUrl}`);
           }
         }
-        
+
         if (webhookUrl) {
           if (window.devMode && window.devMode.enabled) {
             console.log(`🔧 [DevMode] Отправка запроса на вебхук импорта: ${webhookUrl}`);
           }
-          
+
           const importResponse = await fetch(webhookUrl, {
             method: 'GET',
             headers: {
@@ -94,16 +94,16 @@ class CourseManager {
             },
             cache: 'no-store'  // Всегда получаем свежие данные
           });
-          
+
           if (importResponse.ok) {
             // Пытаемся получить JSON из ответа
             let importData;
             const responseText = await importResponse.text();
-            
+
             try {
               // Пытаемся распарсить JSON напрямую
               importData = JSON.parse(responseText);
-              
+
               if (window.devMode && window.devMode.enabled) {
                 console.log('🔧 [DevMode] Успешно получены данные с вебхука импорта');
                 console.log('🔧 [DevMode] Размер полученных данных:', responseText.length, 'байт');
@@ -114,12 +114,12 @@ class CourseManager {
                 console.log(`🔧 [DevMode] Ошибка при парсинге JSON: ${jsonError.message}`);
                 console.log('🔧 [DevMode] Попытка найти JSON в тексте ответа');
               }
-              
+
               try {
                 // Ищем любую JSON структуру в тексте
                 const jsonRegex = /{[\s\S]*}/;
                 const match = responseText.match(jsonRegex);
-                
+
                 if (match && match[0]) {
                   importData = JSON.parse(match[0]);
                   if (window.devMode && window.devMode.enabled) {
@@ -133,15 +133,15 @@ class CourseManager {
                 throw new Error('Не удалось распарсить JSON из ответа');
               }
             }
-            
+
             // Проверяем наличие данных о курсах в разных форматах
             let coursesData = null;
-            
+
             if (importData) {
               if (window.devMode && window.devMode.enabled) {
                 console.log(`🔧 [DevMode] Анализ полученных данных:`, Object.keys(importData));
               }
-              
+
               // Способ 1: Прямой объект courses
               if (importData.courses) {
                 coursesData = importData.courses;
@@ -192,19 +192,19 @@ class CourseManager {
                   return value && typeof value === 'object' && 
                          (value.days || value.specialLessons || value.title || value.redirectUrl || value.noDayLessons);
                 });
-                
+
                 if (hasValidStructure) {
                   coursesData = importData;
                   if (window.devMode && window.devMode.enabled) {
                     console.log(`🔧 [DevMode] Использование корневого объекта как courses (найдены поля days/specialLessons/title)`);
                   }
                 }
-                
+
                 // Дополнительная проверка на отдельные уроки с вебхуками
                 const validateWebhooks = (obj) => {
                   // Проверка наличия вебхуков в уроках
                   let hasWebhooks = false;
-                  
+
                   // Проверяем, есть ли дни с уроками
                   if (obj.days && Array.isArray(obj.days)) {
                     obj.days.forEach(day => {
@@ -220,7 +220,7 @@ class CourseManager {
                       }
                     });
                   }
-                  
+
                   // Проверяем специальные уроки
                   if (obj.specialLessons && Array.isArray(obj.specialLessons)) {
                     obj.specialLessons.forEach(lesson => {
@@ -232,17 +232,17 @@ class CourseManager {
                       }
                     });
                   }
-                  
+
                   return hasWebhooks;
                 };
-                
+
                 // Если найдены вебхуки в уроках, подтверждаем, что это структура курсов
                 if (validateWebhooks(coursesData)) {
                   console.log("Найдены вебхуки в структуре курсов, структура валидна");
                 }
               }
             }
-            
+
             if (coursesData) {
               // Дополнительная проверка структуры данных курсов
               const courseKeys = Object.keys(coursesData);
@@ -252,29 +252,29 @@ class CourseManager {
                   return course && typeof course === 'object' && 
                          (course.days || course.specialLessons || course.redirectUrl);
                 });
-              
+
               if (!validStructure) {
                 if (window.devMode && window.devMode.enabled) {
                   console.log(`🔧 [DevMode] Полученная структура данных не соответствует формату курсов`, coursesData);
                 }
                 throw new Error('Формат данных не соответствует структуре курсов');
               }
-              
+
               this.courses = coursesData;
               console.log('Курсы успешно загружены с вебхука импорта');
-              
+
               // Сохраняем копию в localStorage для резервного восстановления
               localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
               localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-              
+
               if (window.devMode && window.devMode.enabled) {
                 console.log('🔧 [DevMode] Сохранена резервная копия курсов в localStorage');
                 console.log('🔧 [DevMode] Идентификаторы загруженных курсов:', Object.keys(this.courses));
               }
-              
+
               // Уведомляем подписчиков об обновлении данных
               this.notifyCoursesUpdated();
-              
+
               // Данные успешно загружены с вебхука, прерываем дальнейшее выполнение
               return true;
             } else {
@@ -288,12 +288,12 @@ class CourseManager {
         }
       } catch (importError) {
         console.error('Ошибка при загрузке данных с вебхука импорта:', importError);
-        
+
         if (window.devMode && window.devMode.enabled) {
           console.log(`🔧 [DevMode] Ошибка при загрузке с вебхука: ${importError.message}`);
           console.log('🔧 [DevMode] Переключение на загрузку из localStorage');
         }
-        
+
         // Сначала пытаемся восстановить из localStorage
         const backupStr = localStorage.getItem('coursesBackup');
         if (backupStr) {
@@ -301,14 +301,14 @@ class CourseManager {
             this.courses = JSON.parse(backupStr);
             const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'неизвестно';
             console.log(`Курсы восстановлены из резервной копии (${timestamp})`);
-            
+
             if (window.devMode && window.devMode.enabled) {
               console.log(`🔧 [DevMode] Загружена резервная копия курсов из localStorage от ${timestamp}`);
             }
             return true;
           } catch (backupError) {
             console.error('Ошибка при восстановлении из резервной копии:', backupError);
-            
+
             if (window.devMode && window.devMode.enabled) {
               console.log(`🔧 [DevMode] Переключение на загрузку из локального файла`);
             }
@@ -318,22 +318,22 @@ class CourseManager {
             console.log('🔧 [DevMode] Резервная копия не найдена, переключение на локальный файл');
           }
         }
-        
+
         // Если ни вебхук, ни localStorage не сработали, загружаем из локального файла
         try {
           if (window.devMode && window.devMode.enabled) {
             console.log('🔧 [DevMode] Загрузка курсов из локального файла courses.json');
           }
-          
+
           const coursesResponse = await fetch('data/courses.json');
           if (coursesResponse.ok) {
             this.courses = await coursesResponse.json();
             console.log('Курсы загружены из локального файла courses.json (резервный вариант)');
-            
+
             // Сохраняем копию в localStorage для будущего использования
             localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
             localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-            
+
             if (window.devMode && window.devMode.enabled) {
               console.log('🔧 [DevMode] Сохранена резервная копия курсов из локального файла');
             }
@@ -352,7 +352,7 @@ class CourseManager {
         const fallbacksResponse = await fetch('data/fallbacks.json');
         if (fallbacksResponse.ok) {
           this.fallbacks = await fallbacksResponse.json();
-          
+
           // Сохраняем копию в localStorage
           localStorage.setItem('fallbacksBackup', JSON.stringify(this.fallbacks));
           localStorage.setItem('fallbacksBackupTimestamp', new Date().toISOString());
@@ -361,7 +361,7 @@ class CourseManager {
         }
       } catch (fallbacksError) {
         console.warn('Ошибка при загрузке fallbacks.json:', fallbacksError);
-        
+
         // Пытаемся восстановить из localStorage
         const backupStr = localStorage.getItem('fallbacksBackup');
         if (backupStr) {
@@ -470,22 +470,34 @@ class CourseManager {
    * Выбрать урок
    */
   selectLesson(lessonId) {
+    // Проверяем, что курсы загружены
+    if (!this.courses || Object.keys(this.courses).length === 0) {
+      console.error('Ошибка: курсы еще не загружены, невозможно выбрать урок');
+      return null;
+    }
+
     // Сначала ищем в текущем дне
-    if (this.currentDay) {
+    if (this.currentDay && this.currentDay.lessons) {
       const lesson = this.currentDay.lessons.find(l => l.id === lessonId);
       if (lesson) {
         this.currentLesson = lesson;
+        console.log(`Выбран урок из текущего дня: ${lesson.title} (ID: ${lesson.id})`);
         return lesson;
       }
     }
 
     // Затем ищем в специальных уроках
-    const specialLesson = this.getSpecialLessons().find(l => l.id === lessonId);
-    if (specialLesson) {
-      this.currentLesson = specialLesson;
-      return specialLesson;
+    const specialLessons = this.getSpecialLessons();
+    if (specialLessons && specialLessons.length > 0) {
+      const specialLesson = specialLessons.find(l => l.id === lessonId);
+      if (specialLesson) {
+        this.currentLesson = specialLesson;
+        console.log(`Выбран специальный урок: ${specialLesson.title} (ID: ${specialLesson.id})`);
+        return specialLesson;
+      }
     }
 
+    console.error(`Урок с ID ${lessonId} не найден ни в текущем дне, ни в специальных уроках`);
     return null;
   }
 
@@ -511,7 +523,7 @@ class CourseManager {
           if (window.devMode && window.devMode.enabled) {
             console.log(`🔧 [DevMode] Загрузка контента урока '${this.currentLesson.title}' с URL: ${source.url}`);
           }
-          
+
           console.log(`Fetching from: ${source.url}`);
           console.log(`Using simplified GET request`);
 
@@ -524,15 +536,15 @@ class CourseManager {
             mode: 'cors',
             cache: 'no-store' // Всегда получаем свежие данные
           });
-          
+
           console.log(`Response status: ${response.status}`);
-          
+
           if (!response.ok) {
             throw new Error(`HTTP ошибка! Статус: ${response.status}`);
           }
-          
+
           content = await response.text();
-          
+
           console.log(`Response size: ${content.length} bytes`);
           console.log(`Response preview: "${content.substring(0, 20)}${content.length > 20 ? '...' : ''}"`);
           console.log(`Response received successfully!`);
@@ -542,7 +554,7 @@ class CourseManager {
           if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
             try {
               const jsonData = JSON.parse(content);
-              
+
               // Извлекаем содержимое из разных возможных полей
               if (jsonData.content) content = jsonData.content;
               else if (jsonData.markdown) content = jsonData.markdown;
@@ -743,12 +755,12 @@ class CourseManager {
     if (this.courses) {
       localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
       localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-      
+
       if (window.devMode && window.devMode.enabled) {
         console.log('🔧 [DevMode] Сохранена резервная копия курсов');
       }
     }
-    
+
     if (this.fallbacks) {
       localStorage.setItem('fallbacksBackup', JSON.stringify(this.fallbacks));
       localStorage.setItem('fallbacksBackupTimestamp', new Date().toISOString());
@@ -761,9 +773,9 @@ class CourseManager {
   restoreFromBackup() {
     const coursesBackup = localStorage.getItem('coursesBackup');
     const fallbacksBackup = localStorage.getItem('fallbacksBackup');
-    
+
     let restored = false;
-    
+
     if (coursesBackup) {
       try {
         this.courses = JSON.parse(coursesBackup);
@@ -774,7 +786,7 @@ class CourseManager {
         console.error('Ошибка при восстановлении курсов из резервной копии:', e);
       }
     }
-    
+
     if (fallbacksBackup) {
       try {
         this.fallbacks = JSON.parse(fallbacksBackup);
@@ -783,10 +795,10 @@ class CourseManager {
         console.error('Ошибка при восстановлении резервного контента:', e);
       }
     }
-    
+
     return restored;
   }
-  
+
   /**
    * Добавляет подписчика на обновление курсов
    * @param {Function} callback - Функция, вызываемая при обновлении курсов
@@ -796,7 +808,7 @@ class CourseManager {
       this.courseUpdateCallbacks.push(callback);
     }
   }
-  
+
   /**
    * Вызывает все зарегистрированные подписчики при обновлении курсов
    */
