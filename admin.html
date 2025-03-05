@@ -747,6 +747,12 @@
     .admin-help-modal-close:hover {
       color: #333;
     }
+    .json-example pre {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
@@ -937,14 +943,159 @@
       <div id="admin-lesson-editor" class="admin-panel-section hidden">
         <!-- Этот блок будет динамически заполняться из adminInterface.js -->
       </div>
-    </div>
-  </div>
+    </div>  </div>
 
   <div class="admin-help-modal" id="export-modal">
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('export-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для экспорта данных</h3>
-      <p>Этот URL используется для экспорта данных о курсах.  При отправке запроса на этот URL, сервер отправит данные в формате JSON.</p>
+      <p>Этот URL используется для экспорта данных о курсах. При отправке запроса на этот URL, сервер отправит данные в формате JSON.</p>
+      <div class="json-example">
+        <h4>Полный JSON формат при экспорте:</h4>
+        <pre>{
+  "courses": {
+    "prompt-engineer": {
+      "title": "Prompt Engineering Onboarding",
+      "days": [
+        {
+          "id": 1,
+          "title": "Day 1",
+          "lessons": [
+            {
+              "id": "what-prompting-is",
+              "title": "What prompting is",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/PromptEngineering/WhatPromptingIs",
+                "fallbackType": "local",
+                "fallbackId": "what-prompting-is"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/PromptEngineering/Tests/WhatPromptingIs",
+                "fallbackType": "markdown",
+                "fallbackId": "test-what-prompting-is"
+              },
+              "taskSource": {
+                "type": "markdown",
+                "content": "# Task: Create your first prompt\n\nCreate a prompt that asks the AI to explain what photosynthesis is to a 10-year-old child."
+              },
+              "audioSource": null
+            },
+            {
+              "id": "five-step-framework",
+              "title": "Five-step Framework",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/FiveStepFramework",
+                "fallbackType": "local",
+                "fallbackId": "five-step-framework"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Oboarding/PromptEngineering/tests/FiveStepFramework"
+              },
+              "taskSource": {
+                "type": "markdown",
+                "content": "# Task: Apply the Five-step Framework\n\nUse the five-step framework to create a prompt that generates a recipe based on ingredients in your refrigerator."
+              }
+            },
+            {
+              "id": "personas-in-prompting",
+              "title": "Personas in prompting",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/PersonasInPrompting",
+                "fallbackType": "local",
+                "fallbackId": "personas-in-prompting"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Tests/PersonasInPrompting"
+              },
+              "taskSource": null
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Day 2",
+          "lessons": [
+            {
+              "id": "iteration-methods",
+              "title": "Iteration methods",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/IterationMethods",
+                "fallbackType": "local",
+                "fallbackId": "iteration-methods"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Test/IterationMethods"
+              },
+              "taskSource": null
+            },
+            {
+              "id": "multimodal-prompting",
+              "title": "Multimodal prompting",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/MultimodalPrompting",
+                "fallbackType": "local",
+                "fallbackId": "multimodal-prompting"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/Test/MultimodalPrompting"
+              },
+              "taskSource": null
+            },
+            {
+              "id": "responsible-ai-use",
+              "title": "Responsible AI Use",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://hook.eu1.make.com/ya6a12917mjqwfx9lhpxf9wy3now3f4r"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://hook.eu1.make.com/cjn0iv6d6l6pdpzv9of1bpohnv419omj"
+              },
+              "taskSource": null
+            }
+          ]
+        }
+      ],
+      "specialLessons": [
+        {
+          "id": "vocabulary",
+          "title": "Prompt Engineering Vocabulary",
+          "contentSource": {
+            "type": "webhook",
+            "url": "https://auto.crm-s.com/webhook/PromptEngineering/Vocabulary",
+            "fallbackType": "local",
+            "fallbackId": "vocabulary"
+          },
+          "testSource": null,
+          "audioSource": {
+            "type": "soundcloud",
+            "url": "https://soundcloud.com/developers-remote-helpers",
+            "trackUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2028455920"
+          }
+        }
+      ]
+    },
+    "lead-generator": {
+      "redirectUrl": "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n"
+    }
+  },
+  "timestamp": "2023-10-25T12:45:22.543Z",
+  "source": "onboarding-admin-interface",
+  "version": "1.2.0",
+  "exportId": "exp-2023102512452254"
+}</pre>
+      </div>
     </div>
   </div>
 
@@ -952,7 +1103,131 @@
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('import-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для импорта данных</h3>
-      <p>Этот URL используется для импорта данных о курсах.  При отправке POST запроса на этот URL с данными в формате JSON, данные будут импортированы.</p>
+      <p>Этот URL используется для импорта данных о курсах. При отправке POST запроса на этот URL с данными в формате JSON, данные будут импортированы.</p>
+      <div class="json-example">
+        <h4>Полный JSON формат при импорте (последний импорт):</h4>
+        <pre>{
+  "courses": {
+    "prompt-engineer": {
+      "title": "Prompt Engineering Onboarding",
+      "days": [
+        {
+          "id": 1,
+          "title": "Day 1",
+          "lessons": [
+            {
+              "id": "what-prompting-is",
+              "title": "What prompting is",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/PromptEngineering/WhatPromptingIs",
+                "fallbackType": "local",
+                "fallbackId": "what-prompting-is"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/PromptEngineering/Tests/WhatPromptingIs",
+                "fallbackType": "markdown",
+                "fallbackId": "test-what-prompting-is"
+              },
+              "taskSource": {
+                "type": "markdown",
+                "content": "# Task: Create your first prompt\n\nCreate a prompt that asks the AI to explain what photosynthesis is to a 10-year-old child."
+              },
+              "audioSource": null
+            },
+            {
+              "id": "five-step-framework",
+              "title": "Five-step Framework",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/FiveStepFramework",
+                "fallbackType": "local",
+                "fallbackId": "five-step-framework"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Oboarding/PromptEngineering/tests/FiveStepFramework"
+              },
+              "taskSource": {
+                "type": "markdown",
+                "content": "# Task: Apply the Five-step Framework\n\nUse the five-step framework to create a prompt that generates a recipe based on ingredients in your refrigerator."
+              }
+            },
+            {
+              "id": "personas-in-prompting",
+              "title": "Personas in prompting",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/PersonasInPrompting",
+                "fallbackType": "local",
+                "fallbackId": "personas-in-prompting"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Tests/PersonasInPrompting"
+              },
+              "taskSource": null
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Day 2",
+          "lessons": [
+            {
+              "id": "iteration-methods",
+              "title": "Iteration methods",
+              "contentSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/IterationMethods",
+                "fallbackType": "local",
+                "fallbackId": "iteration-methods"
+              },
+              "testSource": {
+                "type": "webhook",
+                "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Test/IterationMethods"
+              },
+              "taskSource": null
+            }
+          ]
+        }
+      ],
+      "specialLessons": [
+        {
+          "id": "vocabulary",
+          "title": "Prompt Engineering Vocabulary",
+          "contentSource": {
+            "type": "webhook",
+            "url": "https://auto.crm-s.com/webhook/PromptEngineering/Vocabulary",
+            "fallbackType": "local",
+            "fallbackId": "vocabulary"
+          },
+          "testSource": null,
+          "audioSource": {
+            "type": "soundcloud",
+            "url": "https://soundcloud.com/developers-remote-helpers",
+            "trackUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2028455920"
+          }
+        }
+      ]
+    },
+    "lead-generator": {
+      "redirectUrl": "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n"
+    }
+  },
+  "status": "success",
+  "importId": "imp-20231015095712",
+  "importDate": "2023-10-15T09:57:12.321Z",
+  "importedBy": "admin-system",
+  "importSource": "webhook-sync",
+  "validationResults": {
+    "status": "valid",
+    "warnings": [],
+    "errors": []
+  }
+}</pre>
+      </div>
     </div>
   </div>
 
@@ -960,7 +1235,88 @@
     <div class="admin-help-modal-content">
       <span class="admin-help-modal-close" onclick="closeModal('get-modal')">&times;</span>
       <h3 class="admin-help-modal-title">URL для получения вебхуков</h3>
-      <p>Этот URL используется для получения списка всех настроенных вебхуков.  При отправке GET запроса на этот URL, сервер вернет список вебхуков в формате JSON.</p>
+      <p>Этот URL используется для получения списка всех настроенных вебхуков. При отправке GET запроса на этот URL, сервер вернет список вебхуков в формате JSON.</p>
+      <div class="json-example">
+        <h4>Полный JSON формат списка вебхуков:</h4>
+        <pre>{
+  "webhooks": [
+    {
+      "id": "export_courses_hook",
+      "url": "https://auto.crm-s.com/webhook/SaveWebhooks",
+      "type": "export",
+      "description": "Экспорт данных курсов",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-API-Key": "API_KEY_VALUE",
+        "X-Integration-Source": "onboarding-admin"
+      },
+      "active": true,
+      "lastUsed": "2023-10-20T08:12:34.567Z",
+      "successRate": 98.5,
+      "retryPolicy": {
+        "attempts": 3,
+        "backoffMultiplier": 1.5
+      }
+    },
+    {
+      "id": "import_courses_hook",
+      "url": "https://auto.crm-s.com/webhook/GetCourses",
+      "type": "import",
+      "description": "Импорт данных курсов",
+      "method": "GET",
+      "headers": {
+        "Accept": "application/json",
+        "X-API-Key": "API_KEY_VALUE",
+        "X-Integration-Source": "onboarding-admin"
+      },
+      "active": true,
+      "lastUsed": "2023-10-22T14:45:11.234Z",
+      "successRate": 100,
+      "retryPolicy": {
+        "attempts": 2,
+        "backoffMultiplier": 2
+      }
+    },
+    {
+      "id": "notify_updates_hook",
+      "url": "https://auto.crm-s.com/webhook/NotifyUpdates",
+      "type": "notification",
+      "description": "Уведомление о изменениях в курсах",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-API-Key": "API_KEY_VALUE"
+      },
+      "active": true,
+      "lastUsed": "2023-10-21T11:30:45.678Z",
+      "successRate": 95.7,
+      "retryPolicy": {
+        "attempts": 3,
+        "backoffMultiplier": 1.5
+      },
+      "notificationConfig": {
+        "triggerEvents": ["course.created", "course.updated", "lesson.created"],
+        "includeDetails": true
+      }
+    }
+  ],
+  "total": 3,
+  "timestamp": "2023-10-25T09:15:32.456Z",
+  "apiVersion": "1.2",
+  "quota": {
+    "daily": 1000,
+    "used": 125,
+    "reset": "2023-10-26T00:00:00.000Z"
+  },
+  "pagination": {
+    "page": 1,
+    "perPage": 20,
+    "totalPages": 1,
+    "totalItems": 3
+  }
+}</pre>
+      </div>
     </div>
   </div>
 
