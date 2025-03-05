@@ -1341,38 +1341,6 @@ class AdminInterface {
         }
       });
     }
-
-    // Информационные кнопки для вебхуков
-    const exportWebhookInfoBtn = document.getElementById('export-webhook-info');
-    if (exportWebhookInfoBtn) {
-      exportWebhookInfoBtn.addEventListener('click', () => {
-        this.showWebhookInfoModal('Экспорт данных', 
-          'При использовании этого URL, система отправляет POST-запрос со всеми курсами в формате JSON. ' +
-          'Это позволяет сохранить все данные на внешний сервер. ' +
-          'При нажатии на кнопку "Сохранить настройки" или "Сохранить урок", ' +
-          'система автоматически отправляет обновленные данные на этот URL.');
-      });
-    }
-
-    const importWebhookInfoBtn = document.getElementById('import-webhook-info');
-    if (importWebhookInfoBtn) {
-      importWebhookInfoBtn.addEventListener('click', () => {
-        this.showWebhookInfoModal('Импорт данных', 
-          'При использовании этого URL, система отправляет GET-запрос для получения данных в формате JSON. ' +
-          'Полученные данные заменяют текущие курсы и уроки в системе. ' +
-          'Это позволяет импортировать структуру курсов с внешнего сервера.');
-      });
-    }
-
-    const getWebhooksInfoBtn = document.getElementById('get-webhooks-info');
-    if (getWebhooksInfoBtn) {
-      getWebhooksInfoBtn.addEventListener('click', () => {
-        this.showWebhookInfoModal('Получение вебхуков', 
-          'При использовании этого URL, система отправляет GET-запрос для получения списка всех доступных вебхуков. ' +
-          'Ответ сервера отображается в модальном окне и может содержать информацию о URL для контента уроков, ' +
-          'тестов и другие данные, необходимые для работы системы.');
-      });
-    }
   }
 
   /**
@@ -2492,11 +2460,6 @@ class AdminInterface {
    * Сохранение курсов в JSON файл
    */
   saveCoursesToJSON() {
-    // Сохраняем данные в localStorage
-    if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
-      window.courseManager.saveCourseDataToLocalStorage();
-    }
-    
     // Проверяем, есть ли настроенный URL для экспорта
     const webhookSettings = this.getWebhookSettings();
     
@@ -2751,80 +2714,55 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
-    // Сначала сохраняем в localStorage независимо от результата отправки на вебхук
-    if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
-      window.courseManager.saveCourseDataToLocalStorage();
-    }
-    
-    // Проверяем валидность URL
-    if (!webhookUrl || !this.isValidUrl(webhookUrl)) {
-      console.error('ЭКСПОРТ: Некорректный URL:', webhookUrl);
-      this.showWebhookStatus(`Ошибка: Некорректный URL для экспорта`, 'error');
-      return;
-    }
-    
     // Используем URL из настроек
     const targetUrl = webhookUrl;
     console.log('ЭКСПОРТ: Отправка данных на URL:', targetUrl);
     
+    // Подготавливаем данные для отправки
+    const data = {
+      courses: window.courseManager.courses,
+      timestamp: new Date().toISOString(),
+      source: window.location.hostname || 'onboarding-app',
+      type: 'full_courses_export'
+    };
+    
+    // Используем только XMLHttpRequest для максимальной совместимости
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', targetUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+    
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        console.log('ЭКСПОРТ: XHR статус:', xhr.status);
+        console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
+        } else {
+          this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
+        }
+      }
+    };
+    
+    xhr.onerror = (e) => {
+      console.error('ЭКСПОРТ: XHR ошибка:', e);
+      this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
+    };
+    
+    xhr.timeout = 15000; // 15 секунд таймаут
+    xhr.ontimeout = () => {
+      this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
+    };
+    
     try {
-      // Клонируем данные, чтобы избежать проблем с циклическими ссылками
-      const cleanCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
-      
-      // Подготавливаем данные для отправки
-      const data = {
-        courses: cleanCourses,
-        timestamp: new Date().toISOString(),
-        source: window.location.hostname || 'onboarding-app',
-        type: 'full_courses_export'
-      };
-      
-      // Проверяем, что данные могут быть корректно преобразованы в JSON
+      // Преобразовываем JSON и отправляем данные
       const jsonData = JSON.stringify(data);
       console.log('ЭКСПОРТ: Размер данных для отправки:', jsonData.length, 'байт');
-      
-      // Используем только XMLHttpRequest для максимальной совместимости
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', targetUrl, true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-      
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          console.log('ЭКСПОРТ: XHR статус:', xhr.status);
-          console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
-          
-          if (xhr.status >= 200 && xhr.status < 300) {
-            this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
-            // Обновляем список курсов для уверенности
-            this.loadCoursesList();
-          } else {
-            this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
-            console.error('ЭКСПОРТ: Детали ошибки:', {
-              status: xhr.status,
-              statusText: xhr.statusText,
-              response: xhr.responseText
-            });
-          }
-        }
-      };
-      
-      xhr.onerror = (e) => {
-        console.error('ЭКСПОРТ: XHR ошибка:', e);
-        this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных. Данные сохранены локально.', 'error');
-      };
-      
-      xhr.timeout = 20000; // 20 секунд таймаут
-      xhr.ontimeout = () => {
-        this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных. Данные сохранены локально.', 'error');
-      };
-      
-      // Отправляем данные
       xhr.send(jsonData);
-      
     } catch (e) {
-      console.error('ЭКСПОРТ: Ошибка при подготовке или отправке запроса:', e);
-      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}. Данные сохранены локально.`, 'error');
+      console.error('ЭКСПОРТ: Ошибка при отправке запроса:', e);
+      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
     }
   }
   
@@ -2855,25 +2793,14 @@ class AdminInterface {
         // Применяем полученные данные
         window.courseManager.courses = data.courses;
         
-        // Сохраняем в localStorage
-        if (window.courseManager && typeof window.courseManager.saveCourseDataToLocalStorage === 'function') {
-          window.courseManager.saveCourseDataToLocalStorage();
-        }
-        
         // Обновляем интерфейс
         this.loadCoursesList();
         
-        this.showWebhookStatus('Данные успешно импортированы и сохранены локально', 'success');
+        this.showWebhookStatus('Данные успешно импортированы', 'success');
       })
       .catch(error => {
         console.error('Import error:', error);
         this.showWebhookStatus(`Ошибка при импорте данных: ${error.message}`, 'error');
-        
-        // Если есть данные в localStorage, предлагаем их использовать
-        if (window.courseManager && typeof window.courseManager.loadCourseDataFromLocalStorage === 'function' && 
-            window.courseManager.loadCourseDataFromLocalStorage()) {
-          this.showWebhookStatus('Используются сохраненные локально данные', 'info');
-        }
       });
   }
   
@@ -3038,172 +2965,6 @@ class AdminInterface {
           const jsonData = JSON.parse(responseText);
           
           // Обновляем содержимое модального окна
-          modal.querySelector('.admin-modal-body').innerHTML = `
-            <div class="webhooks-data">
-              <pre>${JSON.stringify(jsonData, null, 2)}</pre>
-            </div>
-            <div class="admin-modal-actions">
-              <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
-              <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
-                <i class="fas fa-copy"></i> Скопировать
-              </button>
-            </div>
-          `;
-          
-          // Добавляем обработчики для кнопок
-          modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
-            document.body.removeChild(modal);
-          });
-          
-          modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
-            try {
-              navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2))
-                .then(() => {
-                  alert('Данные скопированы в буфер обмена');
-                })
-                .catch(err => {
-                  console.error('Ошибка при копировании: ', err);
-                  
-                  // Альтернативный способ копирования
-                  const textArea = document.createElement('textarea');
-                  textArea.value = JSON.stringify(jsonData, null, 2);
-                  document.body.appendChild(textArea);
-                  textArea.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(textArea);
-                  alert('Данные скопированы в буфер обмена');
-                });
-            } catch (err) {
-              console.error('Ошибка при копировании: ', err);
-              alert('Не удалось скопировать данные: ' + err.message);
-            }
-          });
-          
-          this.showWebhookStatus('Вебхуки успешно получены', 'success');
-        } catch (e) {
-          // Если это не JSON, просто отображаем текст
-          modal.querySelector('.admin-modal-body').innerHTML = `
-            <div class="webhooks-data">
-              <pre>${responseText}</pre>
-            </div>
-            <div class="admin-modal-actions">
-              <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
-              <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
-                <i class="fas fa-copy"></i> Скопировать
-              </button>
-            </div>
-          `;
-          
-          // Добавляем обработчики для кнопок
-          modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
-            document.body.removeChild(modal);
-          });
-          
-          modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
-            try {
-              navigator.clipboard.writeText(responseText)
-                .then(() => {
-                  alert('Данные скопированы в буфер обмена');
-                })
-                .catch(err => {
-                  console.error('Ошибка при копировании: ', err);
-                  
-                  // Альтернативный способ копирования
-                  const textArea = document.createElement('textarea');
-                  textArea.value = responseText;
-                  document.body.appendChild(textArea);
-                  textArea.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(textArea);
-                  alert('Данные скопированы в буфер обмена');
-                });
-            } catch (err) {
-              console.error('Ошибка при копировании: ', err);
-              alert('Не удалось скопировать данные: ' + err.message);
-            }
-          });
-          
-          this.showWebhookStatus('Вебхуки успешно получены (не JSON формат)', 'success');
-        }
-      })
-      .catch(error => {
-        console.error('Ошибка при получении вебхуков:', error);
-        
-        // Отображаем ошибку в модальном окне
-        modal.querySelector('.admin-modal-body').innerHTML = `
-          <div style="color: #721c24; background-color: #f8d7da; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0;">Ошибка при получении вебхуков</h4>
-            <p>${error.message}</p>
-          </div>
-          <div class="admin-modal-actions">
-            <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
-            <button id="retry-webhooks" class="admin-btn admin-btn-primary">Повторить</button>
-          </div>
-        `;
-        
-        // Добавляем обработчики для кнопок
-        modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
-          document.body.removeChild(modal);
-        });
-        
-        modal.querySelector('#retry-webhooks').addEventListener('click', () => {
-          document.body.removeChild(modal);
-          this.getWebhooksFromServer(url);
-        });
-        
-        this.showWebhookStatus(`Ошибка при получении вебхуков: ${error.message}`, 'error');
-      });
-  }
-  
-  /**
-   * Показать модальное окно с информацией о вебхуке
-   */
-  showWebhookInfoModal(title, description) {
-    // Создаем и показываем модальное окно с информацией
-    const modalId = 'webhook-info-modal';
-    let modal = document.getElementById(modalId);
-    
-    if (modal) {
-      // Если модальное окно уже существует, удаляем его
-      document.body.removeChild(modal);
-    }
-    
-    modal = document.createElement('div');
-    modal.id = modalId;
-    modal.className = 'admin-modal';
-    modal.innerHTML = `
-      <div class="admin-modal-content" style="max-width: 500px;">
-        <div class="admin-modal-header">
-          <h3>${title}</h3>
-          <span class="admin-modal-close">&times;</span>
-        </div>
-        <div class="admin-modal-body">
-          <p style="margin-bottom: 20px; line-height: 1.5;">${description}</p>
-        </div>
-        <div class="admin-modal-actions" style="text-align: right; padding: 15px 20px; background-color: #f5f5f5; border-top: 1px solid #ddd;">
-          <button id="close-info-modal" class="admin-btn admin-btn-primary">Закрыть</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    
-    // Добавляем обработчики для закрытия модального окна
-    modal.querySelector('.admin-modal-close').addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-    
-    modal.querySelector('#close-info-modal').addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-    
-    // Закрытие по клику вне контента
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        document.body.removeChild(modal);
-      }
-    });
-  }
-
           modal.querySelector('.admin-modal-body').innerHTML = `
             <div class="webhooks-data">
               <pre>${JSON.stringify(jsonData, null, 2)}</pre>
