@@ -1727,15 +1727,21 @@ class AdminInterface {
     this.editCourse(newId);
     
     // Отправляем данные на вебхук, если настроен
-    const settingsStr = localStorage.getItem('webhookSettings');
-    if (settingsStr) {
-      try {
-        const settings = JSON.parse(settingsStr);
-        if (settings.exportUrl) {
-          this.exportDataToWebhook(settings.exportUrl);
+    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
+    if (exportWebhookUrl && exportWebhookUrl.value) {
+      this.exportDataToWebhook(exportWebhookUrl.value);
+    } else {
+      // Пробуем загрузить из localStorage, если поле не найдено
+      const settingsStr = localStorage.getItem('webhookSettings');
+      if (settingsStr) {
+        try {
+          const settings = JSON.parse(settingsStr);
+          if (settings.exportUrl) {
+            this.exportDataToWebhook(settings.exportUrl);
+          }
+        } catch (e) {
+          console.error('Error accessing webhook settings:', e);
         }
-      } catch (e) {
-        console.error('Error accessing webhook settings:', e);
       }
     }
 
@@ -2068,6 +2074,25 @@ class AdminInterface {
 
     // Обновляем список дней
     this.loadDaysList();
+    
+    // Отправляем данные на вебхук, если настроен
+    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
+    if (exportWebhookUrl && exportWebhookUrl.value) {
+      this.exportDataToWebhook(exportWebhookUrl.value);
+    } else {
+      // Пробуем загрузить из localStorage, если поле не найдено
+      const settingsStr = localStorage.getItem('webhookSettings');
+      if (settingsStr) {
+        try {
+          const settings = JSON.parse(settingsStr);
+          if (settings.exportUrl) {
+            this.exportDataToWebhook(settings.exportUrl);
+          }
+        } catch (e) {
+          console.error('Error accessing webhook settings:', e);
+        }
+      }
+    }
 
     // Возвращаемся к редактору курса
     this.cancelDayEdit();
@@ -2402,6 +2427,25 @@ class AdminInterface {
 
     // Сохраняем изменения в JSON файл
     this.saveCoursesToJSON();
+    
+    // Отправляем данные на вебхук, если настроен
+    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
+    if (exportWebhookUrl && exportWebhookUrl.value) {
+      this.exportDataToWebhook(exportWebhookUrl.value);
+    } else {
+      // Пробуем загрузить из localStorage, если поле не найдено
+      const settingsStr = localStorage.getItem('webhookSettings');
+      if (settingsStr) {
+        try {
+          const settings = JSON.parse(settingsStr);
+          if (settings.exportUrl) {
+            this.exportDataToWebhook(settings.exportUrl);
+          }
+        } catch (e) {
+          console.error('Error accessing webhook settings:', e);
+        }
+      }
+    }
 
     // Возвращаемся к предыдущему экрану
     this.cancelLessonEdit();
@@ -2606,8 +2650,8 @@ class AdminInterface {
   sendWebhookSettingsToURL(webhookUrl, settings) {
     this.showWebhookStatus('Отправка настроек вебхуков...', 'info');
     
-    // Используем фиксированный URL, чтобы гарантировать отправку на правильный адрес
-    const targetUrl = "https://auto.crm-s.com/webhook/SaveWebhooks";
+    // Используем URL из настроек
+    const targetUrl = webhookUrl;
     console.log('СЕТЕВОЙ ЗАПРОС: Отправка данных на вебхук:', targetUrl);
     
     const data = {
@@ -2717,8 +2761,8 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
-    // Используем фиксированный URL для экспорта
-    const targetUrl = "https://auto.crm-s.com/webhook/SaveWebhooks";
+    // Используем URL из настроек
+    const targetUrl = webhookUrl;
     console.log('ЭКСПОРТ: Отправка данных на URL:', targetUrl);
     
     // Подготавливаем данные для отправки
@@ -2815,6 +2859,16 @@ class AdminInterface {
       this.showWebhookStatus('URL для получения вебхуков не указан', 'error');
       return;
     }
+    
+    // Сохраняем URL для получения вебхуков в настройках
+    const webhookSettings = {
+      exportUrl: document.getElementById('admin-export-webhook-url').value,
+      importUrl: document.getElementById('admin-import-webhook-url').value,
+      getWebhooksUrl: url,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
     
     this.showWebhookStatus('Получение вебхуков с сервера...', 'info');
     
