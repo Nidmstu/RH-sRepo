@@ -517,17 +517,29 @@ async function tryImportFromUrl(url) {
     try {
       let importData;
 
-      // Обработка текстовых ответов без JSON
-      if (responseText && (responseText.trim() === 'Accepted' || responseText.trim() === 'OK' || responseText.trim().startsWith('Success'))) {
-        console.log('Получен положительный текстовый ответ от сервера:', responseText.trim());
-        return { success: true, updated: false, message: `Сервер ответил: ${responseText.trim()}` };
+      console.log('Raw response:', JSON.stringify(responseText));
+
+      // Если ответ пустой или очень короткий
+      if (!responseText || responseText.length < 10) {
+        // Проверяем, что это текстовый ответ "Accepted", "OK" и т.д.
+        if (responseText && (responseText.trim() === 'Accepted' || responseText.trim() === 'OK' || responseText.trim().startsWith('Success'))) {
+          console.log('Получен положительный текстовый ответ от сервера:', responseText.trim());
+          return { success: true, updated: false, message: `Сервер ответил: ${responseText.trim()}` };
+        }
       }
 
       // Пытаемся распарсить JSON
       try {
         updateLoadingStatus('Обработка данных в формате JSON...');
-        importData = JSON.parse(responseText);
-        console.log('Успешно распарсен JSON из ответа');
+        // Перед попыткой парсинга, проверяем структуру текста
+        const trimmedText = responseText.trim();
+        if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
+          importData = JSON.parse(trimmedText);
+          console.log('Успешно распарсен JSON из ответа');
+        } else {
+          // Если текст не начинается с { или [, пытаемся найти JSON в нём
+          throw new Error('Ответ не содержит JSON напрямую');
+        }
       } catch (jsonError) {
         updateLoadingStatus('Поиск JSON данных в ответе...');
         console.log('Не удалось распарсить ответ как JSON, ищем JSON в тексте:', jsonError.message);
