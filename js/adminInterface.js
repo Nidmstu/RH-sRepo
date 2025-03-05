@@ -3162,6 +3162,10 @@ class AdminInterface {
     
     this.showWebhookStatus('Получение данных с вебхука...', 'info');
     
+    // Сохраняем URL для использования при следующей загрузке приложения
+    localStorage.setItem('importWebhookUrl', webhookUrl);
+    localStorage.setItem('lastImportAttempt', new Date().toISOString());
+    
     // Добавляем информацию для режима разработчика
     if (window.devMode && window.devMode.enabled) {
       console.log(`🔧 [DevMode] Импорт данных с URL: ${webhookUrl}`);
@@ -3178,7 +3182,7 @@ class AdminInterface {
       method: 'GET',
       headers: headers,
       mode: 'cors',
-      cache: 'no-cache'
+      cache: 'no-store' // Всегда получаем свежие данные
     })
       .then(response => {
         // Добавляем информацию для режима разработчика
