@@ -51,6 +51,18 @@ class CourseManager {
       if (savedCourses) {
         console.log('Загружены курсы из localStorage:', Object.keys(savedCourses));
         this.courses = savedCourses;
+      } else {
+        console.warn('Курсы не найдены в localStorage');
+        // Создаем базовую структуру по умолчанию
+        this.courses = {
+          "prompt-engineer": {
+            "title": "Prompt Engineering Onboarding",
+            "days": [],
+            "specialLessons": [],
+            "noDayLessons": []
+          }
+        };
+        console.log('Создана базовая структура курсов');
       }
 
       // Загружаем структуру курсов с обработкой ошибок
@@ -64,6 +76,12 @@ class CourseManager {
         }
         
         const coursesText = await coursesResponse.text();
+        // Проверяем на пустой ответ
+        if (!coursesText || coursesText.trim() === '') {
+          console.warn('Получен пустой файл courses.json');
+          throw new Error('Пустой файл courses.json');
+        }
+                
         try {
           const fetchedCourses = JSON.parse(coursesText);
           console.log('Курсы успешно загружены и распарсены с сервера', Object.keys(fetchedCourses));
@@ -72,43 +90,18 @@ class CourseManager {
             this.courses = fetchedCourses;
             // Сохраняем обновленные курсы в localStorage
             this.saveCourseDataToLocalStorage();
+            console.log('Обновлены курсы из сервера и сохранены в localStorage');
           } else {
             console.warn('Получен пустой JSON с сервера, используем данные из localStorage');
           }
         } catch (jsonError) {
           console.error('Ошибка при парсинге JSON курсов:', jsonError);
           console.log('Содержимое файла курсов (первые 100 символов):', coursesText.slice(0, 100));
-          
-          // Используем ранее загруженные данные из localStorage или создаем базовые
-          if (!this.courses) {
-            console.log('Создание базовой структуры курсов');
-            this.courses = {
-              "prompt-engineer": {
-                "title": "Prompt Engineering Onboarding",
-                "days": [],
-                "specialLessons": [],
-                "noDayLessons": []
-              }
-            };
-          }
+          console.warn('Используем ранее загруженные данные');
         }
       } catch (fetchError) {
         console.error('Ошибка при загрузке файла курсов:', fetchError);
-        
-        // Если нет данных из localStorage, создаем базовую структуру
-        if (!this.courses) {
-          console.log('Создание базовой структуры курсов');
-          this.courses = {
-            "prompt-engineer": {
-              "title": "Prompt Engineering Onboarding",
-              "days": [],
-              "specialLessons": [],
-              "noDayLessons": []
-            }
-          };
-        } else {
-          console.log('Используем данные из localStorage вместо сетевых запросов');
-        }
+        console.log('Используем данные из localStorage вместо сетевых запросов');
       }
 
       // Загружаем резервный контент
@@ -269,10 +262,17 @@ class CourseManager {
           });
           
           if (!response.ok) {
+            console.error(`HTTP error! Status: ${response.status}`);
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           
           let content = await response.text();
+          
+          // Проверяем на пустой ответ
+          if (!content || content.trim() === '') {
+            console.warn('Получен пустой ответ с сервера');
+            throw new Error('Пустой ответ от сервера');
+          }
           
           // Если ответ выглядит как JSON, попробуем извлечь текст
           if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
@@ -286,6 +286,12 @@ class CourseManager {
             }
           }
           
+          // Проверяем, что после обработки контент не пустой
+          if (!content || content.trim() === '') {
+            console.warn('После обработки JSON получен пустой контент');
+            throw new Error('Пустой контент после обработки JSON');
+          }
+          
           return content;
         } catch (error) {
           console.error(`Ошибка при загрузке с вебхука: ${error.message}`);
@@ -293,16 +299,28 @@ class CourseManager {
           // Используем резервный контент, если есть
           if (contentSource.fallbackType === 'local' && contentSource.fallbackId) {
             console.log(`Используем локальный резервный контент: ${contentSource.fallbackId}`);
-            return this.fallbacks[contentSource.fallbackId] || 
-                   `# ${lesson.title}\n\nНе удалось загрузить контент для этого урока.`;
+            if (this.fallbacks && this.fallbacks[contentSource.fallbackId]) {
+              return this.fallbacks[contentSource.fallbackId];
+            } else {
+              console.warn(`Резервный контент ${contentSource.fallbackId} не найден`);
+            }
           }
+          
+          // Если резервный контент не найден, создаем стандартное сообщение
+          return `# ${lesson.title}\n\nНе удалось загрузить контент для этого урока.\nОшибка: ${error.message}`;
         }
       }
       
       // Если источник - локальный
       else if (contentSource.type === 'local' && contentSource.id) {
-        return this.fallbacks[contentSource.id] || 
-               `# ${lesson.title}\n\nКонтент не найден.`;
+        console.log(`Загрузка локального контента: ${contentSource.id}`);
+        // Проверяем наличие резервного контента
+        if (this.fallbacks && this.fallbacks[contentSource.id]) {
+          return this.fallbacks[contentSource.id];
+        } else {
+          console.warn(`Локальный контент ${contentSource.id} не найден`);
+          return `# ${lesson.title}\n\nКонтент не найден.`;
+        }
       }
       
       // Если источник - непосредственно маркдаун
@@ -311,6 +329,7 @@ class CourseManager {
       }
       
       // Если не удалось получить контент никаким способом
+      console.warn('Источник контента не определен или неверного типа');
       return `# ${lesson.title}\n\nНе удалось загрузить контент для этого урока.`;
     } catch (error) {
       console.error('Ошибка при загрузке контента:', error);
