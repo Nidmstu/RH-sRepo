@@ -22,6 +22,9 @@ const testButton = document.getElementById('test-button');
 async function initApp() {
   console.log('Инициализация приложения...');
   
+  // Скрываем глобальный индикатор загрузки - он должен оставаться видимым пока все не загрузится
+  const globalLoadingOverlay = document.getElementById('global-loading-overlay');
+  
   // Показываем индикатор загрузки перед началом инициализации
   const loadingIndicator = document.getElementById('loading-spinner');
   const appContent = document.getElementById('app-content');
@@ -34,6 +37,15 @@ async function initApp() {
   
   // Настраиваем обработчики событий
   setupEventListeners();
+  
+  // Функция для обновления глобального статуса загрузки
+  function updateGlobalLoadingStatus(message) {
+    const statusElement = document.getElementById('global-loading-status');
+    if (statusElement) {
+      statusElement.textContent = message;
+    }
+    console.log('Глобальный статус загрузки:', message);
+  }
   
   try {
     // Устанавливаем таймаут для случая, если загрузка затянется
@@ -49,22 +61,55 @@ async function initApp() {
     // перед инициализацией менеджера курсов
     try {
       updateLoadingStatus('Синхронизация с облаком...');
-      const syncResult = await forceSyncWithCloud();
+      updateGlobalLoadingStatus('Синхронизация с облаком...');
       
-      if (syncResult && syncResult.success) {
-        updateLoadingStatus('Синхронизация завершена успешно, данные обновлены');
-        console.log('Синхронизация с облаком выполнена успешно:', syncResult);
-      } else {
-        updateLoadingStatus('Синхронизация с облаком не внесла изменений');
-        console.log('Синхронизация с облаком не обновила данные:', syncResult);
+      // Принудительно сначала очищаем данные курсов, чтобы гарантировать свежую загрузку
+      courseManager.courses = null;
+      
+      // Принудительная синхронизация с облаком - 3 попытки с интервалом
+      let syncSuccess = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!syncSuccess && attempts < maxAttempts) {
+        attempts++;
+        try {
+          updateGlobalLoadingStatus(`Попытка синхронизации с облаком (${attempts}/${maxAttempts})...`);
+          const syncResult = await forceSyncWithCloud();
+          
+          if (syncResult && syncResult.success) {
+            updateLoadingStatus('Синхронизация завершена успешно, данные обновлены');
+            updateGlobalLoadingStatus('Синхронизация с облаком успешна!');
+            console.log('Синхронизация с облаком выполнена успешно:', syncResult);
+            syncSuccess = true;
+          } else {
+            throw new Error('Синхронизация не принесла результатов');
+          }
+        } catch (attemptError) {
+          console.warn(`Попытка ${attempts}: Ошибка при синхронизации:`, attemptError);
+          
+          if (attempts < maxAttempts) {
+            updateLoadingStatus(`Повторная попытка синхронизации через 2 секунды...`);
+            updateGlobalLoadingStatus(`Повторная попытка через 2 секунды...`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Пауза перед следующей попыткой
+          }
+        }
+      }
+      
+      if (!syncSuccess) {
+        updateLoadingStatus('Все попытки синхронизации не удались, переход к альтернативным источникам');
+        updateGlobalLoadingStatus('Синхронизация не удалась, использование резервных данных...');
+        console.warn('Все попытки синхронизации не удались, использование локальных данных');
       }
     } catch (syncError) {
       console.warn('Ошибка при синхронизации с облаком:', syncError);
       updateLoadingStatus('Синхронизация не удалась, загрузка локальных данных...');
+      updateGlobalLoadingStatus('Использование резервных данных...');
     }
     
     // Теперь инициализируем менеджер курсов
     updateLoadingStatus('Инициализация менеджера курсов...');
+    updateGlobalLoadingStatus('Инициализация менеджера курсов...');
     console.log('Инициализация менеджера курсов после синхронизации...');
     const success = await courseManager.initialize();
     
@@ -74,6 +119,7 @@ async function initApp() {
     if (!success) {
       console.error('Ошибка инициализации менеджера курсов');
       updateLoadingStatus('Ошибка загрузки данных курсов', true);
+      updateGlobalLoadingStatus('Критическая ошибка! Не удалось инициализировать менеджер курсов');
       if (retryContainer) retryContainer.classList.remove('hidden');
       return;
     }
@@ -84,12 +130,14 @@ async function initApp() {
     if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
       console.error('Объект courses не был загружен правильно');
       updateLoadingStatus('Данные курсов не загружены', true);
+      updateGlobalLoadingStatus('Ошибка! Данные курсов не загружены');
       if (retryContainer) retryContainer.classList.remove('hidden');
       return;
     }
     
     console.log('Данные курсов успешно загружены:', Object.keys(courseManager.courses));
     updateLoadingStatus('Данные курсов успешно загружены');
+    updateGlobalLoadingStatus('Данные курсов загружены, подготовка интерфейса...');
 
 // Функция для вывода диагностической информации
 function logDiagnostics(message, data) {
@@ -150,6 +198,16 @@ function logDiagnostics(message, data) {
     // Скрываем индикатор загрузки и показываем основной контент
     if (loadingIndicator) loadingIndicator.classList.add('hidden');
     if (appContent) appContent.classList.remove('hidden');
+    
+    // Скрываем глобальный индикатор загрузки
+    if (globalLoadingOverlay) {
+      // Плавное исчезновение
+      globalLoadingOverlay.style.transition = 'opacity 0.5s';
+      globalLoadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        globalLoadingOverlay.style.display = 'none';
+      }, 500);
+    }
     
     console.log('Приложение инициализировано успешно и готово к работе');
   } catch (error) {
@@ -1029,22 +1087,41 @@ async function loadLessonContent() {
   if (contentSpinner) contentSpinner.classList.remove('hidden');
   markdownContent.classList.add('hidden');
   
+  // Показываем глобальный индикатор загрузки
+  const globalLoadingOverlay = document.getElementById('global-loading-overlay');
+  if (globalLoadingOverlay) {
+    globalLoadingOverlay.style.display = 'flex';
+    globalLoadingOverlay.style.opacity = '1';
+    
+    const globalStatusElement = document.getElementById('global-loading-status');
+    if (globalStatusElement) {
+      globalStatusElement.textContent = 'Загрузка контента урока...';
+    }
+  }
+  
   try {
     // Получаем контент через менеджер курсов
+    console.log('Запрос контента для текущего урока');
     const content = await courseManager.fetchLessonContent();
+    
+    if (!content) {
+      throw new Error('Получен пустой контент');
+    }
+    
+    console.log(`Получен контент (${content.length} символов), форматирование...`);
     
     // Форматируем контент
     const formattedHTML = createCollapsibleBlocks(content);
     
+    console.log('Контент отформатирован, отображение...');
+    
     // Отображаем контент
     markdownContent.innerHTML = formattedHTML;
-    const contentSpinner = document.getElementById('content-loading-spinner');
-    if (contentSpinner) contentSpinner.classList.add('hidden');
-    markdownContent.classList.remove('hidden');
     
     // Проверяем, есть ли задание для этого урока
     const task = courseManager.getTask();
     if (task) {
+      console.log('Найдено задание для урока, добавление в контент');
       // Логика отображения задания
       const taskHTML = marked.parse(task);
       const taskSection = document.createElement('div');
@@ -1055,18 +1132,48 @@ async function loadLessonContent() {
       `;
       markdownContent.appendChild(taskSection);
     }
+    
+    // Скрываем спиннер и показываем контент
+    if (contentSpinner) contentSpinner.classList.add('hidden');
+    markdownContent.classList.remove('hidden');
+    
+    // Скрываем глобальный индикатор загрузки с плавным исчезновением
+    if (globalLoadingOverlay) {
+      globalLoadingOverlay.style.transition = 'opacity 0.5s';
+      globalLoadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        globalLoadingOverlay.style.display = 'none';
+      }, 500);
+    }
+    
+    console.log('Контент урока успешно загружен и отображен');
   } catch (error) {
     console.error('Ошибка при загрузке контента урока:', error);
+    
+    // Форматируем сообщение об ошибке
     markdownContent.innerHTML = `
       <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
         <h3>Ошибка загрузки контента</h3>
         <p>Пожалуйста, обратитесь к руководителю команды.</p>
         <p><strong>Причина:</strong> ${error.message || error.toString()}</p>
+        <button onclick="location.reload()" style="margin-top: 15px; background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+          Перезагрузить страницу
+        </button>
       </div>
     `;
-    const contentSpinner = document.getElementById('content-loading-spinner');
+    
+    // Скрываем спиннер и показываем контент
     if (contentSpinner) contentSpinner.classList.add('hidden');
     markdownContent.classList.remove('hidden');
+    
+    // Скрываем глобальный индикатор загрузки
+    if (globalLoadingOverlay) {
+      globalLoadingOverlay.style.transition = 'opacity 0.5s';
+      globalLoadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        globalLoadingOverlay.style.display = 'none';
+      }, 500);
+    }
   }
 }
 

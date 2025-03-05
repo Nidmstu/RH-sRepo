@@ -31,9 +31,48 @@ class CourseManager {
         console.log('CourseManager: Количество загруженных профессий:', Object.keys(this.courses).length);
         console.log('CourseManager: Идентификаторы профессий:', Object.keys(this.courses).join(', '));
         
-        // Уведомляем об имеющихся курсах
-        this.notifyCoursesUpdated();
-        return true;
+        // Дополнительная проверка данных - наличие дней и уроков для каждой профессии
+        let dataIsValid = true;
+        for (const profId of Object.keys(this.courses)) {
+          const course = this.courses[profId];
+          
+          // Если это редирект, то дни не нужны
+          if (course.redirectUrl) {
+            console.log(`CourseManager: Профессия ${profId} имеет редирект, структура валидна`);
+            continue;
+          }
+          
+          // Проверяем наличие дней для этой профессии
+          if (!course.days || !Array.isArray(course.days) || course.days.length === 0) {
+            console.warn(`CourseManager: Профессия ${profId} не имеет дней обучения!`);
+            dataIsValid = false;
+          } else {
+            // Проверяем наличие уроков для каждого дня
+            course.days.forEach((day, idx) => {
+              if (!day.lessons || !Array.isArray(day.lessons) || day.lessons.length === 0) {
+                console.warn(`CourseManager: День ${idx + 1} профессии ${profId} не имеет уроков!`);
+                dataIsValid = false;
+              } else {
+                // Проверяем наличие contentSource для первого урока
+                const firstLesson = day.lessons[0];
+                if (!firstLesson.contentSource) {
+                  console.warn(`CourseManager: Первый урок в дне ${idx + 1} профессии ${profId} не имеет contentSource!`);
+                  dataIsValid = false;
+                }
+              }
+            });
+          }
+        }
+        
+        if (dataIsValid) {
+          console.log('CourseManager: Проверка структуры данных успешна, данные валидны');
+          // Уведомляем об имеющихся курсах
+          this.notifyCoursesUpdated();
+          return true;
+        } else {
+          console.warn('CourseManager: Структура данных некорректна, требуется повторная загрузка');
+          // Не возвращаем, продолжаем загрузку для обновления данных
+        }
       }
       
       console.log('CourseManager: Данные не найдены, начинаю загрузку...');
@@ -587,13 +626,36 @@ class CourseManager {
    * Загрузить контент для урока
    */
   async fetchLessonContent() {
-    if (!this.currentLesson) return null;
+    if (!this.currentLesson) {
+      console.error('Ошибка: текущий урок не выбран');
+      return null;
+    }
+    
+    console.log(`Загрузка контента для урока: ${this.currentLesson.id} (${this.currentLesson.title})`);
 
     const source = this.currentLesson.contentSource;
-    if (!source) return null;
+    if (!source) {
+      console.error('Ошибка: у урока нет источника контента');
+      return `# ${this.currentLesson.title}\n\nК сожалению, для данного урока не указан источник контента.`;
+    }
+    
+    console.log(`Источник контента:`, source);
 
     // Показываем индикатор загрузки
     this.showLoadingIndicator();
+    
+    // Добавим индикатор загрузки в глобальный индикатор
+    const globalStatusElement = document.getElementById('global-loading-status');
+    if (globalStatusElement) {
+      globalStatusElement.textContent = `Загрузка контента урока "${this.currentLesson.title}"...`;
+    }
+    
+    // Показываем глобальный индикатор при загрузке урока
+    const globalLoadingOverlay = document.getElementById('global-loading-overlay');
+    if (globalLoadingOverlay) {
+      globalLoadingOverlay.style.display = 'flex';
+      globalLoadingOverlay.style.opacity = '1';
+    }
 
     try {
       let content = '';
@@ -610,14 +672,23 @@ class CourseManager {
           console.log(`Using simplified GET request`);
 
           // Используем более надежный подход для загрузки данных
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд таймаут
+          
           const response = await fetch(source.url, {
             method: 'GET',
             headers: {
-              'Accept': 'text/plain, text/markdown, text/html, application/json, */*'
+              'Accept': 'text/plain, text/markdown, text/html, application/json, */*',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
             },
             mode: 'cors',
-            cache: 'no-store' // Всегда получаем свежие данные
+            cache: 'no-store', // Всегда получаем свежие данные
+            signal: controller.signal
           });
+          
+          // Очищаем таймаут после получения ответа
+          clearTimeout(timeoutId);
 
           console.log(`Response status: ${response.status}`);
 
@@ -628,23 +699,38 @@ class CourseManager {
           content = await response.text();
 
           console.log(`Response size: ${content.length} bytes`);
-          console.log(`Response preview: "${content.substring(0, 20)}${content.length > 20 ? '...' : ''}"`);
+          console.log(`Response preview: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
           console.log(`Response received successfully!`);
-          console.log(`Raw response: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
 
           // Если это JSON-ответ, пытаемся извлечь текстовое содержимое
           if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
             try {
               const jsonData = JSON.parse(content);
+              console.log('Получен JSON ответ, структура:', Object.keys(jsonData));
 
               // Извлекаем содержимое из разных возможных полей
-              if (jsonData.content) content = jsonData.content;
-              else if (jsonData.markdown) content = jsonData.markdown;
-              else if (jsonData.text) content = jsonData.text;
-              else if (jsonData.html) content = jsonData.html;
-              else if (jsonData.data && typeof jsonData.data === 'string') content = jsonData.data;
+              if (jsonData.content) {
+                console.log('Используем поле content из JSON');
+                content = jsonData.content;
+              }
+              else if (jsonData.markdown) {
+                console.log('Используем поле markdown из JSON');
+                content = jsonData.markdown;
+              }
+              else if (jsonData.text) {
+                console.log('Используем поле text из JSON');
+                content = jsonData.text;
+              }
+              else if (jsonData.html) {
+                console.log('Используем поле html из JSON');
+                content = jsonData.html;
+              }
+              else if (jsonData.data && typeof jsonData.data === 'string') {
+                console.log('Используем поле data (строка) из JSON');
+                content = jsonData.data;
+              }
             } catch (e) {
-              console.log('Не удалось распарсить JSON, используем ответ как текст');
+              console.log('Не удалось распарсить JSON, используем ответ как текст:', e.message);
             }
           }
 
@@ -665,8 +751,12 @@ class CourseManager {
             }
 
             content = await this.fetchLocalContent(source.fallbackId);
+          } else if (source.fallbackType === 'markdown' && source.fallbackContent) {
+            console.log('Используем встроенный резервный markdown-контент');
+            content = source.fallbackContent;
           } else {
-            throw error;
+            // Генерируем простое сообщение об ошибке в формате markdown
+            content = `# ${this.currentLesson.title}\n\n## Ошибка загрузки контента\n\nК сожалению, не удалось загрузить содержимое этого урока с сервера.\n\nОшибка: ${error.message}\n\nПожалуйста, попробуйте позже или обратитесь к руководителю команды.`;
           }
         }
       } else if (source.type === 'local' && source.id) {
