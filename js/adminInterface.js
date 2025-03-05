@@ -2778,9 +2778,12 @@ class AdminInterface {
       console.log(`🔧 [DevMode] Экспорт данных курсов на URL: ${targetUrl}`);
     }
     
-    // Подготавливаем данные для отправки
+    // Создаем JSON строку курсов
+    const coursesJsonString = JSON.stringify(window.courseManager.courses, null, 2);
+    
+    // Подготавливаем данные для отправки - курсы как текст внутри поля data
     const data = {
-      courses: window.courseManager.courses,
+      data: coursesJsonString,
       timestamp: new Date().toISOString(),
       source: window.location.hostname || 'onboarding-app',
       type: 'full_courses_export'
@@ -2848,6 +2851,7 @@ class AdminInterface {
       // Добавляем информацию для режима разработчика
       if (window.devMode && window.devMode.enabled) {
         console.log(`🔧 [DevMode] Отправка данных размером ${jsonData.length} байт на URL: ${targetUrl}`);
+        console.log(`🔧 [DevMode] Формат данных: JSON с курсами как текст в поле 'data'`);
       }
       
       xhr.send(jsonData);
