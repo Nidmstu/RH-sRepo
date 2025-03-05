@@ -2746,54 +2746,74 @@ class AdminInterface {
   exportDataToWebhook(webhookUrl) {
     this.showWebhookStatus('Отправка данных курсов на вебхук...', 'info');
     
+    // Проверяем валидность URL
+    if (!webhookUrl || !this.isValidUrl(webhookUrl)) {
+      console.error('ЭКСПОРТ: Некорректный URL:', webhookUrl);
+      this.showWebhookStatus(`Ошибка: Некорректный URL для экспорта`, 'error');
+      return;
+    }
+    
     // Используем URL из настроек
     const targetUrl = webhookUrl;
     console.log('ЭКСПОРТ: Отправка данных на URL:', targetUrl);
     
-    // Подготавливаем данные для отправки
-    const data = {
-      courses: window.courseManager.courses,
-      timestamp: new Date().toISOString(),
-      source: window.location.hostname || 'onboarding-app',
-      type: 'full_courses_export'
-    };
-    
-    // Используем только XMLHttpRequest для максимальной совместимости
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', targetUrl, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-    
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) {
-        console.log('ЭКСПОРТ: XHR статус:', xhr.status);
-        console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
-        
-        if (xhr.status >= 200 && xhr.status < 300) {
-          this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
-        } else {
-          this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
-        }
-      }
-    };
-    
-    xhr.onerror = (e) => {
-      console.error('ЭКСПОРТ: XHR ошибка:', e);
-      this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
-    };
-    
-    xhr.timeout = 15000; // 15 секунд таймаут
-    xhr.ontimeout = () => {
-      this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
-    };
-    
     try {
-      // Преобразовываем JSON и отправляем данные
+      // Клонируем данные, чтобы избежать проблем с циклическими ссылками
+      const cleanCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
+      
+      // Подготавливаем данные для отправки
+      const data = {
+        courses: cleanCourses,
+        timestamp: new Date().toISOString(),
+        source: window.location.hostname || 'onboarding-app',
+        type: 'full_courses_export'
+      };
+      
+      // Проверяем, что данные могут быть корректно преобразованы в JSON
       const jsonData = JSON.stringify(data);
       console.log('ЭКСПОРТ: Размер данных для отправки:', jsonData.length, 'байт');
+      
+      // Используем только XMLHttpRequest для максимальной совместимости
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', targetUrl, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+      
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          console.log('ЭКСПОРТ: XHR статус:', xhr.status);
+          console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
+            // Обновляем список курсов для уверенности
+            this.loadCoursesList();
+          } else {
+            this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
+            console.error('ЭКСПОРТ: Детали ошибки:', {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText
+            });
+          }
+        }
+      };
+      
+      xhr.onerror = (e) => {
+        console.error('ЭКСПОРТ: XHR ошибка:', e);
+        this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
+      };
+      
+      xhr.timeout = 20000; // 20 секунд таймаут
+      xhr.ontimeout = () => {
+        this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
+      };
+      
+      // Отправляем данные
       xhr.send(jsonData);
+      
     } catch (e) {
-      console.error('ЭКСПОРТ: Ошибка при отправке запроса:', e);
+      console.error('ЭКСПОРТ: Ошибка при подготовке или отправке запроса:', e);
       this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
     }
   }

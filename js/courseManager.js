@@ -17,26 +17,72 @@ class CourseManager {
    */
   async initialize() {
     try {
-      // Загружаем структуру курсов
-      const coursesResponse = await fetch('data/courses.json');
-      if (!coursesResponse.ok) {
-        throw new Error(`Не удалось загрузить структуру курсов: ${coursesResponse.status}`);
+      // Загружаем структуру курсов с обработкой ошибок
+      console.log('Загрузка структуры курсов...');
+      let coursesResponse;
+      try {
+        coursesResponse = await fetch('data/courses.json');
+        
+        if (!coursesResponse.ok) {
+          throw new Error(`Сервер вернул ошибку: ${coursesResponse.status} ${coursesResponse.statusText}`);
+        }
+        
+        const coursesText = await coursesResponse.text();
+        try {
+          this.courses = JSON.parse(coursesText);
+          console.log('Курсы успешно загружены и распарсены', Object.keys(this.courses));
+        } catch (jsonError) {
+          console.error('Ошибка при парсинге JSON курсов:', jsonError);
+          console.log('Содержимое файла курсов (первые 100 символов):', coursesText.slice(0, 100));
+          // Используем пустой объект курсов в случае ошибки парсинга
+          this.courses = {
+            "prompt-engineer": {
+              "title": "Prompt Engineering Onboarding",
+              "days": [],
+              "specialLessons": [],
+              "noDayLessons": []
+            }
+          };
+        }
+      } catch (fetchError) {
+        console.error('Ошибка при загрузке файла курсов:', fetchError);
+        // Создаем базовую структуру если не удалось загрузить файл
+        this.courses = {
+          "prompt-engineer": {
+            "title": "Prompt Engineering Onboarding",
+            "days": [],
+            "specialLessons": [],
+            "noDayLessons": []
+          }
+        };
       }
-      this.courses = await coursesResponse.json();
 
       // Загружаем резервный контент
-      const fallbacksResponse = await fetch('data/fallbacks.json');
-      if (!fallbacksResponse.ok) {
-        console.warn('Не удалось загрузить резервный контент, будет использоваться базовый');
+      console.log('Загрузка резервного контента...');
+      try {
+        const fallbacksResponse = await fetch('data/fallbacks.json');
+        if (!fallbacksResponse.ok) {
+          console.warn('Не удалось загрузить резервный контент, будет использоваться базовый');
+          this.fallbacks = {};
+        } else {
+          const fallbacksText = await fallbacksResponse.text();
+          try {
+            this.fallbacks = JSON.parse(fallbacksText);
+          } catch (jsonError) {
+            console.error('Ошибка при парсинге JSON резервного контента:', jsonError);
+            this.fallbacks = {};
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Ошибка при загрузке файла резервного контента:', fallbackError);
         this.fallbacks = {};
-      } else {
-        this.fallbacks = await fallbacksResponse.json();
       }
 
       console.log('CourseManager инициализирован успешно');
       return true;
     } catch (error) {
-      console.error('Ошибка при инициализации CourseManager:', error);
+      console.error('Критическая ошибка при инициализации CourseManager:', error);
+      alert('Произошла ошибка при загрузке курсов. Пожалуйста, обновите страницу или обратитесь к администратору.');
       return false;
     }
   }
