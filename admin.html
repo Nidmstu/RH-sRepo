@@ -1359,6 +1359,14 @@
         modal.style.display = 'none';
       }
     });
+    
+    // Определяем closeModal как глобальную функцию для доступа из атрибутов onclick
+    window.closeModal = function(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    };
   </script>
 </body>
 </html>
