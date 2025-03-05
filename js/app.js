@@ -26,41 +26,65 @@ async function initApp() {
   const loadingIndicator = document.getElementById('loading-spinner');
   if (loadingIndicator) loadingIndicator.classList.remove('hidden');
   
-  // Подписываемся на обновления курсов до загрузки
-  courseManager.onCoursesUpdated((courses) => {
-    console.log('Получено обновление курсов, обновляем интерфейс');
-    
-    // Обновляем список профессий
-    updateProfessionSelector();
-    
-    // Обновляем списки дней и уроков, если выбрана профессия
-    if (courseManager.currentProfession) {
-      updateDaysList();
-      if (courseManager.currentDay) {
-        updateLessonsList();
-      }
-    }
-  });
-  
   // Настраиваем обработчики событий
   setupEventListeners();
   
-  // Сначала синхронизируемся с облаком и дожидаемся результата
   try {
-    console.log('Синхронизация с облаком перед запуском приложения...');
-    // Принудительная синхронизация с облаком перед инициализацией
-    await forceSyncWithCloud();
+    // Сначала дожидаемся синхронизации с облаком и получения актуальных данных
+    console.log('Принудительная синхронизация с облаком перед запуском приложения...');
+    const syncResult = await forceSyncWithCloud();
+    console.log('Результат синхронизации с облаком:', syncResult);
     
     // Только после успешной синхронизации инициализируем менеджер
+    console.log('Инициализация менеджера курсов...');
     const success = await courseManager.initialize();
     if (!success) {
       alert('Не удалось загрузить данные курсов. Попробуйте перезагрузить страницу.');
       if (loadingIndicator) loadingIndicator.classList.add('hidden');
       return;
+
+// Функция для вывода диагностической информации
+function logDiagnostics(message, data) {
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+  console.log(`[${timestamp}] ${message}`);
+  
+  if (data && window.devMode && window.devMode.enabled) {
+    if (typeof data === 'object') {
+      try {
+        const preview = JSON.stringify(data).substring(0, 100);
+        console.log(`🔧 [DevMode] Data preview: ${preview}${preview.length >= 100 ? '...' : ''}`);
+      } catch (e) {
+        console.log(`🔧 [DevMode] Could not stringify data: ${e.message}`);
+      }
+    } else {
+      console.log(`🔧 [DevMode] Data: ${data}`);
     }
+  }
+}
+
+    }
+
+    // Теперь, когда у нас есть данные, подписываемся на их обновления
+    courseManager.onCoursesUpdated((courses) => {
+      console.log('Получено обновление курсов, обновляем интерфейс');
+      
+      // Обновляем список профессий
+      updateProfessionSelector();
+      
+      // Обновляем списки дней и уроков, если выбрана профессия
+      if (courseManager.currentProfession) {
+        updateDaysList();
+        if (courseManager.currentDay) {
+          updateLessonsList();
+        }
+      }
+    });
     
     // Устанавливаем периодическую синхронизацию с облаком
     setupCloudSyncInterval();
+    
+    // Вызываем обновление интерфейса на основе полученных данных
+    updateProfessionSelector();
     
     // Отображаем начальный интерфейс только после полной инициализации
     renderHomePage();
@@ -90,6 +114,7 @@ async function forceSyncWithCloud() {
         const webhookSettings = JSON.parse(webhookSettingsStr);
         if (webhookSettings.importUrl) {
           importWebhookUrl = webhookSettings.importUrl;
+          console.log(`Найден URL импорта в настройках вебхуков: ${importWebhookUrl}`);
         }
       } catch (e) {
         console.error('Ошибка при парсинге настроек вебхуков:', e);
@@ -98,9 +123,17 @@ async function forceSyncWithCloud() {
     
     // Если URL не найден в webhookSettings, проверяем другие источники
     if (!importWebhookUrl) {
-      importWebhookUrl = localStorage.getItem('importWebhookUrl') || 
-                          localStorage.getItem('adminImportWebhook') || 
-                          localStorage.getItem('testImportUrl');
+      // Приоритет источников: adminImportWebhook -> importWebhookUrl -> testImportUrl
+      if (localStorage.getItem('adminImportWebhook')) {
+        importWebhookUrl = localStorage.getItem('adminImportWebhook');
+        console.log(`Найден URL импорта в adminImportWebhook: ${importWebhookUrl}`);
+      } else if (localStorage.getItem('importWebhookUrl')) {
+        importWebhookUrl = localStorage.getItem('importWebhookUrl');
+        console.log(`Найден URL импорта в importWebhookUrl: ${importWebhookUrl}`);
+      } else if (localStorage.getItem('testImportUrl')) {
+        importWebhookUrl = localStorage.getItem('testImportUrl');
+        console.log(`Найден URL импорта в testImportUrl: ${importWebhookUrl}`);
+      }
     }
     
     // Если найден URL импорта, используем его
@@ -111,15 +144,22 @@ async function forceSyncWithCloud() {
       }
       
       try {
+        // Очищаем текущие данные курсов, чтобы гарантировать загрузку новых
+        courseManager.courses = null;
+        
+        // Пытаемся получить новые данные с сервера
+        console.log(`Выполняется импорт данных с URL: ${importWebhookUrl}`);
         const result = await tryImportFromUrl(importWebhookUrl);
+        
         if (result && result.success) {
+          console.log('Синхронизация успешно завершена, получены актуальные данные курсов');
           if (window.devMode && window.devMode.enabled) {
             console.log('🔧 [DevMode] Принудительная синхронизация успешно завершена');
           }
-          resolve(true);
+          resolve({success: true, updated: result.updated});
         } else {
-          console.log('Принудительная синхронизация не выполнила обновление, данные уже актуальны');
-          resolve(false);
+          console.log('Принудительная синхронизация не выполнила обновление: ', result?.error || 'данные уже актуальны');
+          resolve({success: false, error: result?.error});
         }
       } catch (e) {
         console.error('Ошибка при принудительной синхронизации:', e);
@@ -127,7 +167,7 @@ async function forceSyncWithCloud() {
       }
     } else {
       console.log('URL вебхука для импорта не найден, синхронизация пропущена');
-      resolve(false);
+      resolve({success: false, error: 'URL импорта не найден'});
     }
   });
 }
@@ -195,15 +235,24 @@ async function tryImportFromUrl(url) {
   console.log(`Синхронизация с облаком: ${url}`);
   
   try {
+    // Добавляем таймаут для запроса с максимальным временем ожидания
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд
+    
     // Получаем данные с вебхука
+    console.log(`Отправка запроса на URL импорта: ${url}`);
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
       },
-      cache: 'no-store' // Всегда получаем свежие данные
+      cache: 'no-store', // Всегда получаем свежие данные
+      signal: controller.signal
     });
+    
+    // Очищаем таймаут после получения ответа
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.error(`Ошибка при синхронизации: HTTP ${response.status}`);
@@ -212,6 +261,7 @@ async function tryImportFromUrl(url) {
     
     // Получаем текст ответа
     const responseText = await response.text();
+    console.log(`Получен ответ от сервера, размер: ${responseText.length} байт`);
     
     // Пытаемся обработать данные
     try {
@@ -220,6 +270,7 @@ async function tryImportFromUrl(url) {
       // Пробуем распарсить JSON
       try {
         importData = JSON.parse(responseText);
+        console.log('Успешно распарсен JSON из ответа');
       } catch (jsonError) {
         console.log('Не удалось распарсить ответ как JSON, ищем JSON в тексте');
         
@@ -229,6 +280,7 @@ async function tryImportFromUrl(url) {
         
         if (match && match[0]) {
           importData = JSON.parse(match[0]);
+          console.log('Найден и распарсен JSON в тексте ответа');
         } else {
           throw new Error('Не удалось извлечь JSON из ответа');
         }
@@ -240,25 +292,19 @@ async function tryImportFromUrl(url) {
       // Вариант 1: Прямой объект courses
       if (importData.courses) {
         coursesData = importData.courses;
-        if (window.devMode && window.devMode.enabled) {
-          console.log('🔧 [DevMode] Найдены курсы в поле courses');
-        }
+        console.log('Найдены курсы в поле courses');
       }
       // Вариант 2: Данные в поле data
       else if (importData.data) {
         if (typeof importData.data === 'object') {
           coursesData = importData.data;
-          if (window.devMode && window.devMode.enabled) {
-            console.log('🔧 [DevMode] Найдены курсы в поле data (объект)');
-          }
+          console.log('Найдены курсы в поле data (объект)');
         } else if (typeof importData.data === 'string') {
           // Пытаемся распарсить JSON строку
           try {
             const parsedData = JSON.parse(importData.data);
             coursesData = parsedData.courses || parsedData;
-            if (window.devMode && window.devMode.enabled) {
-              console.log('🔧 [DevMode] Найдены курсы в поле data (JSON строка)');
-            }
+            console.log('Найдены курсы в поле data (JSON строка)');
           } catch (e) {
             console.log(`Не удалось распарсить JSON в поле data: ${e.message}`);
           }
@@ -267,9 +313,7 @@ async function tryImportFromUrl(url) {
       // Вариант 3: Данные в поле content как объект
       else if (importData.content && typeof importData.content === 'object') {
         coursesData = importData.content;
-        if (window.devMode && window.devMode.enabled) {
-          console.log('🔧 [DevMode] Найдены курсы в поле content (объект)');
-        }
+        console.log('Найдены курсы в поле content (объект)');
       }
       // Вариант 4: Прямое использование root объекта как courses
       else if (typeof importData === 'object') {
@@ -281,9 +325,7 @@ async function tryImportFromUrl(url) {
         
         if (hasValidStructure) {
           coursesData = importData;
-          if (window.devMode && window.devMode.enabled) {
-            console.log('🔧 [DevMode] Использование корневого объекта как courses');
-          }
+          console.log('Корневой объект используется как структура курсов');
         }
       }
       
@@ -295,14 +337,34 @@ async function tryImportFromUrl(url) {
           return { success: false, error: 'Неверная структура данных' };
         }
         
-        // Сравниваем с текущими данными
+        // Проверяем на наличие вебхуков в уроках
+        let hasWebhooks = false;
+        Object.values(coursesData).forEach(course => {
+          if (course.days && Array.isArray(course.days)) {
+            course.days.forEach(day => {
+              if (day.lessons && Array.isArray(day.lessons)) {
+                day.lessons.forEach(lesson => {
+                  if (lesson.contentSource && lesson.contentSource.type === 'webhook' && lesson.contentSource.url) {
+                    hasWebhooks = true;
+                    console.log(`Найден вебхук для урока ${lesson.id}: ${lesson.contentSource.url}`);
+                  }
+                });
+              }
+            });
+          }
+        });
+        
+        console.log(hasWebhooks ? 'Найдены вебхуки в структуре курсов' : 'Вебхуки в структуре курсов не найдены');
+        
+        // Сравниваем с текущими данными или принудительно обновляем
+        const forceUpdate = !courseManager.courses;
         const currentCoursesJson = JSON.stringify(courseManager.courses || {});
         const newCoursesJson = JSON.stringify(coursesData);
         
-        if (currentCoursesJson !== newCoursesJson) {
-          if (window.devMode && window.devMode.enabled) {
-            console.log('🔧 [DevMode] Обнаружены изменения данных, применяем обновления из облака');
-          }
+        if (forceUpdate || currentCoursesJson !== newCoursesJson) {
+          console.log(forceUpdate 
+            ? 'Принудительное обновление данных курсов' 
+            : 'Обнаружены изменения данных, применяем обновления из облака');
           
           // Сохраняем резервную копию текущих данных
           if (courseManager.courses) {
@@ -318,8 +380,8 @@ async function tryImportFromUrl(url) {
           
           console.log('Синхронизация с облаком успешно завершена, интерфейс обновлен');
           return { success: true, updated: true };
-        } else if (window.devMode && window.devMode.enabled) {
-          console.log('🔧 [DevMode] Данные актуальны, синхронизация не требуется');
+        } else {
+          console.log('Данные актуальны, синхронизация не требуется');
           return { success: true, updated: false };
         }
       } else {
@@ -332,13 +394,15 @@ async function tryImportFromUrl(url) {
     }
   } catch (error) {
     console.error('Ошибка при синхронизации с облаком:', error);
-    if (window.devMode && window.devMode.enabled) {
-      console.log(`🔧 [DevMode] Ошибка синхронизации: ${error.message}`);
+    
+    // Проверка на таймаут
+    if (error.name === 'AbortError') {
+      console.error('Превышено время ожидания ответа от сервера (таймаут)');
+      return { success: false, error: 'Таймаут запроса' };
     }
+    
     return { success: false, error: error.message };
   }
-  
-  return { success: true, updated: false };
 }
 
 // Функция для валидации структуры данных курсов
@@ -410,6 +474,8 @@ function cacheWebhookUrls(coursesData) {
 
 // Функция для применения обновленной конфигурации курсов
 function applyCoursesConfig(coursesData) {
+  console.log('Применение новой конфигурации курсов к приложению');
+  
   if (window.devMode && window.devMode.enabled) {
     console.log('🔧 [DevMode] Применение новой конфигурации курсов к приложению');
   }
@@ -419,37 +485,92 @@ function applyCoursesConfig(coursesData) {
   const currentDayId = courseManager.currentDay ? courseManager.currentDay.id : null;
   const currentLessonId = courseManager.currentLesson ? courseManager.currentLesson.id : null;
   
+  // Логируем обнаруженные вебхуки в данных перед применением
+  if (window.devMode && window.devMode.enabled) {
+    let webhookCount = 0;
+    Object.values(coursesData).forEach(course => {
+      if (course.days && Array.isArray(course.days)) {
+        course.days.forEach(day => {
+          if (day.lessons && Array.isArray(day.lessons)) {
+            day.lessons.forEach(lesson => {
+              if (lesson.contentSource && lesson.contentSource.type === 'webhook') {
+                webhookCount++;
+                console.log(`🔧 [DevMode] Вебхук в уроке ${lesson.id}: ${lesson.contentSource.url}`);
+              }
+            });
+          }
+        });
+      }
+    });
+    console.log(`🔧 [DevMode] Всего найдено ${webhookCount} вебхуков в уроках`);
+  }
+  
   // Применяем новые данные
   courseManager.courses = coursesData;
   
-  // Уведомляем об обновлении курсов
+  // Сначала уведомляем об обновлении курсов
+  console.log('Уведомление подписчиков об обновлении курсов');
   courseManager.notifyCoursesUpdated();
   
   // Обновляем список профессий в селекторе
+  console.log('Обновление селектора профессий');
   updateProfessionSelector();
   
-  // Переключаемся на ту же профессию для обновления данных
-  courseManager.switchProfession(currentProfession);
+  // Если currentProfession не найдена в новой конфигурации, берем первую доступную
+  if (!coursesData[currentProfession]) {
+    const professions = Object.keys(coursesData);
+    if (professions.length > 0) {
+      const newProfession = professions[0];
+      console.log(`Текущая профессия ${currentProfession} не найдена, переключаемся на ${newProfession}`);
+      courseManager.switchProfession(newProfession);
+    } else {
+      console.error('Нет доступных профессий в новой конфигурации');
+      return;
+    }
+  } else {
+    // Переключаемся на ту же профессию для обновления данных
+    console.log(`Переключаемся на профессию: ${currentProfession}`);
+    courseManager.switchProfession(currentProfession);
+  }
   
   // Обновляем список дней
+  console.log('Обновление списка дней');
   updateDaysList();
   
   // Если был выбран день, пытаемся выбрать его снова
   if (currentDayId) {
-    courseManager.selectDay(currentDayId);
-    updateLessonsList(); // Обновляем список уроков
-    
-    // Если был выбран урок, пытаемся выбрать его снова и обновить контент
-    if (currentLessonId) {
-      courseManager.selectLesson(currentLessonId);
-      // Перезагружаем контент текущего урока
-      if (document.getElementById('guide').classList.contains('hidden') === false) {
-        loadLessonContent();
+    const dayFound = courseManager.selectDay(currentDayId);
+    if (dayFound) {
+      console.log(`Выбран день с ID: ${currentDayId}`);
+      updateLessonsList(); // Обновляем список уроков
+      
+      // Если был выбран урок, пытаемся выбрать его снова и обновить контент
+      if (currentLessonId) {
+        const lessonFound = courseManager.selectLesson(currentLessonId);
+        if (lessonFound) {
+          console.log(`Выбран урок с ID: ${currentLessonId}`);
+          
+          // Перезагружаем контент текущего урока, если гайд открыт
+          if (document.getElementById('guide').classList.contains('hidden') === false) {
+            console.log('Перезагрузка контента текущего урока');
+            loadLessonContent();
+          }
+        } else {
+          console.log(`Урок с ID ${currentLessonId} не найден в обновленной конфигурации`);
+        }
       }
+    } else {
+      console.log(`День с ID ${currentDayId} не найден в обновленной конфигурации`);
     }
   }
   
-  console.log('Данные курсов обновлены из импортированного JSON');
+  console.log('Данные курсов успешно обновлены из импортированного JSON');
+  
+  // Если мы на главной странице, обновляем ее
+  if (document.getElementById('home').classList.contains('hidden') === false) {
+    console.log('Обновление домашней страницы');
+    renderHomePage();
+  }
 }
 
 // Функция для обновления селектора профессий

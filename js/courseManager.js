@@ -18,23 +18,49 @@ class CourseManager {
     try {
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
+      
+      // Проверяем, есть ли уже загруженные данные
+      if (this.courses && Object.keys(this.courses).length > 0) {
+        console.log('CourseManager: Данные уже загружены, пропускаем инициализацию');
+        return true;
+      }
 
-      // Получаем настройки вебхуков из localStorage
-      const webhookSettingsStr = localStorage.getItem('webhookSettings');
-      let importWebhookUrl = localStorage.getItem('importWebhookUrl');
-
-      // Если есть настройки вебхуков, пробуем использовать URL из них
-      if (webhookSettingsStr) {
-        try {
-          const webhookSettings = JSON.parse(webhookSettingsStr);
-          if (webhookSettings.importUrl && !importWebhookUrl) {
-            importWebhookUrl = webhookSettings.importUrl;
-            // Сохраняем URL импорта для использования в других частях приложения
-            localStorage.setItem('importWebhookUrl', importWebhookUrl);
-            console.log(`Найдены настройки вебхуков. URL импорта: ${importWebhookUrl}`);
+      // Получаем настройки вебхуков из localStorage в порядке приоритета
+      let importWebhookUrl = null;
+      
+      // 1. Настройки из админ-панели (наивысший приоритет)
+      const adminWebhookUrl = localStorage.getItem('adminImportWebhook');
+      if (adminWebhookUrl) {
+        importWebhookUrl = adminWebhookUrl;
+        console.log(`CourseManager: Используется URL из adminImportWebhook: ${importWebhookUrl}`);
+      }
+      // 2. Настройки из webHookSettings
+      else {
+        const webhookSettingsStr = localStorage.getItem('webhookSettings');
+        if (webhookSettingsStr) {
+          try {
+            const webhookSettings = JSON.parse(webhookSettingsStr);
+            if (webhookSettings.importUrl) {
+              importWebhookUrl = webhookSettings.importUrl;
+              console.log(`CourseManager: Используется URL из webhookSettings: ${importWebhookUrl}`);
+            }
+          } catch (e) {
+            console.error('Ошибка при парсинге настроек вебхуков:', e);
           }
-        } catch (e) {
-          console.error('Ошибка при парсинге настроек вебхуков:', e);
+        }
+      }
+      // 3. Сохраненный URL
+      if (!importWebhookUrl) {
+        importWebhookUrl = localStorage.getItem('importWebhookUrl');
+        if (importWebhookUrl) {
+          console.log(`CourseManager: Используется URL из importWebhookUrl: ${importWebhookUrl}`);
+        }
+      }
+      // 4. Тестовый URL
+      if (!importWebhookUrl) {
+        importWebhookUrl = localStorage.getItem('testImportUrl');
+        if (importWebhookUrl) {
+          console.log(`CourseManager: Используется URL из testImportUrl: ${importWebhookUrl}`);
         }
       }
 
