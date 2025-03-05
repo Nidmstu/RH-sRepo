@@ -1719,31 +1719,12 @@ class AdminInterface {
       this.currentEditing.course = window.courseManager.courses[newId];
     }
 
-    // Сохраняем изменения в JSON файл
+    // Сохраняем изменения в JSON файл или отправляем на вебхук
     this.saveCoursesToJSON();
 
     // Обновляем список курсов и продолжаем редактирование
     this.loadCoursesList();
     this.editCourse(newId);
-    
-    // Отправляем данные на вебхук, если настроен
-    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
-    if (exportWebhookUrl && exportWebhookUrl.value) {
-      this.exportDataToWebhook(exportWebhookUrl.value);
-    } else {
-      // Пробуем загрузить из localStorage, если поле не найдено
-      const settingsStr = localStorage.getItem('webhookSettings');
-      if (settingsStr) {
-        try {
-          const settings = JSON.parse(settingsStr);
-          if (settings.exportUrl) {
-            this.exportDataToWebhook(settings.exportUrl);
-          }
-        } catch (e) {
-          console.error('Error accessing webhook settings:', e);
-        }
-      }
-    }
 
     alert('Курс успешно сохранен!');
   }
@@ -2069,30 +2050,11 @@ class AdminInterface {
     this.currentEditing.day.id = id;
     this.currentEditing.day.title = title;
 
-    // Сохраняем изменения в JSON файл
+    // Сохраняем изменения в JSON файл или отправляем на вебхук
     this.saveCoursesToJSON();
 
     // Обновляем список дней
     this.loadDaysList();
-    
-    // Отправляем данные на вебхук, если настроен
-    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
-    if (exportWebhookUrl && exportWebhookUrl.value) {
-      this.exportDataToWebhook(exportWebhookUrl.value);
-    } else {
-      // Пробуем загрузить из localStorage, если поле не найдено
-      const settingsStr = localStorage.getItem('webhookSettings');
-      if (settingsStr) {
-        try {
-          const settings = JSON.parse(settingsStr);
-          if (settings.exportUrl) {
-            this.exportDataToWebhook(settings.exportUrl);
-          }
-        } catch (e) {
-          console.error('Error accessing webhook settings:', e);
-        }
-      }
-    }
 
     // Возвращаемся к редактору курса
     this.cancelDayEdit();
@@ -2425,27 +2387,8 @@ class AdminInterface {
       this.loadLessonsList();
     }
 
-    // Сохраняем изменения в JSON файл
+    // Сохраняем изменения в JSON файл или отправляем на вебхук
     this.saveCoursesToJSON();
-    
-    // Отправляем данные на вебхук, если настроен
-    const exportWebhookUrl = document.getElementById('admin-export-webhook-url');
-    if (exportWebhookUrl && exportWebhookUrl.value) {
-      this.exportDataToWebhook(exportWebhookUrl.value);
-    } else {
-      // Пробуем загрузить из localStorage, если поле не найдено
-      const settingsStr = localStorage.getItem('webhookSettings');
-      if (settingsStr) {
-        try {
-          const settings = JSON.parse(settingsStr);
-          if (settings.exportUrl) {
-            this.exportDataToWebhook(settings.exportUrl);
-          }
-        } catch (e) {
-          console.error('Error accessing webhook settings:', e);
-        }
-      }
-    }
 
     // Возвращаемся к предыдущему экрану
     this.cancelLessonEdit();
@@ -2517,7 +2460,17 @@ class AdminInterface {
    * Сохранение курсов в JSON файл
    */
   saveCoursesToJSON() {
-    // Создаем кнопку для загрузки JSON
+    // Проверяем, есть ли настроенный URL для экспорта
+    const webhookSettings = this.getWebhookSettings();
+    
+    // Если настроен URL для экспорта, отправляем данные на вебхук
+    if (webhookSettings && webhookSettings.exportUrl) {
+      // Отправляем данные на вебхук и не показываем диалог скачивания
+      this.exportDataToWebhook(webhookSettings.exportUrl);
+      return;
+    }
+    
+    // Если URL для экспорта не настроен, предлагаем скачать JSON файл
     const coursesData = JSON.stringify(window.courseManager.courses, null, 2);
     const blob = new Blob([coursesData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -3130,26 +3083,41 @@ class AdminInterface {
   }
   
   /**
-   * Загрузка настроек вебхуков
+   * Получение настроек вебхуков из localStorage
    */
-  loadWebhookSettings() {
+  getWebhookSettings() {
     const settingsStr = localStorage.getItem('webhookSettings');
     if (settingsStr) {
       try {
-        const settings = JSON.parse(settingsStr);
-        
-        const exportUrlInput = document.getElementById('admin-export-webhook-url');
-        const importUrlInput = document.getElementById('admin-import-webhook-url');
-        
-        if (exportUrlInput && settings.exportUrl) {
-          exportUrlInput.value = settings.exportUrl;
-        }
-        
-        if (importUrlInput && settings.importUrl) {
-          importUrlInput.value = settings.importUrl;
-        }
+        return JSON.parse(settingsStr);
       } catch (e) {
-        console.error('Error loading webhook settings:', e);
+        console.error('Error parsing webhook settings:', e);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Загрузка настроек вебхуков в форму
+   */
+  loadWebhookSettings() {
+    const settings = this.getWebhookSettings();
+    if (settings) {
+      const exportUrlInput = document.getElementById('admin-export-webhook-url');
+      const importUrlInput = document.getElementById('admin-import-webhook-url');
+      const getWebhooksUrlInput = document.getElementById('admin-get-webhooks-url');
+      
+      if (exportUrlInput && settings.exportUrl) {
+        exportUrlInput.value = settings.exportUrl;
+      }
+      
+      if (importUrlInput && settings.importUrl) {
+        importUrlInput.value = settings.importUrl;
+      }
+      
+      if (getWebhooksUrlInput && settings.getWebhooksUrl) {
+        getWebhooksUrlInput.value = settings.getWebhooksUrl;
       }
     }
   }
