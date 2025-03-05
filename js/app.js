@@ -35,7 +35,85 @@ async function initApp() {
   // Отображаем начальный интерфейс
   renderHomePage();
   
+  // Настраиваем периодическую синхронизацию с облаком (каждые 5 минут)
+  setupCloudSync();
+  
   console.log('Приложение инициализировано успешно');
+}
+
+// Настройка периодической синхронизации с облаком
+function setupCloudSync() {
+  const syncInterval = 5 * 60 * 1000; // 5 минут
+  
+  // Функция для проверки необходимости синхронизации и её выполнения
+  const syncWithCloud = async () => {
+    // Проверяем наличие настроек вебхуков
+    const webhookSettingsStr = localStorage.getItem('webhookSettings');
+    if (!webhookSettingsStr) return;
+    
+    try {
+      const webhookSettings = JSON.parse(webhookSettingsStr);
+      
+      // Проверяем URL для импорта
+      if (webhookSettings.importUrl) {
+        if (window.devMode && window.devMode.enabled) {
+          console.log('🔧 [DevMode] Выполняется периодическая синхронизация с облаком');
+        }
+        
+        try {
+          // Получаем данные с вебхука
+          const response = await fetch(webhookSettings.importUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const importData = await response.json();
+            
+            // Проверяем наличие данных о курсах
+            if (importData.courses) {
+              // Сравниваем с текущими данными
+              const currentCoursesJson = JSON.stringify(courseManager.courses);
+              const newCoursesJson = JSON.stringify(importData.courses);
+              
+              if (currentCoursesJson !== newCoursesJson) {
+                if (window.devMode && window.devMode.enabled) {
+                  console.log('🔧 [DevMode] Обнаружены изменения данных, применяем обновления из облака');
+                }
+                
+                // Сохраняем резервную копию текущих данных
+                localStorage.setItem('coursesBackup', currentCoursesJson);
+                localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+                
+                // Применяем новые данные
+                courseManager.courses = importData.courses;
+                
+                if (window.devMode && window.devMode.enabled) {
+                  console.log('🔧 [DevMode] Синхронизация с облаком успешно завершена');
+                }
+              } else if (window.devMode && window.devMode.enabled) {
+                console.log('🔧 [DevMode] Данные актуальны, синхронизация не требуется');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Ошибка при синхронизации с облаком:', error);
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Ошибка синхронизации: ${error.message}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка при обработке настроек вебхуков:', e);
+    }
+  };
+  
+  // Запускаем синхронизацию при запуске приложения и периодически
+  syncWithCloud();
+  setInterval(syncWithCloud, syncInterval);
 }
 
 // Настройка обработчиков событий

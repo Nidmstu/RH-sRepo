@@ -16,15 +16,31 @@ class CourseManager {
    */
   async initialize() {
     try {
-      // Получаем URL вебхука для импорта из localStorage
-      const importWebhookUrl = localStorage.getItem('importWebhookUrl');
+      // Получаем настройки вебхуков из localStorage
+      const webhookSettingsStr = localStorage.getItem('webhookSettings');
+      let importWebhookUrl = localStorage.getItem('importWebhookUrl');
+      
+      // Если есть настройки вебхуков, пробуем использовать URL из них
+      if (webhookSettingsStr) {
+        try {
+          const webhookSettings = JSON.parse(webhookSettingsStr);
+          if (webhookSettings.importUrl && !importWebhookUrl) {
+            importWebhookUrl = webhookSettings.importUrl;
+            // Сохраняем URL импорта для использования в других частях приложения
+            localStorage.setItem('importWebhookUrl', importWebhookUrl);
+            console.log(`Найдены настройки вебхуков. URL импорта: ${importWebhookUrl}`);
+          }
+        } catch (e) {
+          console.error('Ошибка при парсинге настроек вебхуков:', e);
+        }
+      }
       
       if (window.devMode && window.devMode.enabled) {
         console.log('🔧 [DevMode] Начало инициализации CourseManager');
         if (importWebhookUrl) {
           console.log(`🔧 [DevMode] Будет использован вебхук для импорта: ${importWebhookUrl}`);
         } else {
-          console.log('🔧 [DevMode] URL вебхука для импорта не найден в localStorage, будет использован локальный файл');
+          console.log('🔧 [DevMode] URL вебхука для импорта не найден в настройках, будет использован локальный файл');
         }
       }
       

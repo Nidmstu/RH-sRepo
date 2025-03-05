@@ -49,6 +49,7 @@ class DevMode {
       <div class="dev-panel-header">
         <h3>Режим разработчика</h3>
         <div class="dev-panel-actions">
+          <button id="dev-panel-sync" title="Синхронизировать с облаком"><i class="fas fa-sync-alt"></i></button>
           <button id="dev-panel-clear" title="Очистить логи"><i class="fas fa-trash"></i></button>
           <button id="dev-panel-minimize" title="Свернуть панель"><i class="fas fa-minus"></i></button>
         </div>
@@ -75,6 +76,11 @@ class DevMode {
       } else {
         document.getElementById('dev-panel-minimize').innerHTML = '<i class="fas fa-minus"></i>';
       }
+    });
+    
+    // Добавляем обработчик для кнопки синхронизации
+    document.getElementById('dev-panel-sync').addEventListener('click', () => {
+      this.syncWithCloud();
     });
   }
   
@@ -231,6 +237,26 @@ class DevMode {
       .dev-log-label {
         color: #d19a66;
         margin-right: 5px;
+      }
+      
+      .dev-log-message {
+        word-break: break-word;
+      }
+      
+      .dev-log-message.success {
+        color: #98c379;
+      }
+      
+      .dev-log-message.error {
+        color: #e06c75;
+      }
+      
+      .dev-log-message.warning {
+        color: #e5c07b;
+      }
+      
+      .dev-log-message.info {
+        color: #61afef;
       }
       
       .dev-info-badge {
@@ -924,6 +950,202 @@ class DevMode {
   truncateString(str, maxLength) {
     if (str.length <= maxLength) return str;
     return str.substring(0, maxLength) + '...';
+  }
+  
+  /**
+   * Синхронизация данных с облаком
+   */
+  async syncWithCloud() {
+    // Получаем настройки вебхуков
+    const webhookSettingsStr = localStorage.getItem('webhookSettings');
+    if (!webhookSettingsStr) {
+      this.logMessage('Ошибка синхронизации: настройки вебхуков не найдены в localStorage', 'error');
+      return;
+    }
+    
+    try {
+      const webhookSettings = JSON.parse(webhookSettingsStr);
+      
+      // Проверяем URL для импорта
+      if (webhookSettings.importUrl) {
+        this.logMessage(`Выполняется синхронизация с облаком. URL импорта: ${webhookSettings.importUrl}`, 'info');
+        
+        try {
+          // Получаем данные с вебхука
+          const response = await fetch(webhookSettings.importUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            // Получаем Content-Type заголовок
+            const contentType = response.headers.get('content-type') || '';
+            this.logMessage(`Получен ответ с Content-Type: ${contentType}`, 'info');
+            
+            // Сначала пробуем получить текст, а потом уже решаем, как его обрабатывать
+            const text = await response.text();
+            this.logMessage(`Получены данные (${text.length} символов)`, 'info');
+            
+            let data;
+            
+            // Пробуем распарсить JSON
+            try {
+              data = JSON.parse(text);
+              this.logMessage('Данные успешно распарсены как JSON', 'success');
+            } catch (e) {
+              this.logMessage(`Не удалось распарсить как JSON: ${e.message}`, 'warning');
+              
+              // Если это не JSON, возможно, это plain text представление JSON
+              // Пытаемся распарсить данные из вида, где JSON содержится в поле "data"
+              if (text.includes('"data"')) {
+                try {
+                  const regex = /"data"\s*:\s*"(.*?)"/s;
+                  const match = text.match(regex);
+                  
+                  if (match && match[1]) {
+                    let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                    
+                    // Иногда кавычки могут быть экранированы несколько раз
+                    while (jsonString.includes('\\')) {
+                      jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                    }
+                    
+                    this.logMessage('Извлечен JSON из поля "data"', 'info');
+                    data = { courses: JSON.parse(jsonString) };
+                  }
+                } catch (innerError) {
+                  this.logMessage(`Не удалось распарсить данные из поля data: ${innerError.message}`, 'error');
+                }
+              }
+            }
+            
+            // Если данные все еще не определены, пробуем искать JSON в тексте
+            if (!data) {
+              try {
+                // Ищем любую JSON структуру в тексте
+                const jsonRegex = /{[\s\S]*}/;
+                const match = text.match(jsonRegex);
+                
+                if (match && match[0]) {
+                  const possibleJson = match[0];
+                  data = JSON.parse(possibleJson);
+                  this.logMessage('Извлечен JSON из текста', 'info');
+                }
+              } catch (e) {
+                this.logMessage(`Не удалось извлечь JSON из текста: ${e.message}`, 'error');
+              }
+            }
+            
+            // Если данные все еще не определены, сдаемся
+            if (!data) {
+              this.logMessage('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.', 'error');
+              return;
+            }
+            
+            // Проверяем наличие поля courses
+            if (!data.courses) {
+              // Может быть, сам data и есть courses
+              if (typeof data === 'object' && Object.keys(data).length > 0) {
+                // Проверяем, есть ли в объекте хотя бы один ключ с объектом, содержащим days/specialLessons
+                const courseCandidate = Object.values(data).find(item => 
+                  item && typeof item === 'object' && 
+                  (item.days || item.specialLessons || item.title)
+                );
+                
+                if (courseCandidate) {
+                  this.logMessage('Используем полученный объект как courses', 'info');
+                  data = { courses: data };
+                }
+              }
+              
+              // Если все еще нет courses, выбрасываем ошибку
+              if (!data.courses) {
+                this.logMessage('Полученные данные не содержат информацию о курсах', 'error');
+                return;
+              }
+            }
+            
+            const courseCount = Object.keys(data.courses).length;
+            this.logMessage(`Получены данные курсов (${courseCount} курсов)`, 'success');
+            this.logMessage(`Идентификаторы курсов: ${Object.keys(data.courses).join(', ')}`, 'info');
+            
+            // Сохраняем копию текущих курсов для возможности отката
+            const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
+            
+            try {
+              // Применяем полученные данные
+              window.courseManager.courses = data.courses;
+              
+              this.logMessage('Данные успешно импортированы и применены', 'success');
+              
+              // Обновляем интерфейс, если открыт список курсов
+              if (window.adminInterface && window.adminInterface.loadCoursesList) {
+                window.adminInterface.loadCoursesList();
+              }
+              
+              // Сохраняем резервную копию в localStorage
+              localStorage.setItem('coursesBackup', JSON.stringify(backupCourses));
+              localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+              
+              // Если настроен URL для экспорта, отправляем данные обратно
+              if (webhookSettings.exportUrl) {
+                this.logMessage(`Экспорт обновленных данных на ${webhookSettings.exportUrl}`, 'info');
+                
+                if (window.adminInterface && window.adminInterface.exportDataToWebhook) {
+                  window.adminInterface.exportDataToWebhook(webhookSettings.exportUrl);
+                }
+              }
+            } catch (e) {
+              // В случае ошибки при применении данных, восстанавливаем бэкап
+              window.courseManager.courses = backupCourses;
+              this.logMessage(`Ошибка при применении импортированных данных: ${e.message}`, 'error');
+              this.logMessage('Восстановлена предыдущая версия курсов', 'warning');
+            }
+          } else {
+            this.logMessage(`Ошибка HTTP! Статус: ${response.status}`, 'error');
+          }
+        } catch (error) {
+          this.logMessage(`Ошибка при синхронизации с облаком: ${error.message}`, 'error');
+        }
+      } else {
+        this.logMessage('URL для импорта не найден в настройках вебхуков', 'error');
+      }
+    } catch (e) {
+      this.logMessage(`Ошибка при обработке настроек вебхуков: ${e.message}`, 'error');
+    }
+  }
+  
+  /**
+   * Логирование сообщения в панель разработчика
+   */
+  logMessage(message, type = 'info') {
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (!logsContainer) return;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    let typeClass;
+    switch (type) {
+      case 'success': typeClass = 'success'; break;
+      case 'error': typeClass = 'error'; break;
+      case 'warning': typeClass = 'warning'; break;
+      default: typeClass = 'info';
+    }
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message ${typeClass}">${message}</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+    `;
+    
+    logsContainer.prepend(logEntry);
+    console.log(`🔧 [DevMode] ${message}`);
   }
 }
 
