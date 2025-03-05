@@ -49,6 +49,7 @@ class DevMode {
       <div class="dev-panel-header">
         <h3>Режим разработчика</h3>
         <div class="dev-panel-actions">
+          <button id="dev-panel-analyze" title="Анализировать данные курсов"><i class="fas fa-chart-bar"></i></button>
           <button id="dev-panel-sync" title="Синхронизировать с облаком"><i class="fas fa-sync-alt"></i></button>
           <button id="dev-panel-clear" title="Очистить логи"><i class="fas fa-trash"></i></button>
           <button id="dev-panel-minimize" title="Свернуть панель"><i class="fas fa-minus"></i></button>
@@ -76,6 +77,11 @@ class DevMode {
       } else {
         document.getElementById('dev-panel-minimize').innerHTML = '<i class="fas fa-minus"></i>';
       }
+    });
+    
+    // Добавляем обработчик для кнопки анализа данных
+    document.getElementById('dev-panel-analyze').addEventListener('click', () => {
+      this.analyzeAndDisplayCourses();
     });
     
     // Добавляем обработчик для кнопки синхронизации
@@ -1146,6 +1152,321 @@ class DevMode {
     
     logsContainer.prepend(logEntry);
     console.log(`🔧 [DevMode] ${message}`);
+  }
+  
+  /**
+   * Анализ и вывод подробной информации о курсах, уроках и вебхуках
+   */
+  analyzeAndDisplayCourses() {
+    // Получаем данные курсов из курс-менеджера
+    if (!window.courseManager || !window.courseManager.courses) {
+      this.logMessage('Данные курсов не загружены или недоступны', 'error');
+      return;
+    }
+    
+    const courses = window.courseManager.courses;
+    const courseIds = Object.keys(courses);
+    
+    this.logMessage(`Анализ данных: загружено ${courseIds.length} курсов`, 'info');
+    
+    // Создаем контейнер для детального отчета
+    const detailedReport = document.createElement('div');
+    detailedReport.className = 'dev-detailed-report';
+    
+    let totalLessons = 0;
+    let totalWebhooks = 0;
+    let webhookUrls = [];
+    
+    // Анализируем каждый курс
+    courseIds.forEach(courseId => {
+      const course = courses[courseId];
+      
+      // Создаем секцию для курса
+      const courseSection = document.createElement('div');
+      courseSection.className = 'dev-course-section';
+      
+      // Информация о курсе
+      let courseInfo = `<h3 style="color: #56b6c2; margin: 10px 0;">Курс: ${course.title || courseId}</h3>`;
+      
+      // Если есть редирект, отображаем его
+      if (course.redirectUrl) {
+        courseInfo += `<div><span style="color: #d19a66;">Редирект URL:</span> ${course.redirectUrl}</div>`;
+      }
+      
+      // Информация о днях
+      let daysList = '';
+      let lessonCount = 0;
+      let courseWebhooks = 0;
+      
+      if (course.days && Array.isArray(course.days)) {
+        course.days.forEach((day, dayIndex) => {
+          daysList += `<div style="margin-top: 8px;"><span style="color: #e5c07b;">День ${day.id}:</span> ${day.title || 'Без названия'}</div>`;
+          
+          // Анализ уроков для этого дня
+          if (day.lessons && Array.isArray(day.lessons)) {
+            daysList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
+            
+            day.lessons.forEach((lesson, lessonIndex) => {
+              lessonCount++;
+              totalLessons++;
+              
+              // Базовая информация о уроке
+              let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
+              
+              // Информация об источнике контента
+              if (lesson.contentSource) {
+                if (lesson.contentSource.type === 'webhook') {
+                  lessonInfo += ` <span style="color: #61afef;">[вебхук]</span>`;
+                  courseWebhooks++;
+                  totalWebhooks++;
+                  webhookUrls.push(lesson.contentSource.url);
+                } else if (lesson.contentSource.type === 'local') {
+                  lessonInfo += ` <span style="color: #c678dd;">[локальный]</span>`;
+                } else if (lesson.contentSource.type === 'markdown') {
+                  lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
+                }
+              } else {
+                lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
+              }
+              
+              // Есть ли тест
+              if (lesson.testSource) {
+                lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
+              }
+              
+              // Есть ли аудио
+              if (lesson.audioSource) {
+                lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
+              }
+              
+              lessonInfo += `</li>`;
+              daysList += lessonInfo;
+            });
+            
+            daysList += `</ul>`;
+          } else {
+            daysList += `<div style="color: #e06c75; padding-left: 15px;">Уроки не найдены</div>`;
+          }
+        });
+      } else {
+        daysList = `<div style="color: #e06c75;">Дни обучения не найдены</div>`;
+      }
+      
+      // Информация о специальных уроках
+      let specialLessonsList = '';
+      
+      if (course.specialLessons && Array.isArray(course.specialLessons)) {
+        specialLessonsList += `<div style="margin-top: 10px;"><span style="color: #c678dd;">Специальные уроки:</span></div>`;
+        specialLessonsList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        course.specialLessons.forEach((lesson, lessonIndex) => {
+          lessonCount++;
+          totalLessons++;
+          
+          // Базовая информация о уроке
+          let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
+          
+          // Информация об источнике контента
+          if (lesson.contentSource) {
+            if (lesson.contentSource.type === 'webhook') {
+              lessonInfo += ` <span style="color: #61afef;">[вебхук]</span>`;
+              courseWebhooks++;
+              totalWebhooks++;
+              webhookUrls.push(lesson.contentSource.url);
+            } else if (lesson.contentSource.type === 'local') {
+              lessonInfo += ` <span style="color: #c678dd;">[локальный]</span>`;
+            } else if (lesson.contentSource.type === 'markdown') {
+              lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
+            }
+          } else {
+            lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
+          }
+          
+          // Есть ли тест
+          if (lesson.testSource) {
+            lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
+          }
+          
+          // Есть ли аудио
+          if (lesson.audioSource) {
+            lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
+          }
+          
+          lessonInfo += `</li>`;
+          specialLessonsList += lessonInfo;
+        });
+        
+        specialLessonsList += `</ul>`;
+      }
+      
+      // Информация о уроках без дней
+      let noDayLessonsList = '';
+      
+      if (course.noDayLessons && Array.isArray(course.noDayLessons)) {
+        noDayLessonsList += `<div style="margin-top: 10px;"><span style="color: #c678dd;">Уроки без дней:</span></div>`;
+        noDayLessonsList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        course.noDayLessons.forEach((lesson, lessonIndex) => {
+          lessonCount++;
+          totalLessons++;
+          
+          // Базовая информация о уроке
+          let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
+          
+          // Информация об источнике контента
+          if (lesson.contentSource) {
+            if (lesson.contentSource.type === 'webhook') {
+              lessonInfo += ` <span style="color: #61afef;">[вебхук]</span>`;
+              courseWebhooks++;
+              totalWebhooks++;
+              webhookUrls.push(lesson.contentSource.url);
+            } else if (lesson.contentSource.type === 'local') {
+              lessonInfo += ` <span style="color: #c678dd;">[локальный]</span>`;
+            } else if (lesson.contentSource.type === 'markdown') {
+              lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
+            }
+          } else {
+            lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
+          }
+          
+          // Есть ли тест
+          if (lesson.testSource) {
+            lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
+          }
+          
+          // Есть ли аудио
+          if (lesson.audioSource) {
+            lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
+          }
+          
+          lessonInfo += `</li>`;
+          noDayLessonsList += lessonInfo;
+        });
+        
+        noDayLessonsList += `</ul>`;
+      }
+      
+      // Собираем всю информацию по курсу
+      courseInfo += `<div><span style="color: #d19a66;">Всего уроков:</span> ${lessonCount}</div>`;
+      courseInfo += `<div><span style="color: #d19a66;">Уроков с вебхуками:</span> ${courseWebhooks}</div>`;
+      courseInfo += daysList;
+      courseInfo += specialLessonsList;
+      courseInfo += noDayLessonsList;
+      
+      courseSection.innerHTML = courseInfo;
+      detailedReport.appendChild(courseSection);
+      
+      // Добавляем разделитель между курсами
+      if (courseIds.indexOf(courseId) < courseIds.length - 1) {
+        const divider = document.createElement('div');
+        divider.style.height = '1px';
+        divider.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        divider.style.margin = '15px 0';
+        detailedReport.appendChild(divider);
+      }
+    });
+    
+    // Создаем сводную информацию
+    const summaryInfo = document.createElement('div');
+    summaryInfo.className = 'dev-summary-info';
+    summaryInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    summaryInfo.style.padding = '10px';
+    summaryInfo.style.borderRadius = '4px';
+    summaryInfo.style.marginBottom = '15px';
+    
+    summaryInfo.innerHTML = `
+      <div style="font-weight: bold; color: #56b6c2; margin-bottom: 5px;">Сводная информация:</div>
+      <div><span style="color: #d19a66;">Всего курсов:</span> ${courseIds.length}</div>
+      <div><span style="color: #d19a66;">Всего уроков:</span> ${totalLessons}</div>
+      <div><span style="color: #d19a66;">Уроков с вебхуками:</span> ${totalWebhooks}</div>
+    `;
+    
+    // Добавляем список вебхуков, если они есть
+    if (webhookUrls.length > 0) {
+      let webhookList = `<div style="margin-top: 5px;"><span style="color: #d19a66;">Используемые URL вебхуков:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
+      
+      // Показываем только уникальные URL
+      const uniqueWebhooks = [...new Set(webhookUrls)];
+      
+      uniqueWebhooks.forEach(url => {
+        // Показываем, сколько раз используется каждый URL
+        const count = webhookUrls.filter(u => u === url).length;
+        webhookList += `<li style="color: #61afef; word-break: break-all;">${url} <span style="color: #98c379;">(используется ${count} раз)</span></li>`;
+      });
+      
+      webhookList += `</ul>`;
+      summaryInfo.innerHTML += webhookList;
+    }
+    
+    // Получаем информацию о текущей синхронизации
+    const webhookSettingsStr = localStorage.getItem('webhookSettings');
+    if (webhookSettingsStr) {
+      try {
+        const webhookSettings = JSON.parse(webhookSettingsStr);
+        let settingsInfo = `<div style="margin-top: 10px;"><span style="color: #d19a66;">Настройки вебхуков:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        if (webhookSettings.importUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL импорта:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.importUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.exportUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL экспорта:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.exportUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.contentWebhookUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL контента:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.contentWebhookUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.testWebhookUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL тестов:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.testWebhookUrl}</span></li>`;
+        }
+        
+        settingsInfo += `</ul>`;
+        summaryInfo.innerHTML += settingsInfo;
+      } catch (e) {
+        this.logMessage(`Ошибка при парсинге настроек вебхуков: ${e.message}`, 'error');
+      }
+    }
+    
+    // Показываем информацию о последнем бэкапе
+    const backupTimestamp = localStorage.getItem('coursesBackupTimestamp');
+    if (backupTimestamp) {
+      const date = new Date(backupTimestamp);
+      const formattedDate = date.toLocaleString();
+      summaryInfo.innerHTML += `<div style="margin-top: 5px;"><span style="color: #d19a66;">Последний бэкап:</span> ${formattedDate}</div>`;
+    }
+    
+    // Добавляем сводную информацию перед детальным отчетом
+    detailedReport.insertBefore(summaryInfo, detailedReport.firstChild);
+    
+    // Создаем лог-запись для этого отчета
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Подробный анализ данных курсов и вебхуков</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;">
+        ${detailedReport.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем наш отчет
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Автоматически прокручиваем до отчета
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Логируем в консоль, что отчет создан
+    console.log(`🔧 [DevMode] Подробный анализ данных курсов создан (${totalLessons} уроков, ${totalWebhooks} вебхуков)`);
   }
 }
 
