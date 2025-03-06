@@ -248,6 +248,15 @@ function updateLoadingStatus(message, isError = false) {
 async function autoImportWebhooks() {
   console.log('Проверка наличия настроек вебхуков...');
   
+  // Обновляем реальный URL для автоимпорта вебхуков в localStorage (устраняем тестовый URL)
+  const storedSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+  if (storedSettings.getUrl && storedSettings.getUrl.includes('webhook-test')) {
+    storedSettings.getUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+    localStorage.setItem('webhookSettings', JSON.stringify(storedSettings));
+    localStorage.setItem('adminGetWebhook', storedSettings.getUrl);
+    console.log('Обновлен URL для получения вебхуков с тестового на рабочий');
+  }
+  
   // Определяем URL для получения вебхуков (всегда используем актуальный URL)
   // Всегда используем основной URL для получения вебхуков, а не тестовый
   const getWebhooksUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
