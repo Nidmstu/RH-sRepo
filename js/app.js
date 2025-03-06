@@ -62,8 +62,15 @@ async function initApp() {
     updateGlobalLoadingStatus('Запрос вебхуков с сервера...');
     updateLoadingStatus('Загрузка настроек приложения...');
 
-    // Автоматически импортируем настройки вебхуков c основного URL
-    const webhookSettings = await autoImportWebhooks();
+    // Используем конкретный URL для автоматического импорта вебхуков
+    const webhookUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+    console.log('Отправка запроса для получения вебхуков на URL:', webhookUrl);
+    
+    // Принудительно устанавливаем URL для получения вебхуков
+    localStorage.setItem('adminGetWebhook', webhookUrl);
+    
+    // Автоматически импортируем настройки вебхуков
+    const webhookSettings = await importWebhooksFromServer(webhookUrl);
 
     if (!webhookSettings) {
       updateGlobalLoadingStatus('Не удалось получить настройки вебхуков');
@@ -290,24 +297,31 @@ async function autoImportWebhooks() {
     return importResults.settings;
   }
 
-  // Если импорт не удался, проверяем сохраненные настройки
-  const webhookSettingsStr = localStorage.getItem('webhookSettings');
+  // Если импорт не удался, выполняем прямой запрос к URL импорта
+  console.log('Импорт вебхуков не удался, выполняем прямой запрос к URL импорта...');
+  updateGlobalLoadingStatus('Получение данных с основного URL...');
 
-  // Если настройки вебхуков не найдены, устанавливаем значения по умолчанию
-  if (!webhookSettingsStr) {
-    console.log('Настройки вебхуков не найдены, устанавливаем значения по умолчанию');
-
-    const defaultWebhookSettings = {
-      exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
-      importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
-      getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
-    };
-
-    // Сохраняем настройки в localStorage
-    localStorage.setItem('webhookSettings', JSON.stringify(defaultWebhookSettings));
-    localStorage.setItem('adminExportWebhook', defaultWebhookSettings.exportUrl);
-    localStorage.setItem('adminImportWebhook', defaultWebhookSettings.importUrl);
-    localStorage.setItem('adminGetWebhook', defaultWebhookSettings.getUrl);
+  // Устанавливаем фиксированный URL для импорта данных
+  const fixedImportUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
+  localStorage.setItem('importWebhookUrl', fixedImportUrl);
+  
+  // Сохраняем все стандартные URL вебхуков
+  const defaultWebhookSettings = {
+    exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
+    importUrl: fixedImportUrl,
+    getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
+  };
+  
+  // Сохраняем настройки в localStorage
+  localStorage.setItem('webhookSettings', JSON.stringify(defaultWebhookSettings));
+  localStorage.setItem('adminExportWebhook', defaultWebhookSettings.exportUrl);
+  localStorage.setItem('adminImportWebhook', defaultWebhookSettings.importUrl);
+  localStorage.setItem('adminGetWebhook', defaultWebhookSettings.getUrl);
+  
+  console.log('Установлены стандартные URL для вебхуков:');
+  console.log('- Import URL:', defaultWebhookSettings.importUrl);
+  console.log('- Export URL:', defaultWebhookSettings.exportUrl);
+  console.log('- Get URL:', defaultWebhookSettings.getUrl);
 
     console.log('Установлены настройки вебхуков по умолчанию:');
     console.log('- Import URL:', defaultWebhookSettings.importUrl);
@@ -363,22 +377,31 @@ async function importWebhooksFromServer(url) {
 
   console.log(`Автоматический импорт вебхуков с URL: ${url}`);
   updateLoadingStatus('Получение настроек вебхуков...');
+  updateGlobalLoadingStatus(`Запрос вебхуков с ${url.split('/').slice(-1)[0]}...`);
 
   try {
+    // Принудительно устанавливаем таймаут
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд таймаут
 
+    console.log('СЕТЕВОЙ ЗАПРОС: Отправка запроса на:', url);
+    
+    // Используем нативный fetch для отправки запроса
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json, text/plain, */*',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       cache: 'no-store',
+      mode: 'cors',
+      credentials: 'omit',
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
+    console.log('СЕТЕВОЙ ЗАПРОС: Получен ответ со статусом:', response.status);
 
     if (!response.ok) {
       throw new Error(`HTTP ошибка! Статус: ${response.status}`);
