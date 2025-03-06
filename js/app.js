@@ -267,9 +267,6 @@ async function forceSyncWithCloud() {
       }
 
       try {
-        // Очищаем текущие данные курсов, чтобы гарантировать загрузку новых
-        courseManager.courses = null;
-
         // Обновляем статус
         updateLoadingStatus(`Отправка запроса на ${importWebhookUrl.split('/').slice(-1)[0]}`);
 
@@ -277,7 +274,7 @@ async function forceSyncWithCloud() {
         console.log(`Выполняется импорт данных с URL: ${importWebhookUrl}`);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // Увеличенный таймаут до 20 секунд
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // Уменьшаем таймаут до 15 секунд
 
         try {
           const response = await fetch(importWebhookUrl, {
@@ -290,7 +287,7 @@ async function forceSyncWithCloud() {
             },
             cache: 'no-store',
             mode: 'cors',
-            credentials: 'omit', // Added credentials: 'omit'
+            credentials: 'omit',
             signal: controller.signal
           });
 
@@ -344,6 +341,15 @@ async function forceSyncWithCloud() {
           } catch (e) {
             console.error('Ошибка при парсинге JSON:', e);
             updateLoadingStatus(`Ошибка при обработке данных: ${e.message}`);
+
+            // Проверяем наличие резервной копии
+            const backupDataStr = localStorage.getItem('coursesBackup');
+            if (backupDataStr) {
+              console.log('Используем резервную копию из-за ошибки парсинга JSON');
+              resolve({success: true, updated: false, fromBackup: true});
+              return;
+            }
+
             resolve({success: false, error: 'Ошибка парсинга JSON'});
             return;
           }
@@ -367,6 +373,15 @@ async function forceSyncWithCloud() {
           } else {
             console.error('Не удалось найти данные о курсах в ответе');
             updateLoadingStatus(`Не удалось найти данные о курсах в ответе`);
+
+            // Проверяем наличие резервной копии
+            const backupDataStr = localStorage.getItem('coursesBackup');
+            if (backupDataStr) {
+              console.log('Используем резервную копию, так как не найдены данные о курсах в ответе');
+              resolve({success: true, updated: false, fromBackup: true});
+              return;
+            }
+
             resolve({success: false, error: 'Данные о курсах не найдены'});
           }
         } catch (fetchError) {
@@ -375,6 +390,25 @@ async function forceSyncWithCloud() {
 
           console.error('Ошибка при получении данных:', fetchError);
           updateLoadingStatus(`Ошибка при получении данных: ${fetchError.message}`);
+
+          // Проверяем наличие резервной копии
+          const backupDataStr = localStorage.getItem('coursesBackup');
+          if (backupDataStr) {
+            try {
+              // Используем резервную копию в случае ошибки сети
+              console.log('Используем резервную копию из-за ошибки сети');
+              console.log('Резервная копия от:', localStorage.getItem('coursesBackupTimestamp'));
+
+              // Устанавливаем courseManager.courses из резервной копии
+              const backupData = JSON.parse(backupDataStr);
+              courseManager.courses = backupData;
+
+              resolve({success: true, updated: false, fromBackup: true});
+              return;
+            } catch (backupError) {
+              console.error('Ошибка при загрузке резервной копии:', backupError);
+            }
+          }
 
           if (fetchError.name === 'AbortError') {
             resolve({success: false, error: 'Таймаут запроса'});
@@ -385,10 +419,40 @@ async function forceSyncWithCloud() {
       } catch (e) {
         console.error('Ошибка при принудительной синхронизации:', e);
         updateLoadingStatus(`Ошибка синхронизации: ${e.message}`);
-        reject(e);
+
+        // Пытаемся использовать резервную копию в случае любой ошибки
+        const backupDataStr = localStorage.getItem('coursesBackup');
+        if (backupDataStr) {
+          try {
+            const backupData = JSON.parse(backupDataStr);
+            courseManager.courses = backupData;
+            resolve({success: true, updated: false, fromBackup: true});
+            return;
+          } catch (backupError) {
+            console.error('Ошибка при загрузке резервной копии:', backupError);
+            reject(e);
+          }
+        } else {
+          reject(e);
+        }
       }
     } else {
-      console.log('URL вебхука для импорта не найден, синхронизация пропущена');
+      console.log('URL вебхука для импорта не найден, проверяем резервную копию');
+
+      // Если URL не найден, проверяем резервную копию
+      const backupDataStr = localStorage.getItem('coursesBackup');
+      if (backupDataStr) {
+        try {
+          console.log('URL импорта не найден, используем резервную копию');
+          const backupData = JSON.parse(backupDataStr);
+          courseManager.courses = backupData;
+          resolve({success: true, updated: false, fromBackup: true});
+          return;
+        } catch (backupError) {
+          console.error('Ошибка при загрузке резервной копии:', backupError);
+        }
+      }
+
       updateLoadingStatus('URL вебхука для импорта не найден');
       resolve({success: false, error: 'URL импорта не найден'});
     }
@@ -1068,7 +1132,7 @@ function handleProfessionChange() {
   showSection('home');
   daySelectionContainer.classList.remove('hidden');
   taskSelectionContainer.classList.add('hidden');
-  
+
   // Обновляем кнопку словаря при смене профессии
   updateVocabularyButton();
 }
@@ -1431,27 +1495,27 @@ function updateDynamicDaysButtons() {
 function updateVocabularyButton() {
   const vocabularyContainer = document.getElementById('vocabulary-container');
   if (!vocabularyContainer) return;
-  
+
   // Очищаем контейнер
   vocabularyContainer.innerHTML = '';
-  
+
   // Проверяем, есть ли у нас выбранная профессия и загружены ли курсы
   if (!courseManager.currentProfession || !courseManager.courses) return;
-  
+
   const currentCourse = courseManager.courses[courseManager.currentProfession];
-  
+
   // Проверяем наличие специальных уроков
   if (currentCourse && currentCourse.specialLessons && Array.isArray(currentCourse.specialLessons)) {
     // Ищем урок словаря в специальных уроках
     const vocabularyLesson = currentCourse.specialLessons.find(lesson => lesson.id === 'vocabulary');
-    
+
     if (vocabularyLesson) {
       // Создаем кнопку словаря
       const vocabularyButton = document.createElement('button');
       vocabularyButton.textContent = vocabularyLesson.title || 'Prompt Engineering Vocabulary';
       vocabularyButton.onclick = openVocabulary;
       vocabularyContainer.appendChild(vocabularyButton);
-      
+
       console.log(`Динамически создана кнопка словаря: ${vocabularyLesson.title}`);
     } else {
       // Если урок словаря не найден, но мы хотим всё равно показать кнопку
@@ -1459,7 +1523,7 @@ function updateVocabularyButton() {
       vocabularyButton.textContent = 'Prompt Engineering Vocabulary';
       vocabularyButton.onclick = openVocabulary;
       vocabularyContainer.appendChild(vocabularyButton);
-      
+
       console.log('Создана стандартная кнопка словаря (урок не найден в specialLessons)');
     }
   } else {
@@ -1468,7 +1532,7 @@ function updateVocabularyButton() {
     vocabularyButton.textContent = 'Prompt Engineering Vocabulary';
     vocabularyButton.onclick = openVocabulary;
     vocabularyContainer.appendChild(vocabularyButton);
-    
+
     console.log('Создана стандартная кнопка словаря (specialLessons не найден)');
   }
 }
