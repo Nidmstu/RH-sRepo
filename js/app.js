@@ -118,7 +118,7 @@ async function initApp() {
     if (!success) {
       console.error('Ошибка инициализации менеджера курсов');
       updateLoadingStatus('Ошибка загрузки данных курсов', true);
-      updateGlobalLoadingStatus('Критическая ошибка! Не удалось инициализировать менеджер курсов');
+      updateGlobalLoadingStatus('Критическая ошибка! Не удалось инициализировать менеджера курсов');
       if (retryContainer) retryContainer.classList.remove('hidden');
       return;
     }
@@ -450,6 +450,7 @@ function syncWithCloud() {
               // Если мы на главной, обновляем список дней
               if (courseManager.currentProfession) {
                 updateDaysList();
+                updateDynamicDaysButtons(); // Add this line
               }
             } else if (document.getElementById('guide').classList.contains('hidden') === false) {
               // Если мы на странице гайда и текущий урок все еще существует,
@@ -1027,6 +1028,7 @@ function renderHomePage() {
   if (courseManager.currentProfession) {
     // Генерируем карточки для дней
     updateDaysList();
+    updateDynamicDaysButtons(); // Add this line
   }
 
   // Показываем домашнюю страницу
@@ -1060,6 +1062,9 @@ function handleProfessionChange() {
 
   // Обновляем список дней для выбранной профессии
   updateDaysList();
+
+  // Обновляем динамические кнопки дней на главной странице
+  updateDynamicDaysButtons();
 
   // Сбрасываем выбранный урок и возвращаемся на домашнюю страницу
   courseManager.currentLesson = null;
@@ -1398,4 +1403,27 @@ function logDiagnostics(message, data) {
       console.log(`🔧 [DevMode] Data: ${data}`);
     }
   }
+}
+
+// Функция для динамического обновления кнопок дней
+function updateDynamicDaysButtons() {
+  const daySelectionContainer = document.getElementById('day-selection');
+  if (!daySelectionContainer) return;
+
+  const daysButtonsContainer = daySelectionContainer.querySelector('.dynamic-days-buttons');
+  if (!daysButtonsContainer) {
+    const container = document.createElement('div');
+    container.className = 'dynamic-days-buttons';
+    daySelectionContainer.appendChild(container);
+  } else {
+    daysButtonsContainer.innerHTML = '';
+  }
+
+  const days = courseManager.getDays();
+  days.forEach(day => {
+    const button = document.createElement('button');
+    button.textContent = day.title || `День ${day.id}`;
+    button.addEventListener('click', () => selectDay(day.id));
+    daysButtonsContainer.appendChild(button);
+  });
 }
