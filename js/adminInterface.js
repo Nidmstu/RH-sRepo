@@ -4098,8 +4098,15 @@ class AdminInterface {
         importUrlInput.value = settings.importUrl;
       }
       
-      if (getWebhooksUrlInput && settings.getWebhooksUrl) {
-        getWebhooksUrlInput.value = settings.getWebhooksUrl;
+      if (getWebhooksUrlInput) {
+        // Set the default URL even if not in settings
+        getWebhooksUrlInput.value = settings.getWebhooksUrl || "https://auto.crm-s.com/webhook/GetOnboardingHooks";
+      }
+    } else {
+      // If no settings exist, set default URL for webhooks
+      const getWebhooksUrlInput = document.getElementById('admin-get-webhooks-url');
+      if (getWebhooksUrlInput) {
+        getWebhooksUrlInput.value = "https://auto.crm-s.com/webhook/GetOnboardingHooks";
       }
     }
   }
