@@ -1435,11 +1435,152 @@ function showSection(id) {
 
 // Функция для создания раскрывающихся блоков из markdown
 function createCollapsibleBlocks(markdown) {
-  // Имплементация функции createCollapsibleBlocks из вашего кода
-  // ...
+  markdown = markdown.trim();
 
-  // Упрощенная версия для примера
-  return marked.parse(markdown);
+  const lines = markdown.split("\n");
+  let htmlOutput = "";
+  let currentLevel1Title = "";
+  let currentLevel1Content = [];
+  let inLevel1 = false;
+
+  // Если первая строка не является заголовком первого уровня, добавляем его
+  if (lines.length > 0 && !lines[0].match(/^#\s+/)) {
+    lines.unshift("# " + (window.currentTopic ? window.currentTopic.title : "Content"));
+  }
+
+  // Проходим по каждой строке и обрабатываем заголовки
+  for (let line of lines) {
+    // Ищем заголовки первого уровня (# Заголовок)
+    let match = line.match(/^#(?!#)\s*(.+)/);
+    if (match) {
+      // Если уже был заголовок первого уровня, рендерим его перед началом нового
+      if (inLevel1) {
+        htmlOutput += renderLevel1Block(currentLevel1Title, currentLevel1Content.join("\n"));
+      }
+      currentLevel1Title = match[1].trim();
+      currentLevel1Content = [];
+      inLevel1 = true;
+    } else {
+      // Если не заголовок, добавляем строку к текущему содержимому
+      if (inLevel1) {
+        currentLevel1Content.push(line);
+      }
+    }
+  }
+  
+  // Обрабатываем последний блок
+  if (inLevel1) {
+    htmlOutput += renderLevel1Block(currentLevel1Title, currentLevel1Content.join("\n"));
+  } else if (!htmlOutput) {
+    // Если не были найдены заголовки, просто преобразуем весь markdown
+    htmlOutput = marked.parse(markdown);
+  }
+  
+  return htmlOutput;
+}
+
+// Рендеринг блока первого уровня и поиск подзаголовков второго уровня
+function renderLevel1Block(title, content) {
+  const lines = content.split("\n");
+  let html = "";
+  let subBlocksHtml = "";
+  let currentSubTitle = "";
+  let currentSubContent = [];
+  let hasSubHeader = false;
+  let preambleLines = [];
+
+  // Обрабатываем содержимое блока первого уровня, ищем заголовки второго уровня
+  for (let line of lines) {
+    let subMatch = line.match(/^##(?!#)\s*(.+)/);
+    if (subMatch) {
+      hasSubHeader = true;
+      if (currentSubTitle) {
+        subBlocksHtml += renderLevel2Block(currentSubTitle, currentSubContent.join("\n"));
+        currentSubContent = [];
+      }
+      currentSubTitle = subMatch[1].trim();
+    } else {
+      if (hasSubHeader) {
+        currentSubContent.push(line);
+      } else {
+        preambleLines.push(line);
+      }
+    }
+  }
+  
+  // Обрабатываем последний подблок, если он есть
+  if (currentSubTitle) {
+    subBlocksHtml += renderLevel2Block(currentSubTitle, currentSubContent.join("\n"));
+  }
+  
+  // Парсим преамбулу (текст между заголовком первого уровня и первым заголовком второго уровня)
+  if (preambleLines.length) {
+    html += marked.parse(preambleLines.join("\n"));
+  }
+  
+  html += subBlocksHtml;
+  
+  return `<details>
+  <summary>${title}</summary>
+  <div>${html}</div>
+</details>`;
+}
+
+// Рендеринг блока второго уровня и поиск подзаголовков третьего уровня
+function renderLevel2Block(title, content) {
+  const lines = content.split("\n");
+  let html = "";
+  let subBlocksHtml = "";
+  let currentSubTitle = "";
+  let currentSubContent = [];
+  let hasSubHeader = false;
+  let preambleLines = [];
+
+  // Обрабатываем содержимое блока второго уровня, ищем заголовки третьего уровня
+  for (let line of lines) {
+    let subMatch = line.match(/^###(?!#)\s*(.+)/);
+    if (subMatch) {
+      hasSubHeader = true;
+      if (currentSubTitle) {
+        subBlocksHtml += renderLevel3Block(currentSubTitle, currentSubContent.join("\n"));
+        currentSubContent = [];
+      }
+      currentSubTitle = subMatch[1].trim();
+    } else {
+      if (hasSubHeader) {
+        currentSubContent.push(line);
+      } else {
+        preambleLines.push(line);
+      }
+    }
+  }
+  
+  // Обрабатываем последний подблок третьего уровня, если он есть
+  if (currentSubTitle) {
+    subBlocksHtml += renderLevel3Block(currentSubTitle, currentSubContent.join("\n"));
+  }
+  
+  // Парсим преамбулу (текст между заголовком второго уровня и первым заголовком третьего уровня)
+  if (preambleLines.length) {
+    html += marked.parse(preambleLines.join("\n"));
+  }
+  
+  html += subBlocksHtml;
+  
+  return `<details style="margin-left:20px;">
+  <summary>${title}</summary>
+  <div>${html}</div>
+</details>`;
+}
+
+// Рендеринг блока третьего уровня
+function renderLevel3Block(title, content) {
+  // Для третьего уровня просто парсим содержимое без поиска дополнительных подзаголовков
+  let parsedContent = marked.parse(content);
+  return `<details style="margin-left:40px;">
+  <summary>${title}</summary>
+  <div>${parsedContent}</div>
+</details>`;
 }
 
 // Редирект на страницу администрирования

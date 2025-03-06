@@ -1,4 +1,3 @@
-
 /* Основные настройки сайта */
 :root {
   --primary-color: #4a6baf;
@@ -187,11 +186,11 @@ button:active {
   .content-cards {
     grid-template-columns: 1fr;
   }
-  
+
   button {
     padding: 12px 15px;
   }
-  
+
   #markdown-content {
     padding: 15px;
   }
@@ -281,4 +280,35 @@ select {
   font-size: 16px;
   margin-bottom: 15px;
   width: 100%;
+}
+
+/* Added styles for collapsible blocks */
+details > summary {
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 10px 0;
+  outline: none;
+  transition: color 0.2s;
+}
+details details > summary {
+  font-size: 0.9em;
+  font-weight: bold;
+  margin-left: 5px;
+}
+details details details > summary {
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-left: 10px;
+}
+details {
+  background: #fff;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+details[open] > summary {
+  margin-bottom: 10px;
+  color: #3498db;
 }
