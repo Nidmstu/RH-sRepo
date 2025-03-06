@@ -251,13 +251,16 @@ async function autoImportWebhooks() {
       window.adminInterface.loadWebhookSettings();
     }
     
+    // Импортируем вебхуки с сервера по умолчанию
+    await importWebhooksFromServer(defaultWebhookSettings.getUrl);
+    
     return defaultWebhookSettings;
   }
   
   try {
     // Если настройки есть, проверяем их полноту
     const settings = JSON.parse(webhookSettingsStr);
-    const updated = false;
+    let updated = false;
     
     if (!settings.importUrl) {
       settings.importUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
@@ -284,10 +287,248 @@ async function autoImportWebhooks() {
       console.log('Найдены все необходимые настройки вебхуков');
     }
     
+    // Автоматически импортируем вебхуки с сервера
+    await importWebhooksFromServer(settings.getUrl);
+    
     return settings;
   } catch (e) {
     console.error('Ошибка при проверке настроек вебхуков:', e);
     return null;
+  }
+}
+
+// Функция для импорта вебхуков с сервера
+async function importWebhooksFromServer(url) {
+  if (!url) {
+    console.log('URL для получения вебхуков не указан, пропускаем импорт');
+    return;
+  }
+  
+  console.log(`Автоматический импорт вебхуков с URL: ${url}`);
+  updateLoadingStatus('Получение настроек вебхуков...');
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Cache-Control': 'no-cache'
+      },
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ошибка! Статус: ${response.status}`);
+    }
+    
+    const responseText = await response.text();
+    console.log(`Получен ответ с вебхуками (${responseText.length} символов)`);
+    
+    try {
+      // Пытаемся распарсить как JSON
+      const jsonData = JSON.parse(responseText);
+      
+      // Обрабатываем полученные данные вебхуков
+      processWebhooksData(jsonData);
+      
+      updateLoadingStatus('Настройки вебхуков успешно импортированы');
+      return true;
+    } catch (jsonError) {
+      console.error('Ошибка при парсинге JSON с вебхуками:', jsonError);
+      
+      // Пытаемся найти JSON в тексте
+      const jsonRegex = /{[\s\S]*}/;
+      const match = responseText.match(jsonRegex);
+      
+      if (match && match[0]) {
+        try {
+          const extractedData = JSON.parse(match[0]);
+          processWebhooksData(extractedData);
+          updateLoadingStatus('Настройки вебхуков успешно импортированы из текста');
+          return true;
+        } catch (e) {
+          console.error('Ошибка при извлечении JSON из текста:', e);
+        }
+      }
+      
+      // Пытаемся найти URL в тексте
+      const urlRegex = /(https?:\/\/[^\s"]+)/g;
+      const urls = responseText.match(urlRegex);
+      
+      if (urls && urls.length > 0) {
+        console.log(`Найдено ${urls.length} URL в ответе`);
+        
+        // Сохраняем первый найденный URL как URL импорта
+        if (urls.length > 0) {
+          localStorage.setItem('adminImportWebhook', urls[0]);
+          console.log(`Установлен URL импорта из текста: ${urls[0]}`);
+          
+          // Обновляем также в настройках
+          const settings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+          settings.importUrl = urls[0];
+          localStorage.setItem('webhookSettings', JSON.stringify(settings));
+          
+          updateLoadingStatus('URL импорта установлен из текстового ответа');
+          return true;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при импорте вебхуков:', error);
+    updateLoadingStatus(`Ошибка при импорте вебхуков: ${error.message}`);
+    return false;
+  }
+}
+
+// Функция для обработки полученных данных вебхуков
+function processWebhooksData(data) {
+  try {
+    console.log('Обработка данных вебхуков:', Object.keys(data));
+    let updated = false;
+    let settings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+    
+    // 1. Если есть webhooks массив
+    if (data.webhooks && Array.isArray(data.webhooks)) {
+      console.log(`Найдено ${data.webhooks.length} вебхуков в массиве webhooks`);
+      
+      // Ищем вебхуки по типу или ID
+      for (const webhook of data.webhooks) {
+        if (webhook.url) {
+          if (webhook.type === 'export' || webhook.id === 'export_courses_hook') {
+            settings.exportUrl = webhook.url;
+            localStorage.setItem('adminExportWebhook', webhook.url);
+            console.log(`Установлен URL экспорта: ${webhook.url}`);
+            updated = true;
+          } else if (webhook.type === 'import' || webhook.id === 'import_courses_hook') {
+            settings.importUrl = webhook.url;
+            localStorage.setItem('adminImportWebhook', webhook.url);
+            localStorage.setItem('importWebhookUrl', webhook.url);
+            console.log(`Установлен URL импорта: ${webhook.url}`);
+            updated = true;
+          } else if (webhook.type === 'notification' || webhook.id === 'notify_updates_hook') {
+            settings.getUrl = webhook.url;
+            localStorage.setItem('adminGetWebhook', webhook.url);
+            console.log(`Установлен URL получения вебхуков: ${webhook.url}`);
+            updated = true;
+          }
+        }
+      }
+    }
+    
+    // 2. Если данные содержат прямые поля с URL
+    if (data.exportUrl) {
+      settings.exportUrl = data.exportUrl;
+      localStorage.setItem('adminExportWebhook', data.exportUrl);
+      console.log(`Установлен URL экспорта: ${data.exportUrl}`);
+      updated = true;
+    }
+    
+    if (data.importUrl) {
+      settings.importUrl = data.importUrl;
+      localStorage.setItem('adminImportWebhook', data.importUrl);
+      localStorage.setItem('importWebhookUrl', data.importUrl);
+      console.log(`Установлен URL импорта: ${data.importUrl}`);
+      updated = true;
+    }
+    
+    if (data.getWebhooksUrl) {
+      settings.getUrl = data.getWebhooksUrl;
+      localStorage.setItem('adminGetWebhook', data.getWebhooksUrl);
+      console.log(`Установлен URL получения вебхуков: ${data.getWebhooksUrl}`);
+      updated = true;
+    }
+    
+    // 3. Если в данных есть URL в других форматах
+    const foundUrls = findUrlsInObject(data);
+    if (foundUrls.length > 0) {
+      console.log(`Найдено ${foundUrls.length} URL-адресов в данных`);
+      
+      // Автоматически устанавливаем URL, если можем определить их тип
+      foundUrls.forEach(urlInfo => {
+        if (urlInfo.type === 'export') {
+          settings.exportUrl = urlInfo.url;
+          localStorage.setItem('adminExportWebhook', urlInfo.url);
+          console.log(`Автоматически установлен URL экспорта: ${urlInfo.url}`);
+          updated = true;
+        } else if (urlInfo.type === 'import') {
+          settings.importUrl = urlInfo.url;
+          localStorage.setItem('adminImportWebhook', urlInfo.url);
+          localStorage.setItem('importWebhookUrl', urlInfo.url);
+          console.log(`Автоматически установлен URL импорта: ${urlInfo.url}`);
+          updated = true;
+        } else if (urlInfo.type === 'get') {
+          settings.getUrl = urlInfo.url;
+          localStorage.setItem('adminGetWebhook', urlInfo.url);
+          console.log(`Автоматически установлен URL получения вебхуков: ${urlInfo.url}`);
+          updated = true;
+        }
+      });
+    }
+    
+    if (updated) {
+      // Сохраняем обновленные настройки
+      localStorage.setItem('webhookSettings', JSON.stringify(settings));
+      console.log('Настройки вебхуков обновлены из полученных данных');
+      
+      // Обновляем интерфейс, если мы находимся на странице администратора
+      if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
+        window.adminInterface.loadWebhookSettings();
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке данных вебхуков:', error);
+  }
+}
+
+// Рекурсивный поиск URL в объекте
+function findUrlsInObject(obj, path = '', results = []) {
+  if (!obj || typeof obj !== 'object') return results;
+  
+  // Обрабатываем все свойства объекта
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      const currentPath = path ? `${path}.${key}` : key;
+      
+      // Если значение - строка, проверяем, является ли оно URL
+      if (typeof value === 'string' && isValidUrl(value)) {
+        // Определяем тип URL на основе ключа и содержимого
+        let type = 'unknown';
+        
+        if (key.toLowerCase().includes('export') || value.toLowerCase().includes('export') ||
+            key.toLowerCase().includes('save') || value.toLowerCase().includes('save')) {
+          type = 'export';
+        } else if (key.toLowerCase().includes('import') || value.toLowerCase().includes('import') ||
+                  key.toLowerCase().includes('get') || value.toLowerCase().includes('get')) {
+          type = 'import';
+        } else if (key.toLowerCase().includes('webhook') || value.toLowerCase().includes('webhook') ||
+                  key.toLowerCase().includes('notification') || value.toLowerCase().includes('notification')) {
+          type = 'get';
+        }
+        
+        results.push({
+          url: value,
+          path: currentPath,
+          type: type
+        });
+      } 
+      // Если значение - объект или массив, рекурсивно ищем URL в нем
+      else if (typeof value === 'object' && value !== null) {
+        findUrlsInObject(value, currentPath, results);
+      }
+    }
+  }
+  
+  return results;
+}
+
+// Проверка валидности URL
+function isValidUrl(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
   }
 }
 
