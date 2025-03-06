@@ -33,6 +33,9 @@ async function initApp() {
   if (loadingIndicator) loadingIndicator.classList.remove('hidden');
   if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
+  
+  // Автоматически импортируем настройки вебхуков, если они отсутствуют
+  await autoImportWebhooks();
 
   // Настраиваем обработчики событий
   setupEventListeners();
@@ -217,11 +220,85 @@ function updateLoadingStatus(message, isError = false) {
   console.log('Статус загрузки:', message);
 }
 
+// Функция для автоматического импорта настроек вебхуков
+async function autoImportWebhooks() {
+  console.log('Проверка наличия настроек вебхуков...');
+  const webhookSettingsStr = localStorage.getItem('webhookSettings');
+  
+  // Если настройки вебхуков не найдены, устанавливаем значения по умолчанию
+  if (!webhookSettingsStr) {
+    console.log('Настройки вебхуков не найдены, устанавливаем значения по умолчанию');
+    
+    const defaultWebhookSettings = {
+      exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
+      importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
+      getUrl: 'https://auto.crm-s.com/webhook-test/GetOnboardingHooks'
+    };
+    
+    // Сохраняем настройки в localStorage
+    localStorage.setItem('webhookSettings', JSON.stringify(defaultWebhookSettings));
+    localStorage.setItem('adminExportWebhook', defaultWebhookSettings.exportUrl);
+    localStorage.setItem('adminImportWebhook', defaultWebhookSettings.importUrl);
+    localStorage.setItem('adminGetWebhook', defaultWebhookSettings.getUrl);
+    
+    console.log('Установлены настройки вебхуков по умолчанию:');
+    console.log('- Import URL:', defaultWebhookSettings.importUrl);
+    console.log('- Export URL:', defaultWebhookSettings.exportUrl);
+    console.log('- Get URL:', defaultWebhookSettings.getUrl);
+    
+    // Обновляем интерфейс, если мы находимся на странице администратора
+    if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
+      window.adminInterface.loadWebhookSettings();
+    }
+    
+    return defaultWebhookSettings;
+  }
+  
+  try {
+    // Если настройки есть, проверяем их полноту
+    const settings = JSON.parse(webhookSettingsStr);
+    const updated = false;
+    
+    if (!settings.importUrl) {
+      settings.importUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
+      localStorage.setItem('adminImportWebhook', settings.importUrl);
+      updated = true;
+    }
+    
+    if (!settings.exportUrl) {
+      settings.exportUrl = 'https://auto.crm-s.com/webhook/SaveWebhooks';
+      localStorage.setItem('adminExportWebhook', settings.exportUrl);
+      updated = true;
+    }
+    
+    if (!settings.getUrl) {
+      settings.getUrl = 'https://auto.crm-s.com/webhook-test/GetOnboardingHooks';
+      localStorage.setItem('adminGetWebhook', settings.getUrl);
+      updated = true;
+    }
+    
+    if (updated) {
+      localStorage.setItem('webhookSettings', JSON.stringify(settings));
+      console.log('Обновлены недостающие настройки вебхуков');
+    } else {
+      console.log('Найдены все необходимые настройки вебхуков');
+    }
+    
+    return settings;
+  } catch (e) {
+    console.error('Ошибка при проверке настроек вебхуков:', e);
+    return null;
+  }
+}
+
 // Принудительная синхронизация с облаком (возвращает Promise)
 async function forceSyncWithCloud() {
   return new Promise(async (resolve, reject) => {
     console.log('Принудительная синхронизация с облаком...');
     updateLoadingStatus('Поиск URL для импорта данных...');
+    
+    // Сначала проверяем и импортируем настройки вебхуков
+    await autoImportWebhooks();
 
     // Проверяем наличие настроек вебхуков
     const webhookSettingsStr = localStorage.getItem('webhookSettings');
@@ -472,6 +549,9 @@ function setupCloudSyncInterval() {
 function syncWithCloud() {
   return new Promise(async (resolve) => {
     try {
+      // Сначала проверяем и импортируем настройки вебхуков
+      await autoImportWebhooks();
+      
       // Получаем URL вебхука
       const webhookSettingsStr = localStorage.getItem('webhookSettings');
       let importWebhookUrl = null;
