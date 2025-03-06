@@ -91,6 +91,162 @@ async function runDiagnostics() {
     const testValue = 'test_' + Date.now();
     
     // Пробуем записать в localStorage
+
+// Функция для тестирования запросов к вебхукам
+window.testWebhookRequest = async function(url) {
+  console.log(`Тестирование вебхук-запроса к URL: ${url}`);
+  
+  try {
+    // Создаем элемент для вывода результатов, если нужно отобразить на странице
+    let resultElement = document.getElementById('webhook-test-result');
+    if (!resultElement) {
+      resultElement = document.createElement('div');
+      resultElement.id = 'webhook-test-result';
+      resultElement.style.position = 'fixed';
+      resultElement.style.bottom = '10px';
+      resultElement.style.right = '10px';
+      resultElement.style.backgroundColor = 'rgba(0,0,0,0.8)';
+      resultElement.style.color = 'white';
+      resultElement.style.padding = '10px';
+      resultElement.style.borderRadius = '5px';
+      resultElement.style.maxWidth = '80%';
+      resultElement.style.maxHeight = '50%';
+      resultElement.style.overflow = 'auto';
+      resultElement.style.zIndex = '10000';
+      document.body.appendChild(resultElement);
+    }
+    
+    resultElement.innerHTML = `<h3>Тестирование вебхука</h3><p>URL: ${url}</p><p>Статус: Отправка запроса...</p>`;
+    
+    // Используем XMLHttpRequest для лучшей совместимости
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+    xhr.timeout = 15000; // 15 секунд таймаут
+    
+    const requestStart = Date.now();
+    
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 1) {
+        console.log('Запрос открыт');
+        resultElement.innerHTML += `<p>Запрос открыт</p>`;
+      } else if (xhr.readyState === 2) {
+        console.log('Заголовки получены');
+        resultElement.innerHTML += `<p>Заголовки получены</p>`;
+      } else if (xhr.readyState === 3) {
+        console.log('Загрузка данных...');
+        resultElement.innerHTML += `<p>Загрузка данных...</p>`;
+      } else if (xhr.readyState === 4) {
+        const requestTime = Date.now() - requestStart;
+        console.log(`Запрос завершен за ${requestTime}ms`);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          console.log(`Успешный ответ: ${xhr.status}`);
+          const responseSize = xhr.responseText.length;
+          console.log(`Размер ответа: ${responseSize} байт`);
+          
+          resultElement.innerHTML += `
+            <p style="color: #4CAF50;">✓ Успешный ответ: ${xhr.status}</p>
+            <p>Время запроса: ${requestTime}ms</p>
+            <p>Размер ответа: ${responseSize} байт</p>
+            <details>
+              <summary>Посмотреть начало ответа</summary>
+              <pre style="max-height: 200px; overflow: auto; background: #333; padding: 10px;">${xhr.responseText.substring(0, 500)}${responseSize > 500 ? '...' : ''}</pre>
+            </details>
+          `;
+          
+          // Пытаемся распарсить JSON
+          try {
+            const jsonData = JSON.parse(xhr.responseText);
+            console.log('JSON успешно распарсен, структура:', Object.keys(jsonData));
+            
+            resultElement.innerHTML += `
+              <p style="color: #4CAF50;">✓ JSON успешно распарсен</p>
+              <p>Найденные поля: ${Object.keys(jsonData).join(', ')}</p>
+            `;
+          } catch (e) {
+            console.log('Не удалось распарсить ответ как JSON:', e.message);
+            resultElement.innerHTML += `
+              <p style="color: #FFC107;">⚠ Не удалось распарсить как JSON: ${e.message}</p>
+            `;
+            
+            // Пытаемся найти JSON в тексте
+            try {
+              const jsonRegex = /{[\s\S]*}/;
+              const match = xhr.responseText.match(jsonRegex);
+              
+              if (match && match[0]) {
+                try {
+                  const jsonData = JSON.parse(match[0]);
+                  console.log('JSON найден в ответе, структура:', Object.keys(jsonData));
+                  
+                  resultElement.innerHTML += `
+                    <p style="color: #4CAF50;">✓ JSON найден в тексте ответа</p>
+                    <p>Найденные поля: ${Object.keys(jsonData).join(', ')}</p>
+                  `;
+                } catch (e2) {
+                  console.log('Не удалось распарсить найденный JSON:', e2.message);
+                }
+              }
+            } catch (e2) {
+              console.log('Ошибка при поиске JSON в тексте:', e2.message);
+            }
+          }
+        } else {
+          console.error(`Ошибка HTTP: ${xhr.status}`);
+          resultElement.innerHTML += `
+            <p style="color: #F44336;">✗ Ошибка HTTP: ${xhr.status}</p>
+            <p>Время запроса: ${requestTime}ms</p>
+          `;
+        }
+      }
+    };
+    
+    xhr.onerror = function(e) {
+      console.error('Ошибка сети при отправке запроса:', e);
+      resultElement.innerHTML += `
+        <p style="color: #F44336;">✗ Ошибка сети при отправке запроса</p>
+      `;
+    };
+    
+    xhr.ontimeout = function() {
+      console.error('Таймаут при отправке запроса');
+      resultElement.innerHTML += `
+        <p style="color: #F44336;">✗ Таймаут запроса (>15 секунд)</p>
+      `;
+    };
+    
+    // Добавляем кнопку закрытия
+    resultElement.innerHTML += `
+      <button onclick="this.parentNode.style.display='none'" style="margin-top: 10px; padding: 5px 10px; background: #666; border: none; color: white; border-radius: 3px; cursor: pointer;">Закрыть</button>
+    `;
+    
+    // Отправляем запрос
+    xhr.send();
+    
+    return new Promise((resolve, reject) => {
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText);
+        } else {
+          reject(new Error(`HTTP ошибка! Статус: ${xhr.status}`));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('Ошибка сети при запросе'));
+      };
+      
+      xhr.ontimeout = function() {
+        reject(new Error('Таймаут запроса'));
+      };
+    });
+  } catch (error) {
+    console.error('Ошибка при тестировании вебхука:', error);
+    return null;
+  }
+};
+
     localStorage.setItem(testKey, testValue);
     
     // Пробуем прочитать из localStorage

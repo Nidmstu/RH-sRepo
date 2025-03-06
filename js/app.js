@@ -39,7 +39,7 @@ async function getWebhookEndpoints() {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', getWebhooksUrl, true);
     xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-    xhr.timeout = 10000; // 10 секунд таймаут
+    xhr.timeout = 15000; // 15 секунд таймаут
     
     return new Promise((resolve, reject) => {
       xhr.onload = function() {
@@ -50,17 +50,30 @@ async function getWebhookEndpoints() {
             const responseText = xhr.responseText;
             console.log('Получен ответ от сервера, размер:', responseText.length, 'байт');
             
-            // Пытаемся распарсить JSON
+            // Пытаемся распарсить JSON с учетом возможного двойного экранирования
             let data;
             try {
+              // Сначала пробуем напрямую распарсить
               data = JSON.parse(responseText);
             } catch (e) {
-              // Если не получается распарсить напрямую, ищем JSON в тексте
+              // Если не получается, проверяем, является ли ответ строкой с JSON внутри
+              console.log('Raw response:', JSON.stringify(responseText.substring(0, 500)) + (responseText.length > 500 ? '...[TRUNCATED]' : ''));
+              
               try {
-                const jsonRegex = /{[\s\S]*}/;
-                const match = responseText.match(jsonRegex);
-                if (match && match[0]) {
-                  data = JSON.parse(match[0]);
+                // Проверяем, начинается ли строка с кавычки и содержит ли JSON
+                if (responseText.trim().startsWith('"') && responseText.includes('\\\"')) {
+                  // Это строка с экранированным JSON внутри
+                  const unescapedJson = JSON.parse(responseText);
+                  data = JSON.parse(unescapedJson);
+                  console.log('Успешно распарсен JSON из экранированной строки');
+                } else {
+                  // Ищем JSON в тексте
+                  const jsonRegex = /{[\s\S]*}/;
+                  const match = responseText.match(jsonRegex);
+                  if (match && match[0]) {
+                    data = JSON.parse(match[0]);
+                    console.log('Успешно распарсен JSON из полного ответа');
+                  }
                 }
               } catch (e2) {
                 console.error('Не удалось распарсить JSON из ответа:', e2);
@@ -68,6 +81,7 @@ async function getWebhookEndpoints() {
             }
             
             if (data) {
+              console.log('Корневой объект используется как структура курсов');
               // Сохраняем адреса вебхуков
               saveWebhookSettings(data);
               showLoadingStatus('Настройки вебхуков получены');
@@ -130,9 +144,45 @@ function saveWebhookSettings(data) {
     // Проверяем разные форматы данных
     if (data.ImportSettingsWebhookGet) {
       importUrl = data.ImportSettingsWebhookGet;
+      console.log('Найден URL для импорта:', importUrl);
     }
     if (data.ExportSettingsWebhookPost) {
       exportUrl = data.ExportSettingsWebhookPost;
+      console.log('Найден URL для экспорта:', exportUrl);
+    }
+    
+    // Проверяем альтернативные форматы данных
+    if (!importUrl && !exportUrl) {
+      // Проверка на другие возможные имена полей
+      const possibleFieldNames = [
+        'importUrl', 'exportUrl', 'importWebhook', 'exportWebhook',
+        'importEndpoint', 'exportEndpoint', 'getUrl', 'postUrl'
+      ];
+      
+      for (const field of possibleFieldNames) {
+        if (data[field]) {
+          if (field.toLowerCase().includes('import') || field.toLowerCase().includes('get')) {
+            importUrl = data[field];
+            console.log(`Найден URL для импорта в поле ${field}:`, importUrl);
+          } else if (field.toLowerCase().includes('export') || field.toLowerCase().includes('post')) {
+            exportUrl = data[field];
+            console.log(`Найден URL для экспорта в поле ${field}:`, exportUrl);
+          }
+        }
+      }
+    }
+    
+    // Проверяем на наличие URL в структуре объекта
+    if (!importUrl && data.webhooks && Array.isArray(data.webhooks)) {
+      data.webhooks.forEach(webhook => {
+        if (webhook.type === 'import' || webhook.id === 'import_courses_hook') {
+          importUrl = webhook.url;
+          console.log('Найден URL для импорта в структуре webhooks:', importUrl);
+        } else if (webhook.type === 'export' || webhook.id === 'export_courses_hook') {
+          exportUrl = webhook.url;
+          console.log('Найден URL для экспорта в структуре webhooks:', exportUrl);
+        }
+      });
     }
     
     // Если нашли URL, сохраняем их
@@ -144,13 +194,23 @@ function saveWebhookSettings(data) {
       };
       
       localStorage.setItem('webhookSettings', JSON.stringify(settings));
-      localStorage.setItem('importWebhookUrl', importUrl); // Для совместимости
+      
+      // Для совместимости с разными частями приложения
+      if (importUrl) localStorage.setItem('importWebhookUrl', importUrl);
+      if (exportUrl) localStorage.setItem('exportWebhookUrl', exportUrl);
       
       console.log('Настройки вебхуков сохранены:', settings);
+      
+      // Обновляем статус загрузки
+      showLoadingStatus('Настройки вебхуков успешно сохранены');
       return true;
+    } else {
+      console.warn('В полученных данных не найдены URL для вебхуков');
+      showLoadingStatus('В ответе нет URL вебхуков', 'warning');
     }
   } catch (e) {
     console.error('Ошибка при сохранении настроек вебхуков:', e);
+    showLoadingStatus('Ошибка при сохранении настроек вебхуков: ' + e.message, 'error');
   }
   return false;
 }
