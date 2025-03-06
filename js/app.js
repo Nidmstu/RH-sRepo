@@ -232,7 +232,7 @@ async function autoImportWebhooks() {
     const defaultWebhookSettings = {
       exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
       importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
-      getUrl: 'https://auto.crm-s.com/webhook-test/GetOnboardingHooks'
+      getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
     };
     
     // Сохраняем настройки в localStorage
