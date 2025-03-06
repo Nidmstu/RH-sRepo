@@ -201,6 +201,7 @@ class AdminInterface {
                   <select id="admin-audio-source-type" class="admin-select">
                     <option value="none">Нет</option>
                     <option value="soundcloud">SoundCloud</option>
+                    <option value="embed">Произвольный HTML embed</option>
                   </select>
                 </div>
 
@@ -212,6 +213,13 @@ class AdminInterface {
                   <div class="admin-form-group">
                     <label for="admin-audio-track-url">URL трека:</label>
                     <input type="text" id="admin-audio-track-url" class="admin-input" placeholder="https://soundcloud.com/username/track-name">
+                  </div>
+                </div>
+                
+                <div id="admin-audio-embed-fields" class="hidden">
+                  <div class="admin-form-group">
+                    <label for="admin-audio-embed-code">HTML-код для встраивания:</label>
+                    <textarea id="admin-audio-embed-code" class="admin-textarea" rows="6" placeholder="<iframe src='https://example.com/embed' ...></iframe>"></textarea>
                   </div>
                 </div>
               </div>
@@ -2205,6 +2213,7 @@ class AdminInterface {
   importJsonFromTextarea() {
     const jsonTextarea = document.getElementById('json-import-content');
     const importJsonModal = document.getElementById('import-json-modal');
+    const fragmentTypeSelect = document.getElementById('fragment-type-select');
     
     if (!jsonTextarea || !jsonTextarea.value.trim()) {
       alert('Пожалуйста, введите JSON данные для импорта');
@@ -2218,6 +2227,15 @@ class AdminInterface {
       // Проверяем, что это объект
       if (typeof jsonData !== 'object' || jsonData === null || Array.isArray(jsonData)) {
         throw new Error('JSON должен быть объектом');
+      }
+      
+      // Проверяем тип импорта (все данные или только конкретные фрагменты)
+      const importType = fragmentTypeSelect ? fragmentTypeSelect.value : 'all';
+      
+      // Если тип импорта - только аудио, то обрабатываем особым образом
+      if (importType === 'audio') {
+        this.importAudioFromJson(jsonData);
+        return;
       }
       
       // Проверяем, что в JSON есть хотя бы один курс
@@ -2290,6 +2308,125 @@ class AdminInterface {
       console.error('Ошибка при импорте JSON:', error);
       alert(`Ошибка при импорте JSON: ${error.message}`);
     }
+  }
+  
+  /**
+   * Импорт данных аудио из JSON
+   */
+  importAudioFromJson(jsonData) {
+    try {
+      if (!this.currentEditing.course) {
+        alert('Сначала выберите курс для импорта аудио');
+        return;
+      }
+      
+      console.log('Импорт аудио из JSON:', jsonData);
+      
+      let importedCount = 0;
+      
+      // Проходим по всем курсам в JSON
+      for (const courseId in jsonData) {
+        const course = jsonData[courseId];
+        
+        // Проходим по всем дням
+        if (course.days && Array.isArray(course.days)) {
+          course.days.forEach(day => {
+            if (day.lessons && Array.isArray(day.lessons)) {
+              day.lessons.forEach(lesson => {
+                if (lesson.id && lesson.audioSource) {
+                  // Ищем соответствующий урок в текущем курсе
+                  this.importAudioToLesson(lesson.id, lesson.audioSource);
+                  importedCount++;
+                }
+              });
+            }
+          });
+        }
+        
+        // Проходим по специальным урокам
+        if (course.specialLessons && Array.isArray(course.specialLessons)) {
+          course.specialLessons.forEach(lesson => {
+            if (lesson.id && lesson.audioSource) {
+              this.importAudioToLesson(lesson.id, lesson.audioSource, true);
+              importedCount++;
+            }
+          });
+        }
+        
+        // Проходим по урокам без дня
+        if (course.noDayLessons && Array.isArray(course.noDayLessons)) {
+          course.noDayLessons.forEach(lesson => {
+            if (lesson.id && lesson.audioSource) {
+              this.importAudioToLesson(lesson.id, lesson.audioSource, false, true);
+              importedCount++;
+            }
+          });
+        }
+      }
+      
+      // Сохраняем изменения
+      this.saveCoursesToJSON();
+      
+      // Обновляем интерфейс
+      this.loadCoursesList();
+      
+      // Сообщаем о результате
+      alert(`Успешно импортировано аудио для ${importedCount} уроков`);
+      
+      // Закрываем модальное окно
+      const importJsonModal = document.getElementById('import-json-modal');
+      if (importJsonModal) {
+        importJsonModal.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Ошибка при импорте аудио:', error);
+      alert(`Ошибка при импорте аудио: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Импорт аудио в конкретный урок
+   */
+  importAudioToLesson(lessonId, audioSource, isSpecial = false, isNoDay = false) {
+    let lessonFound = false;
+    
+    // Ищем урок в зависимости от его типа
+    if (isSpecial && this.currentEditing.course.specialLessons) {
+      // Ищем в специальных уроках
+      const lessonIndex = this.currentEditing.course.specialLessons.findIndex(l => l.id === lessonId);
+      if (lessonIndex !== -1) {
+        this.currentEditing.course.specialLessons[lessonIndex].audioSource = audioSource;
+        console.log(`Импортировано аудио для специального урока ${lessonId}:`, audioSource);
+        lessonFound = true;
+      }
+    } else if (isNoDay && this.currentEditing.course.noDayLessons) {
+      // Ищем в уроках без дня
+      const lessonIndex = this.currentEditing.course.noDayLessons.findIndex(l => l.id === lessonId);
+      if (lessonIndex !== -1) {
+        this.currentEditing.course.noDayLessons[lessonIndex].audioSource = audioSource;
+        console.log(`Импортировано аудио для урока без дня ${lessonId}:`, audioSource);
+        lessonFound = true;
+      }
+    } else if (this.currentEditing.course.days) {
+      // Ищем в обычных уроках
+      for (const day of this.currentEditing.course.days) {
+        if (day.lessons) {
+          const lessonIndex = day.lessons.findIndex(l => l.id === lessonId);
+          if (lessonIndex !== -1) {
+            day.lessons[lessonIndex].audioSource = audioSource;
+            console.log(`Импортировано аудио для урока ${lessonId} в дне ${day.id}:`, audioSource);
+            lessonFound = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (!lessonFound) {
+      console.warn(`Урок с ID ${lessonId} не найден в текущем курсе`);
+    }
+    
+    return lessonFound;
   }
   
   /**
@@ -2830,12 +2967,15 @@ class AdminInterface {
 
     // Аудио
     if (lesson.audioSource) {
-      document.getElementById('admin-audio-source-type').value = lesson.audioSource.type || 'none';
-      this.toggleSourceFields('audio', lesson.audioSource.type);
+      const audioType = lesson.audioSource.type || 'none';
+      document.getElementById('admin-audio-source-type').value = audioType;
+      this.toggleSourceFields('audio', audioType);
 
-      if (lesson.audioSource.type === 'soundcloud') {
+      if (audioType === 'soundcloud') {
         document.getElementById('admin-audio-account-url').value = lesson.audioSource.url || '';
         document.getElementById('admin-audio-track-url').value = lesson.audioSource.trackUrl || '';
+      } else if (audioType === 'embed') {
+        document.getElementById('admin-audio-embed-code').value = lesson.audioSource.embedCode || '';
       }
     } else {
       document.getElementById('admin-audio-source-type').value = 'none';
@@ -2927,6 +3067,8 @@ class AdminInterface {
       if (audioSourceType === 'soundcloud') {
         lessonData.audioSource.url = document.getElementById('admin-audio-account-url').value;
         lessonData.audioSource.trackUrl = document.getElementById('admin-audio-track-url').value;
+      } else if (audioSourceType === 'embed') {
+        lessonData.audioSource.embedCode = document.getElementById('admin-audio-embed-code').value;
       }
     }
 

@@ -33,7 +33,7 @@ async function initApp() {
   if (loadingIndicator) loadingIndicator.classList.remove('hidden');
   if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
-  
+
   // Автоматически импортируем настройки вебхуков, если они отсутствуют
   await autoImportWebhooks();
 
@@ -224,72 +224,72 @@ function updateLoadingStatus(message, isError = false) {
 async function autoImportWebhooks() {
   console.log('Проверка наличия настроек вебхуков...');
   const webhookSettingsStr = localStorage.getItem('webhookSettings');
-  
+
   // Если настройки вебхуков не найдены, устанавливаем значения по умолчанию
   if (!webhookSettingsStr) {
     console.log('Настройки вебхуков не найдены, устанавливаем значения по умолчанию');
-    
+
     const defaultWebhookSettings = {
       exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
       importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
       getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
     };
-    
+
     // Сохраняем настройки в localStorage
     localStorage.setItem('webhookSettings', JSON.stringify(defaultWebhookSettings));
     localStorage.setItem('adminExportWebhook', defaultWebhookSettings.exportUrl);
     localStorage.setItem('adminImportWebhook', defaultWebhookSettings.importUrl);
     localStorage.setItem('adminGetWebhook', defaultWebhookSettings.getUrl);
-    
+
     console.log('Установлены настройки вебхуков по умолчанию:');
     console.log('- Import URL:', defaultWebhookSettings.importUrl);
     console.log('- Export URL:', defaultWebhookSettings.exportUrl);
     console.log('- Get URL:', defaultWebhookSettings.getUrl);
-    
+
     // Обновляем интерфейс, если мы находимся на странице администратора
     if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
       window.adminInterface.loadWebhookSettings();
     }
-    
+
     // Импортируем вебхуки с сервера по умолчанию
     await importWebhooksFromServer(defaultWebhookSettings.getUrl);
-    
+
     return defaultWebhookSettings;
   }
-  
+
   try {
     // Если настройки есть, проверяем их полноту
     const settings = JSON.parse(webhookSettingsStr);
     let updated = false;
-    
+
     if (!settings.importUrl) {
       settings.importUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
       localStorage.setItem('adminImportWebhook', settings.importUrl);
       updated = true;
     }
-    
+
     if (!settings.exportUrl) {
       settings.exportUrl = 'https://auto.crm-s.com/webhook/SaveWebhooks';
       localStorage.setItem('adminExportWebhook', settings.exportUrl);
       updated = true;
     }
-    
+
     if (!settings.getUrl) {
       settings.getUrl = 'https://auto.crm-s.com/webhook-test/GetOnboardingHooks';
       localStorage.setItem('adminGetWebhook', settings.getUrl);
       updated = true;
     }
-    
+
     if (updated) {
       localStorage.setItem('webhookSettings', JSON.stringify(settings));
       console.log('Обновлены недостающие настройки вебхуков');
     } else {
       console.log('Найдены все необходимые настройки вебхуков');
     }
-    
+
     // Автоматически импортируем вебхуки с сервера
     await importWebhooksFromServer(settings.getUrl);
-    
+
     return settings;
   } catch (e) {
     console.error('Ошибка при проверке настроек вебхуков:', e);
@@ -303,10 +303,10 @@ async function importWebhooksFromServer(url) {
     console.log('URL для получения вебхуков не указан, пропускаем импорт');
     return;
   }
-  
+
   console.log(`Автоматический импорт вебхуков с URL: ${url}`);
   updateLoadingStatus('Получение настроек вебхуков...');
-  
+
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -316,30 +316,30 @@ async function importWebhooksFromServer(url) {
       },
       cache: 'no-store'
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ошибка! Статус: ${response.status}`);
     }
-    
+
     const responseText = await response.text();
     console.log(`Получен ответ с вебхуками (${responseText.length} символов)`);
-    
+
     try {
       // Пытаемся распарсить как JSON
       const jsonData = JSON.parse(responseText);
-      
+
       // Обрабатываем полученные данные вебхуков
       processWebhooksData(jsonData);
-      
+
       updateLoadingStatus('Настройки вебхуков успешно импортированы');
       return true;
     } catch (jsonError) {
       console.error('Ошибка при парсинге JSON с вебхуками:', jsonError);
-      
+
       // Пытаемся найти JSON в тексте
       const jsonRegex = /{[\s\S]*}/;
       const match = responseText.match(jsonRegex);
-      
+
       if (match && match[0]) {
         try {
           const extractedData = JSON.parse(match[0]);
@@ -350,24 +350,24 @@ async function importWebhooksFromServer(url) {
           console.error('Ошибка при извлечении JSON из текста:', e);
         }
       }
-      
+
       // Пытаемся найти URL в тексте
       const urlRegex = /(https?:\/\/[^\s"]+)/g;
       const urls = responseText.match(urlRegex);
-      
+
       if (urls && urls.length > 0) {
         console.log(`Найдено ${urls.length} URL в ответе`);
-        
+
         // Сохраняем первый найденный URL как URL импорта
         if (urls.length > 0) {
           localStorage.setItem('adminImportWebhook', urls[0]);
           console.log(`Установлен URL импорта из текста: ${urls[0]}`);
-          
+
           // Обновляем также в настройках
           const settings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
           settings.importUrl = urls[0];
           localStorage.setItem('webhookSettings', JSON.stringify(settings));
-          
+
           updateLoadingStatus('URL импорта установлен из текстового ответа');
           return true;
         }
@@ -386,11 +386,11 @@ function processWebhooksData(data) {
     console.log('Обработка данных вебхуков:', Object.keys(data));
     let updated = false;
     let settings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
-    
+
     // 1. Если есть webhooks массив
     if (data.webhooks && Array.isArray(data.webhooks)) {
       console.log(`Найдено ${data.webhooks.length} вебхуков в массиве webhooks`);
-      
+
       // Ищем вебхуки по типу или ID
       for (const webhook of data.webhooks) {
         if (webhook.url) {
@@ -414,7 +414,7 @@ function processWebhooksData(data) {
         }
       }
     }
-    
+
     // 2. Если данные содержат прямые поля с URL
     if (data.exportUrl) {
       settings.exportUrl = data.exportUrl;
@@ -422,7 +422,7 @@ function processWebhooksData(data) {
       console.log(`Установлен URL экспорта: ${data.exportUrl}`);
       updated = true;
     }
-    
+
     if (data.importUrl) {
       settings.importUrl = data.importUrl;
       localStorage.setItem('adminImportWebhook', data.importUrl);
@@ -430,19 +430,19 @@ function processWebhooksData(data) {
       console.log(`Установлен URL импорта: ${data.importUrl}`);
       updated = true;
     }
-    
+
     if (data.getWebhooksUrl) {
       settings.getUrl = data.getWebhooksUrl;
       localStorage.setItem('adminGetWebhook', data.getWebhooksUrl);
       console.log(`Установлен URL получения вебхуков: ${data.getWebhooksUrl}`);
       updated = true;
     }
-    
+
     // 3. Если в данных есть URL в других форматах
     const foundUrls = findUrlsInObject(data);
     if (foundUrls.length > 0) {
       console.log(`Найдено ${foundUrls.length} URL-адресов в данных`);
-      
+
       // Автоматически устанавливаем URL, если можем определить их тип
       foundUrls.forEach(urlInfo => {
         if (urlInfo.type === 'export') {
@@ -464,12 +464,12 @@ function processWebhooksData(data) {
         }
       });
     }
-    
+
     if (updated) {
       // Сохраняем обновленные настройки
       localStorage.setItem('webhookSettings', JSON.stringify(settings));
       console.log('Настройки вебхуков обновлены из полученных данных');
-      
+
       // Обновляем интерфейс, если мы находимся на странице администратора
       if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
         window.adminInterface.loadWebhookSettings();
@@ -483,18 +483,18 @@ function processWebhooksData(data) {
 // Рекурсивный поиск URL в объекте
 function findUrlsInObject(obj, path = '', results = []) {
   if (!obj || typeof obj !== 'object') return results;
-  
+
   // Обрабатываем все свойства объекта
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       const currentPath = path ? `${path}.${key}` : key;
-      
+
       // Если значение - строка, проверяем, является ли оно URL
       if (typeof value === 'string' && isValidUrl(value)) {
         // Определяем тип URL на основе ключа и содержимого
         let type = 'unknown';
-        
+
         if (key.toLowerCase().includes('export') || value.toLowerCase().includes('export') ||
             key.toLowerCase().includes('save') || value.toLowerCase().includes('save')) {
           type = 'export';
@@ -505,7 +505,7 @@ function findUrlsInObject(obj, path = '', results = []) {
                   key.toLowerCase().includes('notification') || value.toLowerCase().includes('notification')) {
           type = 'get';
         }
-        
+
         results.push({
           url: value,
           path: currentPath,
@@ -518,7 +518,7 @@ function findUrlsInObject(obj, path = '', results = []) {
       }
     }
   }
-  
+
   return results;
 }
 
@@ -537,7 +537,7 @@ async function forceSyncWithCloud() {
   return new Promise(async (resolve, reject) => {
     console.log('Принудительная синхронизация с облаком...');
     updateLoadingStatus('Поиск URL для импорта данных...');
-    
+
     // Сначала проверяем и импортируем настройки вебхуков
     await autoImportWebhooks();
 
@@ -792,7 +792,7 @@ function syncWithCloud() {
     try {
       // Сначала проверяем и импортируем настройки вебхуков
       await autoImportWebhooks();
-      
+
       // Получаем URL вебхука
       const webhookSettingsStr = localStorage.getItem('webhookSettings');
       let importWebhookUrl = null;
@@ -1528,32 +1528,7 @@ window.selectLesson = function(lessonId) {
   // Проверяем и отображаем аудио для урока
   const audioInfo = courseManager.getAudioInfo();
   if (audioInfo) {
-    // Логика отображения соответствующего аудио
-    if (lessonId === 'vocabulary') {
-      const vocabAudio = document.getElementById('audio-vocabulary');
-      if (vocabAudio) {
-        vocabAudio.classList.remove('hidden');
-        // Обновляем источник аудио, если он изменился
-        if (audioInfo.trackUrl) {
-          const iframe = vocabAudio.querySelector('iframe');
-          if (iframe && iframe.src !== audioInfo.trackUrl) {
-            iframe.src = audioInfo.trackUrl;
-          }
-        }
-      }
-    } else if (lessonId === 'what-prompting-is') {
-      const firstLessonAudio = document.getElementById('audio-first-lesson');
-      if (firstLessonAudio) {
-        firstLessonAudio.classList.remove('hidden');
-        // Обновляем источник аудио, если он изменился
-        if (audioInfo.trackUrl) {
-          const iframe = firstLessonAudio.querySelector('iframe');
-          if (iframe && iframe.src !== audioInfo.trackUrl) {
-            iframe.src = audioInfo.trackUrl;
-          }
-        }
-      }
-    }
+    showAudioForLesson(lesson);
   }
 
   // Показываем страницу гайда и загружаем контент
@@ -1735,15 +1710,22 @@ window.goBackToTaskSelection = function() {
 
 // Скрыть все аудио
 function hideAllAudio() {
-  const audioIds = [
-    'audio-first-lesson',
-    'audio-vocabulary'
-  ];
-  audioIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-  });
-}
+    const audioIds = [
+      "audio-first-lesson",
+      "audio-vocabulary",
+      "audio-embed"
+    ];
+    audioIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add("hidden");
+        // Очищаем embed-контейнер для предотвращения проблем
+        if (id === "audio-embed") {
+          el.innerHTML = '';
+        }
+      }
+    });
+  }
 
 // Показать определенную секцию
 function showSection(id) {
@@ -1788,7 +1770,7 @@ function createCollapsibleBlocks(markdown) {
       }
     }
   }
-  
+
   // Обрабатываем последний блок
   if (inLevel1) {
     htmlOutput += renderLevel1Block(currentLevel1Title, currentLevel1Content.join("\n"));
@@ -1796,7 +1778,7 @@ function createCollapsibleBlocks(markdown) {
     // Если не были найдены заголовки, просто преобразуем весь markdown
     htmlOutput = marked.parse(markdown);
   }
-  
+
   return htmlOutput;
 }
 
@@ -1828,19 +1810,19 @@ function renderLevel1Block(title, content) {
       }
     }
   }
-  
+
   // Обрабатываем последний подблок, если он есть
   if (currentSubTitle) {
     subBlocksHtml += renderLevel2Block(currentSubTitle, currentSubContent.join("\n"));
   }
-  
+
   // Парсим преамбулу (текст между заголовком первого уровня и первым заголовком второго уровня)
   if (preambleLines.length) {
     html += marked.parse(preambleLines.join("\n"));
   }
-  
+
   html += subBlocksHtml;
-  
+
   return `<details>
   <summary>${title}</summary>
   <div>${html}</div>
@@ -1875,19 +1857,19 @@ function renderLevel2Block(title, content) {
       }
     }
   }
-  
+
   // Обрабатываем последний подблок третьего уровня, если он есть
   if (currentSubTitle) {
     subBlocksHtml += renderLevel3Block(currentSubTitle, currentSubContent.join("\n"));
   }
-  
+
   // Парсим преамбулу (текст между заголовком второго уровня и первым заголовком третьего уровня)
   if (preambleLines.length) {
     html += marked.parse(preambleLines.join("\n"));
   }
-  
+
   html += subBlocksHtml;
-  
+
   return `<details style="margin-left:20px;">
   <summary>${title}</summary>
   <div>${html}</div>
@@ -1998,3 +1980,46 @@ function updateVocabularyButton() {
     console.log('Создана стандартная кнопка словаря (specialLessons не найден)');
   }
 }
+
+// Определяем, какое аудио отображать
+  function showAudioForLesson(lesson) {
+    // Сначала скрываем все аудио
+    hideAllAudio();
+
+    if (!lesson) return;
+
+    // Проверяем, есть ли у урока аудио
+    if (lesson.audioSource) {
+      const audioType = lesson.audioSource.type;
+
+      // Для SoundCloud
+      if (audioType === 'soundcloud') {
+        const audioVocabulary = document.getElementById('audio-vocabulary');
+        if (audioVocabulary) {
+          // Обновляем iframe с правильным URL
+          const iframe = audioVocabulary.querySelector('iframe');
+          if (iframe && lesson.audioSource.trackUrl) {
+            iframe.src = lesson.audioSource.trackUrl;
+          }
+
+          // Обновляем ссылки
+          const links = audioVocabulary.querySelectorAll('a');
+          if (links.length >= 1 && lesson.audioSource.url) {
+            links[0].href = lesson.audioSource.url;
+          }
+
+          audioVocabulary.classList.remove('hidden');
+        }
+      }
+      // Для произвольного embed-кода
+      else if (audioType === 'embed' && lesson.audioSource.embedCode) {
+        const audioEmbed = document.getElementById('audio-embed');
+        if (audioEmbed) {
+          // Вставляем произвольный HTML-код
+          audioEmbed.innerHTML = lesson.audioSource.embedCode;
+          audioEmbed.classList.remove('hidden');
+        }
+      }
+      // Можно добавить другие типы аудио в будущем
+    }
+  }
