@@ -1399,15 +1399,15 @@
               </button>
               <pre id="json-template" style="max-height: 300px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px;">{
   "course-id": {
-    "title": "Название курса",
+    "title": "Course Title",
     "days": [
       {
         "id": 1,
-        "title": "День 1",
+        "title": "Day 1",
         "lessons": [
           {
             "id": "lesson-id-1",
-            "title": "Название урока",
+            "title": "Lesson Title",
             "contentSource": {
               "type": "webhook",
               "url": "https://example.com/api/content",
@@ -1420,7 +1420,7 @@
             },
             "taskSource": {
               "type": "markdown",
-              "content": "# Задание\n\nОписание задания..."
+              "content": "# Task\n\nTask description..."
             },
             "audioSource": {
               "type": "soundcloud",
@@ -1434,7 +1434,7 @@
     "specialLessons": [
       {
         "id": "vocabulary",
-        "title": "Словарь",
+        "title": "Vocabulary",
         "contentSource": {
           "type": "webhook",
           "url": "https://example.com/api/vocabulary"
@@ -1444,10 +1444,10 @@
     "noDayLessons": [
       {
         "id": "reference",
-        "title": "Справочник",
+        "title": "Reference",
         "contentSource": {
           "type": "markdown",
-          "content": "# Справочник\n\nСодержимое справочника..."
+          "content": "# Reference\n\nReference content..."
         }
       }
     ]
