@@ -1392,9 +1392,12 @@
         <textarea id="json-import-content" class="admin-textarea" style="width: 100%; min-height: 300px; font-family: monospace; font-size: 14px;"></textarea>
 
         <div style="margin-top: 20px;">
-          <h4>Шаблон структуры JSON:</h4>
-          <div class="json-example" style="margin-top: 10px;">
-            <pre style="max-height: 300px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px;">{
+            <h4>Шаблон структуры JSON:</h4>
+            <div class="json-example" style="margin-top: 10px; position: relative;">
+              <button id="copy-json-template" class="admin-btn admin-btn-sm" style="position: absolute; top: 5px; right: 5px; z-index: 10; background-color: #f8f9fa; border: 1px solid #ddd;">
+                <i class="fas fa-copy"></i> Копировать
+              </button>
+              <pre id="json-template" style="max-height: 300px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px;">{
   "course-id": {
     "title": "Название курса",
     "days": [
@@ -1450,8 +1453,8 @@
     ]
   }
 }</pre>
+            </div>
           </div>
-        </div>
       </div>
       <div class="admin-modal-footer">
         <button id="import-json-btn" class="admin-btn admin-btn-primary">Импортировать</button>
@@ -1499,6 +1502,23 @@
         const modal = document.getElementById(modalId);
         modal.style.display = 'none';
       }
+
+      //Добавляем обработчик события для кнопки копирования
+      const copyJsonButton = document.getElementById('copy-json-template');
+      const jsonTemplate = document.getElementById('json-template');
+
+      copyJsonButton.addEventListener('click', () => {
+        navigator.clipboard.writeText(jsonTemplate.textContent)
+          .then(() => {
+            // Успешное копирование
+            alert('Шаблон JSON скопирован в буфер обмена!');
+          })
+          .catch(err => {
+            // Обработка ошибок
+            console.error('Ошибка при копировании в буфер обмена:', err);
+            alert('Ошибка при копировании шаблона JSON!');
+          });
+      });
     });
 
     // Определяем closeModal как глобальную функцию для доступа из атрибутов onclick

@@ -1117,6 +1117,43 @@ class AdminInterface {
       });
     }
     
+    // Обработчик для кнопки копирования шаблона JSON
+    const copyJsonTemplateBtn = document.getElementById('copy-json-template');
+    if (copyJsonTemplateBtn) {
+      copyJsonTemplateBtn.addEventListener('click', () => {
+        const templateElement = document.getElementById('json-template');
+        if (templateElement) {
+          try {
+            // Используем современный API буфера обмена
+            navigator.clipboard.writeText(templateElement.textContent)
+              .then(() => {
+                // Изменяем текст кнопки для обратной связи
+                const originalText = copyJsonTemplateBtn.innerHTML;
+                copyJsonTemplateBtn.innerHTML = '<i class="fas fa-check"></i> Скопировано';
+                copyJsonTemplateBtn.style.backgroundColor = '#d4edda';
+                copyJsonTemplateBtn.style.borderColor = '#c3e6cb';
+                
+                // Восстанавливаем исходный текст через 2 секунды
+                setTimeout(() => {
+                  copyJsonTemplateBtn.innerHTML = originalText;
+                  copyJsonTemplateBtn.style.backgroundColor = '';
+                  copyJsonTemplateBtn.style.borderColor = '';
+                }, 2000);
+              })
+              .catch(err => {
+                console.error('Не удалось скопировать текст: ', err);
+                // Альтернативный способ копирования для старых браузеров
+                this.fallbackCopyTextToClipboard(templateElement.textContent);
+              });
+          } catch (e) {
+            console.error('Ошибка при копировании: ', e);
+            // Альтернативный способ копирования для старых браузеров
+            this.fallbackCopyTextToClipboard(templateElement.textContent);
+          }
+        }
+      });
+    }
+    
     // Экспорт всех данных на вебхук
     const webhookExportBtn = document.getElementById('admin-webhook-export');
     if (webhookExportBtn) {
@@ -4287,6 +4324,57 @@ class AdminInterface {
     return results;
   }
   
+  /**
+   * Запасной метод копирования для браузеров без поддержки clipboard API
+   */
+  fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Делаем элемент невидимым
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        // Находим кнопку и обновляем её текст
+        const copyButton = document.getElementById('copy-json-template');
+        if (copyButton) {
+          const originalText = copyButton.innerHTML;
+          copyButton.innerHTML = '<i class="fas fa-check"></i> Скопировано';
+          copyButton.style.backgroundColor = '#d4edda';
+          copyButton.style.borderColor = '#c3e6cb';
+          
+          setTimeout(() => {
+            copyButton.innerHTML = originalText;
+            copyButton.style.backgroundColor = '';
+            copyButton.style.borderColor = '';
+          }, 2000);
+        }
+      } else {
+        console.error('Не удалось скопировать текст через execCommand');
+        alert('Не удалось скопировать текст. Пожалуйста, выделите и скопируйте его вручную.');
+      }
+    } catch (err) {
+      console.error('Ошибка при использовании execCommand:', err);
+      alert('Не удалось скопировать текст. Пожалуйста, выделите и скопируйте его вручную.');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
   /**
    * Получение настроек вебхуков из localStorage
    */
