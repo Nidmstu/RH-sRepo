@@ -1071,6 +1071,52 @@ class AdminInterface {
       });
     }
     
+    // Импорт JSON из текстового поля
+    const importJsonModal = document.getElementById('import-json-modal');
+    const closeImportJsonModalBtn = document.getElementById('close-import-json-modal');
+    const cancelImportJsonBtn = document.getElementById('cancel-import-json');
+    const importJsonBtn = document.getElementById('import-json-btn');
+    
+    // Добавляем обработчик для открытия модального окна импорта
+    const openJsonImportBtn = document.createElement('button');
+    openJsonImportBtn.innerHTML = '<i class="fas fa-code"></i> Импорт из JSON';
+    openJsonImportBtn.className = 'admin-btn';
+    openJsonImportBtn.style.marginLeft = '5px';
+    
+    if (importCourseBtn && importCourseBtn.parentNode) {
+      importCourseBtn.parentNode.appendChild(openJsonImportBtn);
+    }
+    
+    openJsonImportBtn.addEventListener('click', () => {
+      if (importJsonModal) {
+        importJsonModal.style.display = 'block';
+      }
+    });
+    
+    // Закрытие модального окна
+    if (closeImportJsonModalBtn) {
+      closeImportJsonModalBtn.addEventListener('click', () => {
+        if (importJsonModal) {
+          importJsonModal.style.display = 'none';
+        }
+      });
+    }
+    
+    if (cancelImportJsonBtn) {
+      cancelImportJsonBtn.addEventListener('click', () => {
+        if (importJsonModal) {
+          importJsonModal.style.display = 'none';
+        }
+      });
+    }
+    
+    // Обработка импорта из JSON
+    if (importJsonBtn) {
+      importJsonBtn.addEventListener('click', () => {
+        this.importJsonFromTextarea();
+      });
+    }
+    
     // Экспорт всех данных на вебхук
     const webhookExportBtn = document.getElementById('admin-webhook-export');
     if (webhookExportBtn) {
@@ -2065,6 +2111,100 @@ class AdminInterface {
           }
         } else {
           // Добавляем уроки в текущий день
+
+  /**
+   * Импорт курса из JSON в текстовом поле
+   */
+  importJsonFromTextarea() {
+    const jsonTextarea = document.getElementById('json-import-content');
+    const importJsonModal = document.getElementById('import-json-modal');
+    
+    if (!jsonTextarea || !jsonTextarea.value.trim()) {
+      alert('Пожалуйста, введите JSON данные для импорта');
+      return;
+    }
+    
+    try {
+      // Парсим JSON из текстового поля
+      const jsonData = JSON.parse(jsonTextarea.value);
+      
+      // Проверяем, что это объект
+      if (typeof jsonData !== 'object' || jsonData === null || Array.isArray(jsonData)) {
+        throw new Error('JSON должен быть объектом');
+      }
+      
+      // Проверяем, что в JSON есть хотя бы один курс
+      const courseIds = Object.keys(jsonData);
+      if (courseIds.length === 0) {
+        throw new Error('JSON не содержит данных о курсах');
+      }
+      
+      // Проверка структуры каждого курса
+      let hasValidStructure = false;
+      for (const courseId of courseIds) {
+        const course = jsonData[courseId];
+        if (typeof course === 'object' && 
+            (course.title || course.days || course.specialLessons || course.noDayLessons || course.redirectUrl)) {
+          hasValidStructure = true;
+        }
+      }
+      
+      if (!hasValidStructure) {
+        throw new Error('Структура JSON не соответствует формату курсов');
+      }
+      
+      // Проверка успешна, импортируем данные
+      // Создаем резервную копию текущих курсов
+      const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses || {}));
+      
+      // Спрашиваем пользователя о стратегии импорта
+      const importStrategy = confirm(
+        'Выберите стратегию импорта:\n' +
+        'OK = Заменить все текущие курсы\n' +
+        'Отмена = Объединить с текущими курсами'
+      );
+      
+      if (importStrategy) {
+        // Полная замена
+        window.courseManager.courses = jsonData;
+      } else {
+        // Объединение с существующими курсами
+        if (!window.courseManager.courses) {
+          window.courseManager.courses = {};
+        }
+        
+        // Объединяем курсы
+        for (const courseId of courseIds) {
+          window.courseManager.courses[courseId] = jsonData[courseId];
+        }
+      }
+      
+      // Закрываем модальное окно
+      if (importJsonModal) {
+        importJsonModal.style.display = 'none';
+      }
+      
+      // Очищаем текстовое поле
+      if (jsonTextarea) {
+        jsonTextarea.value = '';
+      }
+      
+      // Сохраняем изменения в локальное хранилище
+      this.saveCoursesToJSON();
+      
+      // Обновляем интерфейс
+      this.loadCoursesList();
+      
+      // Сообщаем пользователю об успешном импорте
+      const courseCount = courseIds.length;
+      alert(`Успешно импортировано ${courseCount} курсов`);
+      
+    } catch (error) {
+      console.error('Ошибка при импорте JSON:', error);
+      alert(`Ошибка при импорте JSON: ${error.message}`);
+    }
+  }
+
           if (!this.currentEditing.day.lessons) {
             this.currentEditing.day.lessons = [];
           }

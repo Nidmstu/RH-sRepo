@@ -1377,6 +1377,89 @@
     </div>
   </div>
 
+  <!-- Импорт курса -->
+  <input type="file" accept=".json" id="import-course-input" style="display: none;">
+
+  <!-- Модальное окно для импорта JSON -->
+  <div id="import-json-modal" class="admin-modal" style="display: none;">
+    <div class="admin-modal-content">
+      <div class="admin-modal-header">
+        <h3>Импорт курса из JSON</h3>
+        <span class="admin-modal-close" id="close-import-json-modal">&times;</span>
+      </div>
+      <div class="admin-modal-body">
+        <p>Вставьте JSON структуру курса в поле ниже:</p>
+        <textarea id="json-import-content" class="admin-textarea" style="width: 100%; min-height: 300px; font-family: monospace; font-size: 14px;"></textarea>
+
+        <div style="margin-top: 20px;">
+          <h4>Шаблон структуры JSON:</h4>
+          <div class="json-example" style="margin-top: 10px;">
+            <pre style="max-height: 300px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px;">{
+  "course-id": {
+    "title": "Название курса",
+    "days": [
+      {
+        "id": 1,
+        "title": "День 1",
+        "lessons": [
+          {
+            "id": "lesson-id-1",
+            "title": "Название урока",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://example.com/api/content",
+              "fallbackType": "local",
+              "fallbackId": "fallback-id"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://example.com/api/test"
+            },
+            "taskSource": {
+              "type": "markdown",
+              "content": "# Задание\n\nОписание задания..."
+            },
+            "audioSource": {
+              "type": "soundcloud",
+              "url": "https://soundcloud.com/username",
+              "trackUrl": "https://soundcloud.com/track"
+            }
+          }
+        ]
+      }
+    ],
+    "specialLessons": [
+      {
+        "id": "vocabulary",
+        "title": "Словарь",
+        "contentSource": {
+          "type": "webhook",
+          "url": "https://example.com/api/vocabulary"
+        }
+      }
+    ],
+    "noDayLessons": [
+      {
+        "id": "reference",
+        "title": "Справочник",
+        "contentSource": {
+          "type": "markdown",
+          "content": "# Справочник\n\nСодержимое справочника..."
+        }
+      }
+    ]
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button id="import-json-btn" class="admin-btn admin-btn-primary">Импортировать</button>
+        <button id="cancel-import-json" class="admin-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { courseManager } from './js/courseManager.js';
     import adminInterface from './js/adminInterface.js';
