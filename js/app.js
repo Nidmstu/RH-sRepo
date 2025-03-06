@@ -69,8 +69,30 @@ async function initApp() {
     // Принудительно устанавливаем URL для получения вебхуков
     localStorage.setItem('adminGetWebhook', webhookUrl);
     
-    // Автоматически импортируем настройки вебхуков
-    const webhookSettings = await importWebhooksFromServer(webhookUrl);
+    // Принудительно устанавливаем URL для импорта данных
+    localStorage.setItem('importWebhookUrl', 'https://auto.crm-s.com/webhook/OnboardingJSON');
+    localStorage.setItem('adminImportWebhook', 'https://auto.crm-s.com/webhook/OnboardingJSON');
+    
+    // Сохраняем настройки вебхуков
+    const webhookSettings = {
+      importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
+      exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
+      getUrl: webhookUrl
+    };
+    
+    localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+    
+    // Пытаемся импортировать настройки вебхуков, но если не получится, используем настройки по умолчанию
+    try {
+      const importedSettings = await importWebhooksFromServer(webhookUrl);
+      if (!importedSettings || !importedSettings.success) {
+        console.log('Использование стандартных настроек вебхуков');
+        updateGlobalLoadingStatus('Использование стандартных настроек вебхуков');
+      }
+    } catch (error) {
+      console.error('Ошибка при импорте вебхуков, используем настройки по умолчанию:', error);
+      updateGlobalLoadingStatus('Использование стандартных настроек вебхуков');
+    }
 
     if (!webhookSettings) {
       updateGlobalLoadingStatus('Не удалось получить настройки вебхуков');
@@ -700,44 +722,23 @@ async function forceSyncWithCloud() {
     console.log('Принудительная синхронизация с облаком...');
     updateLoadingStatus('Поиск URL для импорта данных...');
 
-    // Сначала проверяем и импортируем настройки вебхуков
-    await autoImportWebhooks();
-
-    // Проверяем наличие настроек вебхуков
-    const webhookSettingsStr = localStorage.getItem('webhookSettings');
-    let importWebhookUrl = null;
-
-    if (webhookSettingsStr) {
-      try {
-        const webhookSettings = JSON.parse(webhookSettingsStr);
-        if (webhookSettings.importUrl) {
-          importWebhookUrl = webhookSettings.importUrl;
-          console.log(`Найден URL импорта в настройках вебхуков: ${importWebhookUrl}`);
-          updateLoadingStatus(`Найден URL импорта данных в настройках вебхуков`);
-        }
-      } catch (e) {
-        console.error('Ошибка при парсинге настроек вебхуков:', e);
-        updateLoadingStatus('Ошибка при чтении настроек вебхуков');
-      }
-    }
-
-    // Если URL не найден в webhookSettings, проверяем другие источники
-    if (!importWebhookUrl) {
-      // Приоритет источников: adminImportWebhook -> importWebhookUrl -> testImportUrl
-      if (localStorage.getItem('adminImportWebhook')) {
-        importWebhookUrl = localStorage.getItem('adminImportWebhook');
-        console.log(`Найден URL импорта в adminImportWebhook: ${importWebhookUrl}`);
-        updateLoadingStatus(`Найден URL импорта в настройках админки`);
-      } else if (localStorage.getItem('importWebhookUrl')) {
-        importWebhookUrl = localStorage.getItem('importWebhookUrl');
-        console.log(`Найден URL импорта в importWebhookUrl: ${importWebhookUrl}`);
-        updateLoadingStatus(`Найден URL импорта в настройках`);
-      } else if (localStorage.getItem('testImportUrl')) {
-        importWebhookUrl = localStorage.getItem('testImportUrl');
-        console.log(`Найден URL импорта в testImportUrl: ${importWebhookUrl}`);
-        updateLoadingStatus(`Найден тестовый URL импорта`);
-      }
-    }
+    // Всегда используем рабочий URL для импорта данных
+    const importWebhookUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
+    
+    // Сохраняем URL для дальнейшего использования
+    localStorage.setItem('importWebhookUrl', importWebhookUrl);
+    localStorage.setItem('adminImportWebhook', importWebhookUrl);
+    
+    // Обновляем статус
+    console.log(`Используем фиксированный URL импорта: ${importWebhookUrl}`);
+    updateLoadingStatus(`Используем официальный URL импорта данных`);
+    
+    // Обновляем настройки вебхуков в localStorage
+    const webhookSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+    webhookSettings.importUrl = importWebhookUrl;
+    webhookSettings.exportUrl = webhookSettings.exportUrl || 'https://auto.crm-s.com/webhook/SaveWebhooks';
+    webhookSettings.getUrl = webhookSettings.getUrl || 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+    localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
 
     // Если найден URL импорта, используем его
     if (importWebhookUrl) {
