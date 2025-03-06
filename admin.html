@@ -1399,6 +1399,12 @@
         <div style="margin-top: 20px;">
             <h4>Шаблон структуры JSON:</h4>
             <div class="json-example" style="margin-top: 10px; position: relative;">
+              <select id="json-template-selector" class="admin-select" style="position: absolute; top: 5px; right: 80px; z-index: 10; background-color: #f8f9fa; border: 1px solid #ddd; max-width: 200px;">
+                <option value="full">Полная структура</option>
+                <option value="audio">Только аудио</option>
+                <option value="content">Только контент</option>
+                <option value="test">Только тесты</option>
+              </select>
               <button id="copy-json-template" class="admin-btn admin-btn-sm" style="position: absolute; top: 5px; right: 5px; z-index: 10; background-color: #f8f9fa; border: 1px solid #ddd;">
                 <i class="fas fa-copy"></i> Копировать
               </button>
@@ -1459,7 +1465,88 @@
   }
 }</pre>
             </div>
+
+            <div id="fragment-templates" style="display: none;">
+              <div id="audio-template">{
+  "prompt-engineer": {
+    "days": [
+      {
+        "id": 1,
+        "lessons": [
+          {
+            "id": "what-prompting-is",
+            "audioSource": {
+              "type": "soundcloud",
+              "url": "https://soundcloud.com/username",
+              "trackUrl": "https://soundcloud.com/track"
+            }
+          }
+        ]
+      }
+    ],
+    "specialLessons": [
+      {
+        "id": "vocabulary",
+        "audioSource": {
+          "type": "soundcloud",
+          "url": "https://soundcloud.com/developers-remote-helpers",
+          "trackUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2028455920"
+        }
+      }
+    ]
+  }
+}</div>
+              <div id="content-template">{
+  "prompt-engineer": {
+    "days": [
+      {
+        "id": 1,
+        "lessons": [
+          {
+            "id": "what-prompting-is",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://example.com/api/content",
+              "fallbackType": "local",
+              "fallbackId": "what-prompting-is"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}</div>
+              <div id="test-template">{
+  "prompt-engineer": {
+    "days": [
+      {
+        "id": 1,
+        "lessons": [
+          {
+            "id": "what-prompting-is",
+            "testSource": {
+              "type": "webhook",
+              "url": "https://example.com/api/test"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}</div>
+            </div>
           </div>
+      </div>
+      <div class="admin-form-group" style="margin-top: 15px;">
+        <label for="fragment-type-select">Импортировать только:</label>
+        <select id="fragment-type-select" class="admin-select" style="width: 100%; max-width: 200px;">
+          <option value="all">Все данные</option>
+          <option value="audio">Только аудио</option>
+          <option value="content">Только контент</option>
+          <option value="test">Только тесты</option>
+          <option value="task">Только задания</option>
+        </select>
+        <small style="display: block; margin-top: 5px; color: #666;">При выборе определенного типа данных, будут импортированы только эти данные, остальные останутся без изменений.</small>
       </div>
       <div class="admin-modal-footer">
         <button id="import-json-btn" class="admin-btn admin-btn-primary">Импортировать</button>
@@ -1511,6 +1598,25 @@
       //Добавляем обработчик события для кнопки копирования
       const copyJsonButton = document.getElementById('copy-json-template');
       const jsonTemplate = document.getElementById('json-template');
+      const jsonTemplateSelector = document.getElementById('json-template-selector');
+
+      // Обработчик для выбора шаблона
+      if (jsonTemplateSelector) {
+        jsonTemplateSelector.addEventListener('change', () => {
+          const selectedTemplate = jsonTemplateSelector.value;
+          
+          if (selectedTemplate === 'full') {
+            // Используем стандартный шаблон
+            return;
+          }
+          
+          // Получаем соответствующий шаблон
+          const templateElement = document.getElementById(`${selectedTemplate}-template`);
+          if (templateElement && jsonTemplate) {
+            jsonTemplate.textContent = templateElement.textContent;
+          }
+        });
+      }
 
       copyJsonButton.addEventListener('click', () => {
         navigator.clipboard.writeText(jsonTemplate.textContent)
