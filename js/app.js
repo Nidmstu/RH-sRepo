@@ -32,13 +32,13 @@ async function initApp() {
     globalLoadingOverlay.style.opacity = '1';
     globalLoadingOverlay.style.display = 'flex';
   }
-  
+
   if (loadingIndicator) {
     loadingIndicator.classList.remove('hidden');
     // Чтобы избежать наслоения с глобальным индикатором, делаем его прозрачным
     loadingIndicator.style.opacity = '0';
   }
-  
+
   if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
 
@@ -61,10 +61,10 @@ async function initApp() {
     // ШАГ 1: Запрашиваем вебхуки с основного URL
     updateGlobalLoadingStatus('Запрос вебхуков с сервера...');
     updateLoadingStatus('Загрузка настроек приложения...');
-    
+
     // Автоматически импортируем настройки вебхуков c основного URL
     const webhookSettings = await autoImportWebhooks();
-    
+
     if (!webhookSettings) {
       updateGlobalLoadingStatus('Не удалось получить настройки вебхуков');
       updateLoadingStatus('Ошибка получения настроек вебхуков, используем значения по умолчанию');
@@ -157,6 +157,17 @@ async function initApp() {
     courseManager.onCoursesUpdated((courses) => {
       console.log('Получено обновление курсов, обновляем интерфейс');
 
+      // Убедимся, что страница готова для обновления
+      if (!courses || Object.keys(courses).length === 0) {
+        console.error('Получены пустые данные о курсах, пытаемся синхронизировать еще раз');
+        forceSyncWithCloud().then(() => {
+          console.log('Повторная синхронизация завершена');
+        }).catch(err => {
+          console.error('Ошибка при повторной синхронизации:', err);
+        });
+        return;
+      }
+
       // Обновляем список профессий
       updateProfessionSelector();
 
@@ -187,15 +198,15 @@ async function initApp() {
 
     // Скрываем индикаторы загрузки и показываем основной контент
     console.log('Приложение инициализировано успешно, показываем интерфейс');
-    
+
     // Сначала скрываем глобальный индикатор загрузки с плавным исчезновением
     if (globalLoadingOverlay) {
       globalLoadingOverlay.style.transition = 'opacity 0.5s';
       globalLoadingOverlay.style.opacity = '0';
-      
+
       setTimeout(() => {
         globalLoadingOverlay.style.display = 'none';
-        
+
         // После скрытия глобального индикатора показываем контент
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
         if (appContent) appContent.classList.remove('hidden');
@@ -211,10 +222,10 @@ async function initApp() {
     console.error('Ошибка при инициализации приложения:', error);
     updateLoadingStatus('Ошибка: ' + (error.message || 'Не удалось загрузить данные'), true);
     updateGlobalLoadingStatus('Ошибка загрузки приложения!');
-    
+
     // Показываем контейнер для повтора загрузки
     if (retryContainer) retryContainer.classList.remove('hidden');
-    
+
     // Скрываем глобальный индикатор с задержкой
     setTimeout(() => {
       if (globalLoadingOverlay) {
@@ -247,7 +258,7 @@ function updateLoadingStatus(message, isError = false) {
 // Функция для автоматического импорта настроек вебхуков
 async function autoImportWebhooks() {
   console.log('Проверка наличия настроек вебхуков...');
-  
+
   // Обновляем реальный URL для автоимпорта вебхуков в localStorage (устраняем тестовый URL)
   const storedSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
   if (storedSettings.getUrl && storedSettings.getUrl.includes('webhook-test')) {
@@ -256,32 +267,32 @@ async function autoImportWebhooks() {
     localStorage.setItem('adminGetWebhook', storedSettings.getUrl);
     console.log('Обновлен URL для получения вебхуков с тестового на рабочий');
   }
-  
+
   // Определяем URL для получения вебхуков (всегда используем актуальный URL)
   // Всегда используем основной URL для получения вебхуков, а не тестовый
   const getWebhooksUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
-  
+
   console.log(`Импортирование вебхуков напрямую с: ${getWebhooksUrl}`);
   updateLoadingStatus('Получение настроек вебхуков...');
-  
+
   // Сначала пытаемся импортировать вебхуки с сервера
   const importResults = await importWebhooksFromServer(getWebhooksUrl);
-  
+
   // Если импорт успешен, используем полученные настройки
   if (importResults && importResults.success) {
     console.log('Вебхуки успешно импортированы с сервера');
-    
+
     // Обновляем интерфейс, если мы находимся на странице администратора
     if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
       window.adminInterface.loadWebhookSettings();
     }
-    
+
     return importResults.settings;
   }
-  
+
   // Если импорт не удался, проверяем сохраненные настройки
   const webhookSettingsStr = localStorage.getItem('webhookSettings');
-  
+
   // Если настройки вебхуков не найдены, устанавливаем значения по умолчанию
   if (!webhookSettingsStr) {
     console.log('Настройки вебхуков не найдены, устанавливаем значения по умолчанию');
@@ -356,7 +367,7 @@ async function importWebhooksFromServer(url) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -383,7 +394,7 @@ async function importWebhooksFromServer(url) {
     try {
       // Пытаемся распарсить как JSON
       const jsonData = JSON.parse(responseText);
-      
+
       // Обрабатываем полученные данные вебхуков
       settings = processWebhooksData(jsonData);
       processed = true;
@@ -562,7 +573,7 @@ function processWebhooksData(data) {
     // Проверяем, есть ли в объекте данных онбординг-вебхуки
     if (data.onboardingUrls || data.onboarding) {
       const onboardingData = data.onboardingUrls || data.onboarding;
-      
+
       if (onboardingData.import || onboardingData.importUrl) {
         const importUrl = onboardingData.import || onboardingData.importUrl;
         settings.importUrl = importUrl;
@@ -571,7 +582,7 @@ function processWebhooksData(data) {
         console.log(`Установлен URL импорта из onboarding: ${importUrl}`);
         updated = true;
       }
-      
+
       if (onboardingData.export || onboardingData.exportUrl) {
         const exportUrl = onboardingData.export || onboardingData.exportUrl;
         settings.exportUrl = exportUrl;
@@ -579,7 +590,7 @@ function processWebhooksData(data) {
         console.log(`Установлен URL экспорта из onboarding: ${exportUrl}`);
         updated = true;
       }
-      
+
       if (onboardingData.get || onboardingData.getUrl) {
         const getUrl = onboardingData.get || onboardingData.getUrl;
         settings.getUrl = getUrl;
@@ -599,7 +610,7 @@ function processWebhooksData(data) {
         window.adminInterface.loadWebhookSettings();
       }
     }
-    
+
     // Возвращаем настройки
     return settings;
   } catch (error) {
@@ -713,6 +724,14 @@ async function forceSyncWithCloud() {
       }
 
       try {
+        // Сохраняем URL для использования в CourseManager
+        localStorage.setItem('importWebhookUrl', importWebhookUrl);
+
+        // Обновляем настройки вебхуков в localStorage
+        const webhookSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+        webhookSettings.importUrl = importWebhookUrl;
+        localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+
         // Обновляем статус
         updateLoadingStatus(`Отправка запроса на ${importWebhookUrl.split('/').slice(-1)[0]}`);
 
