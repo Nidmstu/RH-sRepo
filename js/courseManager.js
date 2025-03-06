@@ -171,40 +171,14 @@ class CourseManager {
           const timeoutId = setTimeout(() => controller.abort(), 10000);
           
           try {
-            // Используем XMLHttpRequest вместо fetch для большей совместимости
-            return new Promise((resolve, reject) => {
-              const xhr = new XMLHttpRequest();
-              xhr.open('GET', webhookUrl, true);
-              xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-              xhr.timeout = 15000; // 15 секунд таймаут
-              
-              xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  const responseText = xhr.responseText;
-                  console.log('Получен ответ от вебхука, размер:', responseText.length, 'байт');
-                  
-                  try {
-                    const importData = JSON.parse(responseText);
-                    resolve({ ok: true, json: () => importData, text: () => responseText });
-                  } catch (jsonError) {
-                    // Если не удалось распарсить, возвращаем как текст
-                    resolve({ ok: true, json: () => { throw new Error('Not JSON') }, text: () => responseText });
-                  }
-                } else {
-                  reject(new Error(`HTTP ошибка! Статус: ${xhr.status}`));
-                }
-              };
-              
-              xhr.onerror = () => {
-                reject(new Error('Ошибка сети при загрузке данных'));
-              };
-              
-              xhr.ontimeout = () => {
-                controller.abort();
-                reject(new Error('Таймаут при загрузке данных'));
-              };
-              
-              xhr.send();
+            const importResponse = await fetch(webhookUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+              },
+              cache: 'no-store',  // Всегда получаем свежие данные
+              signal: controller.signal
             });
             
             // Очищаем таймаут после получения ответа
