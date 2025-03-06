@@ -450,7 +450,6 @@ function syncWithCloud() {
               // Если мы на главной, обновляем список дней
               if (courseManager.currentProfession) {
                 updateDaysList();
-                updateDynamicDaysButtons(); // Add this line
               }
             } else if (document.getElementById('guide').classList.contains('hidden') === false) {
               // Если мы на странице гайда и текущий урок все еще существует,
@@ -1028,7 +1027,6 @@ function renderHomePage() {
   if (courseManager.currentProfession) {
     // Генерируем карточки для дней
     updateDaysList();
-    updateDynamicDaysButtons(); // Add this line
   }
 
   // Показываем домашнюю страницу
@@ -1062,9 +1060,6 @@ function handleProfessionChange() {
 
   // Обновляем список дней для выбранной профессии
   updateDaysList();
-
-  // Обновляем динамические кнопки дней на главной странице
-  updateDynamicDaysButtons();
 
   // Сбрасываем выбранный урок и возвращаемся на домашнюю страницу
   courseManager.currentLesson = null;
