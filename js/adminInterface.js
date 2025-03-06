@@ -2254,7 +2254,40 @@ class AdminInterface {
       alert(`Ошибка при импорте JSON: ${error.message}`);
     }
   }
-
+  
+  /**
+   * Импорт выбранных уроков в текущий курс
+   */
+  importSelectedLessons(lessons, destination) {
+    if (!this.currentEditing.course) return;
+    
+    switch (destination) {
+      case 'current-day':
+        // Проверяем, выбран ли день
+        if (!this.currentEditing.day) {
+          // Если день не выбран, спрашиваем, создать ли новый день
+          if (confirm('Текущий день не выбран. Создать новый день с импортированными уроками?')) {
+            // Создаем новый день
+            const maxId = this.currentEditing.course.days ? 
+              this.currentEditing.course.days.reduce((max, day) => Math.max(max, day.id), 0) : 0;
+            
+            const newDay = {
+              id: maxId + 1,
+              title: `День ${maxId + 1}`,
+              lessons: lessons
+            };
+            
+            // Добавляем день в курс
+            if (!this.currentEditing.course.days) {
+              this.currentEditing.course.days = [];
+            }
+            
+            this.currentEditing.course.days.push(newDay);
+          } else {
+            return; // Пользователь отменил импорт
+          }
+        } else {
+          // Добавляем уроки в текущий день
           if (!this.currentEditing.day.lessons) {
             this.currentEditing.day.lessons = [];
           }
