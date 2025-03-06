@@ -1027,8 +1027,6 @@ function renderHomePage() {
   if (courseManager.currentProfession) {
     // Генерируем карточки для дней
     updateDaysList();
-    // Добавляем кнопку словаря динамически
-    updateVocabularyButton();
   }
 
   // Показываем домашнюю страницу
@@ -1068,9 +1066,6 @@ function handleProfessionChange() {
   showSection('home');
   daySelectionContainer.classList.remove('hidden');
   taskSelectionContainer.classList.add('hidden');
-  
-  // Обновляем кнопку словаря при смене профессии
-  updateVocabularyButton();
 }
 
 // Выбор дня обучения
@@ -1426,49 +1421,4 @@ function updateDynamicDaysButtons() {
     button.addEventListener('click', () => selectDay(day.id));
     daysButtonsContainer.appendChild(button);
   });
-}
-// Функция для обновления кнопки словаря
-function updateVocabularyButton() {
-  const vocabularyContainer = document.getElementById('vocabulary-container');
-  if (!vocabularyContainer) return;
-  
-  // Очищаем контейнер
-  vocabularyContainer.innerHTML = '';
-  
-  // Проверяем, есть ли у нас выбранная профессия и загружены ли курсы
-  if (!courseManager.currentProfession || !courseManager.courses) return;
-  
-  const currentCourse = courseManager.courses[courseManager.currentProfession];
-  
-  // Проверяем наличие специальных уроков
-  if (currentCourse && currentCourse.specialLessons && Array.isArray(currentCourse.specialLessons)) {
-    // Ищем урок словаря в специальных уроках
-    const vocabularyLesson = currentCourse.specialLessons.find(lesson => lesson.id === 'vocabulary');
-    
-    if (vocabularyLesson) {
-      // Создаем кнопку словаря
-      const vocabularyButton = document.createElement('button');
-      vocabularyButton.textContent = vocabularyLesson.title || 'Prompt Engineering Vocabulary';
-      vocabularyButton.onclick = openVocabulary;
-      vocabularyContainer.appendChild(vocabularyButton);
-      
-      console.log(`Динамически создана кнопка словаря: ${vocabularyLesson.title}`);
-    } else {
-      // Если урок словаря не найден, но мы хотим всё равно показать кнопку
-      const vocabularyButton = document.createElement('button');
-      vocabularyButton.textContent = 'Prompt Engineering Vocabulary';
-      vocabularyButton.onclick = openVocabulary;
-      vocabularyContainer.appendChild(vocabularyButton);
-      
-      console.log('Создана стандартная кнопка словаря (урок не найден в specialLessons)');
-    }
-  } else {
-    // Если специальных уроков нет, показываем стандартную кнопку
-    const vocabularyButton = document.createElement('button');
-    vocabularyButton.textContent = 'Prompt Engineering Vocabulary';
-    vocabularyButton.onclick = openVocabulary;
-    vocabularyContainer.appendChild(vocabularyButton);
-    
-    console.log('Создана стандартная кнопка словаря (specialLessons не найден)');
-  }
 }
