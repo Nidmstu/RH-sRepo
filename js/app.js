@@ -21,24 +21,26 @@ const testButton = document.getElementById('test-button');
 async function initApp() {
   console.log('Инициализация приложения...');
 
-  // Скрываем глобальный индикатор загрузки - он должен оставаться видимым пока все не загрузится
+  // Скрываем контент и показываем индикатор загрузки
   const globalLoadingOverlay = document.getElementById('global-loading-overlay');
-
-  // Показываем индикатор загрузки перед началом инициализации
   const loadingIndicator = document.getElementById('loading-spinner');
   const appContent = document.getElementById('app-content');
   const retryContainer = document.getElementById('loading-retry-container');
 
-  // Показываем индикатор загрузки и скрываем контент
-  if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+  // Убеждаемся, что нет наслоения индикаторов
+  if (globalLoadingOverlay) {
+    globalLoadingOverlay.style.opacity = '1';
+    globalLoadingOverlay.style.display = 'flex';
+  }
+  
+  if (loadingIndicator) {
+    loadingIndicator.classList.remove('hidden');
+    // Чтобы избежать наслоения с глобальным индикатором, делаем его прозрачным
+    loadingIndicator.style.opacity = '0';
+  }
+  
   if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
-
-  // Автоматически импортируем настройки вебхуков, если они отсутствуют
-  await autoImportWebhooks();
-
-  // Настраиваем обработчики событий
-  setupEventListeners();
 
   // Функция для обновления глобального статуса загрузки
   function updateGlobalLoadingStatus(message) {
@@ -56,62 +58,72 @@ async function initApp() {
       updateLoadingStatus('Загрузка данных занимает больше времени, чем обычно...', false);
     }, 30000); // 30 секунд таймаут
 
-    // Обновление статуса загрузки
-    updateLoadingStatus('Загрузка данных курсов...');
-
-    // ВАЖНО: Сначала полностью завершаем синхронизацию с облаком
-    // перед инициализацией менеджера курсов
-    try {
-      updateLoadingStatus('Синхронизация с облаком...');
-      updateGlobalLoadingStatus('Синхронизация с облаком...');
-
-      // Принудительно сначала очищаем данные курсов, чтобы гарантировать свежую загрузку
-      courseManager.courses = null;
-
-      // Принудительная синхронизация с облаком - 3 попытки с интервалом
-      let syncSuccess = false;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (!syncSuccess && attempts < maxAttempts) {
-        attempts++;
-        try {
-          updateGlobalLoadingStatus(`Попытка синхронизации с облаком (${attempts}/${maxAttempts})...`);
-          const syncResult = await forceSyncWithCloud();
-
-          if (syncResult && syncResult.success) {
-            updateLoadingStatus('Синхронизация завершена успешно, данные обновлены');
-            updateGlobalLoadingStatus('Синхронизация с облаком успешна!');
-            console.log('Синхронизация с облаком выполнена успешно:', syncResult);
-            syncSuccess = true;
-          } else {
-            throw new Error('Синхронизация не принесла результатов');
-          }
-        } catch (attemptError) {
-          console.warn(`Попытка ${attempts}: Ошибка при синхронизации:`, attemptError);
-
-          if (attempts < maxAttempts) {
-            updateLoadingStatus(`Повторная попытка синхронизации через 2 секунды...`);
-            updateGlobalLoadingStatus(`Повторная попытка через 2 секунды...`);
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Пауза перед следующей попыткой
-          }
-        }
-      }
-
-      if (!syncSuccess) {
-        updateLoadingStatus('Все попытки синхронизации не удались, переход к альтернативным источникам');
-        updateGlobalLoadingStatus('Синхронизация не удалась, использование резервных данных...');
-        console.warn('Все попытки синхронизации не удались, использование локальных данных');
-      }
-    } catch (syncError) {
-      console.warn('Ошибка при синхронизации с облаком:', syncError);
-      updateLoadingStatus('Синхронизация не удалась, загрузка локальных данных...');
-      updateGlobalLoadingStatus('Использование резервных данных...');
+    // ШАГ 1: Запрашиваем вебхуки с основного URL
+    updateGlobalLoadingStatus('Запрос вебхуков с сервера...');
+    updateLoadingStatus('Загрузка настроек приложения...');
+    
+    // Автоматически импортируем настройки вебхуков c основного URL
+    const webhookSettings = await autoImportWebhooks();
+    
+    if (!webhookSettings) {
+      updateGlobalLoadingStatus('Не удалось получить настройки вебхуков');
+      updateLoadingStatus('Ошибка получения настроек вебхуков, используем значения по умолчанию');
+      console.warn('Не удалось получить настройки вебхуков, будут использованы значения по умолчанию');
+    } else {
+      updateGlobalLoadingStatus('Настройки вебхуков получены');
+      updateLoadingStatus('Настройки приложения загружены');
+      console.log('Настройки вебхуков получены успешно:', webhookSettings);
     }
 
-    // Теперь инициализируем менеджер курсов
+    // Настраиваем обработчики событий
+    setupEventListeners();
+
+    // ШАГ 2: Синхронизация с облаком для получения курсов
+    updateLoadingStatus('Синхронизация с облаком...');
+    updateGlobalLoadingStatus('Загрузка данных курсов...');
+
+    // Принудительно сначала очищаем данные курсов, чтобы гарантировать свежую загрузку
+    courseManager.courses = null;
+
+    // Принудительная синхронизация с облаком - 3 попытки с интервалом
+    let syncSuccess = false;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (!syncSuccess && attempts < maxAttempts) {
+      attempts++;
+      try {
+        updateGlobalLoadingStatus(`Загрузка данных курсов (попытка ${attempts}/${maxAttempts})...`);
+        const syncResult = await forceSyncWithCloud();
+
+        if (syncResult && syncResult.success) {
+          updateLoadingStatus('Синхронизация завершена успешно, данные обновлены');
+          updateGlobalLoadingStatus('Данные курсов загружены!');
+          console.log('Синхронизация с облаком выполнена успешно:', syncResult);
+          syncSuccess = true;
+        } else {
+          throw new Error('Синхронизация не принесла результатов');
+        }
+      } catch (attemptError) {
+        console.warn(`Попытка ${attempts}: Ошибка при синхронизации:`, attemptError);
+
+        if (attempts < maxAttempts) {
+          updateLoadingStatus(`Повторная попытка синхронизации через 2 секунды...`);
+          updateGlobalLoadingStatus(`Повторная попытка через 2 секунды...`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Пауза перед следующей попыткой
+        }
+      }
+    }
+
+    if (!syncSuccess) {
+      updateLoadingStatus('Все попытки синхронизации не удались, переход к альтернативным источникам');
+      updateGlobalLoadingStatus('Использование резервных данных...');
+      console.warn('Все попытки синхронизации не удались, использование локальных данных');
+    }
+
+    // ШАГ 3: Инициализация менеджера курсов
     updateLoadingStatus('Инициализация менеджера курсов...');
-    updateGlobalLoadingStatus('Инициализация менеджера курсов...');
+    updateGlobalLoadingStatus('Подготовка данных курсов...');
     console.log('Инициализация менеджера курсов после синхронизации...');
     const success = await courseManager.initialize();
 
@@ -139,9 +151,9 @@ async function initApp() {
 
     console.log('Данные курсов успешно загружены:', Object.keys(courseManager.courses));
     updateLoadingStatus('Данные курсов успешно загружены');
-    updateGlobalLoadingStatus('Данные курсов загружены, подготовка интерфейса...');
+    updateGlobalLoadingStatus('Подготовка интерфейса...');
 
-    // Теперь, когда у нас есть данные, подписываемся на их обновления
+    // ШАГ 4: Настройка обновления интерфейса и обработчиков
     courseManager.onCoursesUpdated((courses) => {
       console.log('Получено обновление курсов, обновляем интерфейс');
 
@@ -166,41 +178,53 @@ async function initApp() {
     // Отображаем начальный интерфейс только после полной инициализации
     renderHomePage();
 
-    // Обновление статуса загрузки
+    // ШАГ 5: Отображаем интерфейс приложения
     updateLoadingStatus('Загрузка завершена, подготовка интерфейса...');
+    updateGlobalLoadingStatus('Запуск приложения...');
 
     // Короткая задержка, чтобы пользователь увидел сообщение о завершении
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Короткая задержка перед скрытием индикатора загрузки
-    console.log('Приложение инициализировано успешно, показываем интерфейс через 1 секунду');
-    await new Promise(resolve => setTimeout(resolve, 1000));  // Задержка 1 секунда
-
-    // Скрываем индикатор загрузки и показываем основной контент
-    if (loadingIndicator) loadingIndicator.classList.add('hidden');
-    if (appContent) appContent.classList.remove('hidden');
-
-    // Скрываем глобальный индикатор загрузки
+    // Скрываем индикаторы загрузки и показываем основной контент
+    console.log('Приложение инициализировано успешно, показываем интерфейс');
+    
+    // Сначала скрываем глобальный индикатор загрузки с плавным исчезновением
     if (globalLoadingOverlay) {
-      // Плавное исчезновение
       globalLoadingOverlay.style.transition = 'opacity 0.5s';
       globalLoadingOverlay.style.opacity = '0';
+      
       setTimeout(() => {
         globalLoadingOverlay.style.display = 'none';
+        
+        // После скрытия глобального индикатора показываем контент
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        if (appContent) appContent.classList.remove('hidden');
       }, 500);
+    } else {
+      // Если глобального индикатора нет, просто показываем контент
+      if (loadingIndicator) loadingIndicator.classList.add('hidden');
+      if (appContent) appContent.classList.remove('hidden');
     }
 
     console.log('Приложение инициализировано успешно и готово к работе');
   } catch (error) {
     console.error('Ошибка при инициализации приложения:', error);
     updateLoadingStatus('Ошибка: ' + (error.message || 'Не удалось загрузить данные'), true);
-    alert('Произошла ошибка при загрузке данных. Попробуйте перезагрузить страницу.');
-
-    // Даже при ошибке пытаемся показать интерфейс через 3 секунды
+    updateGlobalLoadingStatus('Ошибка загрузки приложения!');
+    
+    // Показываем контейнер для повтора загрузки
+    if (retryContainer) retryContainer.classList.remove('hidden');
+    
+    // Скрываем глобальный индикатор с задержкой
     setTimeout(() => {
-      if (loadingIndicator) loadingIndicator.classList.add('hidden');
-      if (appContent) appContent.classList.remove('hidden');
-    }, 3000);
+      if (globalLoadingOverlay) {
+        globalLoadingOverlay.style.transition = 'opacity 0.5s';
+        globalLoadingOverlay.style.opacity = '0';
+        setTimeout(() => {
+          globalLoadingOverlay.style.display = 'none';
+        }, 500);
+      }
+    }, 2000);
   }
 }
 
@@ -223,8 +247,32 @@ function updateLoadingStatus(message, isError = false) {
 // Функция для автоматического импорта настроек вебхуков
 async function autoImportWebhooks() {
   console.log('Проверка наличия настроек вебхуков...');
+  
+  // Определяем URL для получения вебхуков (всегда используем актуальный URL)
+  // Всегда используем основной URL для получения вебхуков, а не тестовый
+  const getWebhooksUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+  
+  console.log(`Импортирование вебхуков напрямую с: ${getWebhooksUrl}`);
+  updateLoadingStatus('Получение настроек вебхуков...');
+  
+  // Сначала пытаемся импортировать вебхуки с сервера
+  const importResults = await importWebhooksFromServer(getWebhooksUrl);
+  
+  // Если импорт успешен, используем полученные настройки
+  if (importResults && importResults.success) {
+    console.log('Вебхуки успешно импортированы с сервера');
+    
+    // Обновляем интерфейс, если мы находимся на странице администратора
+    if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
+      window.adminInterface.loadWebhookSettings();
+    }
+    
+    return importResults.settings;
+  }
+  
+  // Если импорт не удался, проверяем сохраненные настройки
   const webhookSettingsStr = localStorage.getItem('webhookSettings');
-
+  
   // Если настройки вебхуков не найдены, устанавливаем значения по умолчанию
   if (!webhookSettingsStr) {
     console.log('Настройки вебхуков не найдены, устанавливаем значения по умолчанию');
@@ -245,14 +293,6 @@ async function autoImportWebhooks() {
     console.log('- Import URL:', defaultWebhookSettings.importUrl);
     console.log('- Export URL:', defaultWebhookSettings.exportUrl);
     console.log('- Get URL:', defaultWebhookSettings.getUrl);
-
-    // Обновляем интерфейс, если мы находимся на странице администратора
-    if (window.adminInterface && typeof window.adminInterface.loadWebhookSettings === 'function') {
-      window.adminInterface.loadWebhookSettings();
-    }
-
-    // Импортируем вебхуки с сервера по умолчанию
-    await importWebhooksFromServer(defaultWebhookSettings.getUrl);
 
     return defaultWebhookSettings;
   }
@@ -287,9 +327,6 @@ async function autoImportWebhooks() {
       console.log('Найдены все необходимые настройки вебхуков');
     }
 
-    // Автоматически импортируем вебхуки с сервера
-    await importWebhooksFromServer(settings.getUrl);
-
     return settings;
   } catch (e) {
     console.error('Ошибка при проверке настроек вебхуков:', e);
@@ -301,21 +338,27 @@ async function autoImportWebhooks() {
 async function importWebhooksFromServer(url) {
   if (!url) {
     console.log('URL для получения вебхуков не указан, пропускаем импорт');
-    return;
+    return { success: false, error: 'URL не указан' };
   }
 
   console.log(`Автоматический импорт вебхуков с URL: ${url}`);
   updateLoadingStatus('Получение настроек вебхуков...');
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Cache-Control': 'no-cache'
       },
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ошибка! Статус: ${response.status}`);
@@ -323,16 +366,20 @@ async function importWebhooksFromServer(url) {
 
     const responseText = await response.text();
     console.log(`Получен ответ с вебхуками (${responseText.length} символов)`);
+    console.log(`Предварительный просмотр ответа: ${responseText.substring(0, 200)}...`);
+
+    let settings = null;
+    let processed = false;
 
     try {
       // Пытаемся распарсить как JSON
       const jsonData = JSON.parse(responseText);
-
+      
       // Обрабатываем полученные данные вебхуков
-      processWebhooksData(jsonData);
+      settings = processWebhooksData(jsonData);
+      processed = true;
 
       updateLoadingStatus('Настройки вебхуков успешно импортированы');
-      return true;
     } catch (jsonError) {
       console.error('Ошибка при парсинге JSON с вебхуками:', jsonError);
 
@@ -343,40 +390,76 @@ async function importWebhooksFromServer(url) {
       if (match && match[0]) {
         try {
           const extractedData = JSON.parse(match[0]);
-          processWebhooksData(extractedData);
+          settings = processWebhooksData(extractedData);
+          processed = true;
           updateLoadingStatus('Настройки вебхуков успешно импортированы из текста');
-          return true;
         } catch (e) {
           console.error('Ошибка при извлечении JSON из текста:', e);
         }
       }
 
-      // Пытаемся найти URL в тексте
-      const urlRegex = /(https?:\/\/[^\s"]+)/g;
-      const urls = responseText.match(urlRegex);
+      // Если не удалось обработать JSON, пытаемся найти URL в тексте
+      if (!processed) {
+        const urlRegex = /(https?:\/\/[^\s"]+)/g;
+        const urls = responseText.match(urlRegex);
 
-      if (urls && urls.length > 0) {
-        console.log(`Найдено ${urls.length} URL в ответе`);
+        if (urls && urls.length > 0) {
+          console.log(`Найдено ${urls.length} URL в ответе`);
 
-        // Сохраняем первый найденный URL как URL импорта
-        if (urls.length > 0) {
-          localStorage.setItem('adminImportWebhook', urls[0]);
-          console.log(`Установлен URL импорта из текста: ${urls[0]}`);
+          // Создаем базовые настройки и заполняем найденными URL
+          settings = {
+            exportUrl: null,
+            importUrl: null,
+            getUrl: null
+          };
 
-          // Обновляем также в настройках
-          const settings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
-          settings.importUrl = urls[0];
-          localStorage.setItem('webhookSettings', JSON.stringify(settings));
+          // Анализируем найденные URL и распределяем их по назначению
+          for (const url of urls) {
+            if (url.includes('/webhook/') && url.includes('/Get')) {
+              settings.getUrl = url;
+              console.log(`Найден URL для получения вебхуков: ${url}`);
+            } else if (url.includes('/webhook/') && (url.includes('JSON') || url.includes('/import') || url.includes('/Import'))) {
+              settings.importUrl = url;
+              console.log(`Найден URL для импорта данных: ${url}`);
+            } else if (url.includes('/webhook/') && (url.includes('Save') || url.includes('/export') || url.includes('/Export'))) {
+              settings.exportUrl = url;
+              console.log(`Найден URL для экспорта данных: ${url}`);
+            }
+          }
 
-          updateLoadingStatus('URL импорта установлен из текстового ответа');
-          return true;
+          // Если не нашли специфичные URL, используем первый найденный для импорта
+          if (!settings.importUrl && urls.length > 0) {
+            settings.importUrl = urls[0];
+            console.log(`Использован первый найденный URL для импорта: ${urls[0]}`);
+          }
+
+          // Сохраняем настройки
+          if (settings.importUrl) {
+            localStorage.setItem('adminImportWebhook', settings.importUrl);
+            // Обновляем также в общих настройках
+            const storedSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
+            storedSettings.importUrl = settings.importUrl;
+            if (settings.exportUrl) storedSettings.exportUrl = settings.exportUrl;
+            if (settings.getUrl) storedSettings.getUrl = settings.getUrl;
+            localStorage.setItem('webhookSettings', JSON.stringify(storedSettings));
+
+            processed = true;
+            updateLoadingStatus('URL вебхуков установлены из текстового ответа');
+          }
         }
       }
+    }
+
+    // Возвращаем результат
+    if (processed && settings) {
+      return { success: true, settings };
+    } else {
+      return { success: false, error: 'Не удалось обработать данные' };
     }
   } catch (error) {
     console.error('Ошибка при импорте вебхуков:', error);
     updateLoadingStatus(`Ошибка при импорте вебхуков: ${error.message}`);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -405,7 +488,8 @@ function processWebhooksData(data) {
             localStorage.setItem('importWebhookUrl', webhook.url);
             console.log(`Установлен URL импорта: ${webhook.url}`);
             updated = true;
-          } else if (webhook.type === 'notification' || webhook.id === 'notify_updates_hook') {
+          } else if (webhook.type === 'notification' || webhook.id === 'notify_updates_hook' || 
+                    webhook.type === 'get' || webhook.id === 'get_hooks') {
             settings.getUrl = webhook.url;
             localStorage.setItem('adminGetWebhook', webhook.url);
             console.log(`Установлен URL получения вебхуков: ${webhook.url}`);
@@ -431,10 +515,11 @@ function processWebhooksData(data) {
       updated = true;
     }
 
-    if (data.getWebhooksUrl) {
-      settings.getUrl = data.getWebhooksUrl;
-      localStorage.setItem('adminGetWebhook', data.getWebhooksUrl);
-      console.log(`Установлен URL получения вебхуков: ${data.getWebhooksUrl}`);
+    if (data.getWebhooksUrl || data.getUrl) {
+      const getUrl = data.getWebhooksUrl || data.getUrl;
+      settings.getUrl = getUrl;
+      localStorage.setItem('adminGetWebhook', getUrl);
+      console.log(`Установлен URL получения вебхуков: ${getUrl}`);
       updated = true;
     }
 
@@ -465,6 +550,36 @@ function processWebhooksData(data) {
       });
     }
 
+    // Проверяем, есть ли в объекте данных онбординг-вебхуки
+    if (data.onboardingUrls || data.onboarding) {
+      const onboardingData = data.onboardingUrls || data.onboarding;
+      
+      if (onboardingData.import || onboardingData.importUrl) {
+        const importUrl = onboardingData.import || onboardingData.importUrl;
+        settings.importUrl = importUrl;
+        localStorage.setItem('adminImportWebhook', importUrl);
+        localStorage.setItem('importWebhookUrl', importUrl);
+        console.log(`Установлен URL импорта из onboarding: ${importUrl}`);
+        updated = true;
+      }
+      
+      if (onboardingData.export || onboardingData.exportUrl) {
+        const exportUrl = onboardingData.export || onboardingData.exportUrl;
+        settings.exportUrl = exportUrl;
+        localStorage.setItem('adminExportWebhook', exportUrl);
+        console.log(`Установлен URL экспорта из onboarding: ${exportUrl}`);
+        updated = true;
+      }
+      
+      if (onboardingData.get || onboardingData.getUrl) {
+        const getUrl = onboardingData.get || onboardingData.getUrl;
+        settings.getUrl = getUrl;
+        localStorage.setItem('adminGetWebhook', getUrl);
+        console.log(`Установлен URL получения из onboarding: ${getUrl}`);
+        updated = true;
+      }
+    }
+
     if (updated) {
       // Сохраняем обновленные настройки
       localStorage.setItem('webhookSettings', JSON.stringify(settings));
@@ -475,8 +590,12 @@ function processWebhooksData(data) {
         window.adminInterface.loadWebhookSettings();
       }
     }
+    
+    // Возвращаем настройки
+    return settings;
   } catch (error) {
     console.error('Ошибка при обработке данных вебхуков:', error);
+    return null;
   }
 }
 
