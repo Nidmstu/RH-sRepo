@@ -2111,6 +2111,56 @@ class AdminInterface {
           }
         } else {
           // Добавляем уроки в текущий день
+          if (!this.currentEditing.day.lessons) {
+            this.currentEditing.day.lessons = [];
+          }
+          
+          this.currentEditing.day.lessons.push(...lessons);
+        }
+        break;
+        
+      case 'new-day':
+        // Создаем новый день
+        const maxId = this.currentEditing.course.days ? 
+          this.currentEditing.course.days.reduce((max, day) => Math.max(max, day.id), 0) : 0;
+        
+        const dayTitle = prompt('Введите название нового дня:', `День ${maxId + 1}`);
+        if (!dayTitle) return; // Пользователь отменил
+        
+        const newDay = {
+          id: maxId + 1,
+          title: dayTitle,
+          lessons: lessons
+        };
+        
+        // Добавляем день в курс
+        if (!this.currentEditing.course.days) {
+          this.currentEditing.course.days = [];
+        }
+        
+        this.currentEditing.course.days.push(newDay);
+        break;
+        
+      case 'special':
+        // Добавляем уроки в специальные уроки
+        if (!this.currentEditing.course.specialLessons) {
+          this.currentEditing.course.specialLessons = [];
+        }
+        
+        this.currentEditing.course.specialLessons.push(...lessons);
+        break;
+    }
+    
+    // Обновляем интерфейс
+    this.loadDaysList();
+    this.loadSpecialLessonsList();
+    
+    // Сохраняем изменения
+    this.saveCoursesToJSON();
+    
+    // Уведомляем пользователя
+    alert(`Успешно импортировано ${lessons.length} уроков`);
+  }
 
   /**
    * Импорт курса из JSON в текстовом поле
