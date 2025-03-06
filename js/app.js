@@ -21,6 +21,13 @@ const testButton = document.getElementById('test-button');
 async function initApp() {
   console.log('Инициализация приложения...');
 
+  // Очищаем старые настройки, чтобы избежать проблем
+  localStorage.removeItem('webhookSettings');
+  localStorage.removeItem('adminGetWebhook');
+  localStorage.removeItem('adminImportWebhook');
+  localStorage.removeItem('importWebhookUrl');
+  localStorage.removeItem('testImportUrl');
+
   // Скрываем контент и показываем индикатор загрузки
   const globalLoadingOverlay = document.getElementById('global-loading-overlay');
   const loadingIndicator = document.getElementById('loading-spinner');
@@ -62,36 +69,42 @@ async function initApp() {
     updateGlobalLoadingStatus('Запрос вебхуков с сервера...');
     updateLoadingStatus('Загрузка настроек приложения...');
 
-    // Используем конкретный URL для автоматического импорта вебхуков
+    // ВАЖНО: Используем ТОЛЬКО рабочий URL для вебхуков
     const webhookUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
     console.log('Отправка запроса для получения вебхуков на URL:', webhookUrl);
     
-    // Принудительно устанавливаем URL для получения вебхуков
-    localStorage.setItem('adminGetWebhook', webhookUrl);
-    
-    // Принудительно устанавливаем URL для импорта данных
-    localStorage.setItem('importWebhookUrl', 'https://auto.crm-s.com/webhook/OnboardingJSON');
-    localStorage.setItem('adminImportWebhook', 'https://auto.crm-s.com/webhook/OnboardingJSON');
-    
-    // Сохраняем настройки вебхуков
+    // Принудительно устанавливаем все URL с проверкой
     const webhookSettings = {
       importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
       exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
       getUrl: webhookUrl
     };
     
+    // Сохраняем настройки во все возможные места в localStorage
     localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+    localStorage.setItem('adminGetWebhook', webhookSettings.getUrl);
+    localStorage.setItem('adminImportWebhook', webhookSettings.importUrl);
+    localStorage.setItem('adminExportWebhook', webhookSettings.exportUrl);
+    localStorage.setItem('importWebhookUrl', webhookSettings.importUrl);
     
-    // Пытаемся импортировать настройки вебхуков, но если не получится, используем настройки по умолчанию
+    console.log('Установлены рабочие URL для вебхуков:');
+    console.log('- Get URL:', webhookSettings.getUrl);
+    console.log('- Import URL:', webhookSettings.importUrl);
+    console.log('- Export URL:', webhookSettings.exportUrl);
+    
+    // Пытаемся импортировать настройки вебхуков, но если не получится, сразу переходим к загрузке курсов
     try {
+      updateGlobalLoadingStatus('Запрос вебхуков с сервера...');
       const importedSettings = await importWebhooksFromServer(webhookUrl);
       if (!importedSettings || !importedSettings.success) {
-        console.log('Использование стандартных настроек вебхуков');
-        updateGlobalLoadingStatus('Использование стандартных настроек вебхуков');
+        console.log('Невозможно получить настройки вебхуков, переходим к загрузке данных');
+        updateGlobalLoadingStatus('Переход к загрузке данных курсов...');
+      } else {
+        updateGlobalLoadingStatus('Настройки вебхуков получены');
       }
     } catch (error) {
-      console.error('Ошибка при импорте вебхуков, используем настройки по умолчанию:', error);
-      updateGlobalLoadingStatus('Использование стандартных настроек вебхуков');
+      console.error('Ошибка при импорте вебхуков, переходим к загрузке данных:', error);
+      updateGlobalLoadingStatus('Переход к загрузке данных курсов...');
     }
 
     if (!webhookSettings) {
@@ -288,17 +301,29 @@ function updateLoadingStatus(message, isError = false) {
 async function autoImportWebhooks() {
   console.log('Проверка наличия настроек вебхуков...');
 
-  // Обновляем реальный URL для автоимпорта вебхуков в localStorage (устраняем тестовый URL)
-  const storedSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
-  if (storedSettings.getUrl && storedSettings.getUrl.includes('webhook-test')) {
-    storedSettings.getUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
-    localStorage.setItem('webhookSettings', JSON.stringify(storedSettings));
-    localStorage.setItem('adminGetWebhook', storedSettings.getUrl);
-    console.log('Обновлен URL для получения вебхуков с тестового на рабочий');
-  }
+  // Всегда принудительно устанавливаем рабочий URL, игнорируя сохраненные настройки
+  localStorage.removeItem('webhookSettings');
+  
+  // Принудительно устанавливаем правильные URL для всех вебхуков
+  const webhookSettings = {
+    importUrl: 'https://auto.crm-s.com/webhook/OnboardingJSON',
+    exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
+    getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
+  };
+  
+  // Сохраняем настройки во все возможные места
+  localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+  localStorage.setItem('adminGetWebhook', webhookSettings.getUrl);
+  localStorage.setItem('adminImportWebhook', webhookSettings.importUrl);
+  localStorage.setItem('adminExportWebhook', webhookSettings.exportUrl);
+  localStorage.setItem('importWebhookUrl', webhookSettings.importUrl);
+  
+  console.log('Принудительно установлены рабочие URL для вебхуков:');
+  console.log('- Get URL:', webhookSettings.getUrl);
+  console.log('- Import URL:', webhookSettings.importUrl);
+  console.log('- Export URL:', webhookSettings.exportUrl);
 
   // Определяем URL для получения вебхуков (всегда используем актуальный URL)
-  // Всегда используем основной URL для получения вебхуков, а не тестовый
   const getWebhooksUrl = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
 
   console.log(`Импортирование вебхуков напрямую с: ${getWebhooksUrl}`);
@@ -397,6 +422,12 @@ async function importWebhooksFromServer(url) {
     return { success: false, error: 'URL не указан' };
   }
 
+  // Проверяем и исправляем URL при необходимости
+  if (url.includes('webhook-test')) {
+    url = 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+    console.log(`Заменен тестовый URL на рабочий: ${url}`);
+  }
+
   console.log(`Автоматический импорт вебхуков с URL: ${url}`);
   updateLoadingStatus('Получение настроек вебхуков...');
   updateGlobalLoadingStatus(`Запрос вебхуков с ${url.split('/').slice(-1)[0]}...`);
@@ -408,18 +439,20 @@ async function importWebhooksFromServer(url) {
 
     console.log('СЕТЕВОЙ ЗАПРОС: Отправка запроса на:', url);
     
-    // Используем нативный fetch для отправки запроса
+    // Используем нативный fetch для отправки запроса с улучшенными параметрами
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json, text/plain, */*',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
         'X-Requested-With': 'XMLHttpRequest'
       },
       cache: 'no-store',
       mode: 'cors',
       credentials: 'omit',
-      signal: controller.signal
+      signal: controller.signal,
+      redirect: 'follow'
     });
 
     clearTimeout(timeoutId);
@@ -720,32 +753,36 @@ function isValidUrl(url) {
 async function forceSyncWithCloud() {
   return new Promise(async (resolve, reject) => {
     console.log('Принудительная синхронизация с облаком...');
-    updateLoadingStatus('Поиск URL для импорта данных...');
+    updateLoadingStatus('Подготовка к импорту данных...');
 
-    // Всегда используем рабочий URL для импорта данных
+    // ВАЖНО: Всегда используем только рабочий URL для импорта данных
     const importWebhookUrl = 'https://auto.crm-s.com/webhook/OnboardingJSON';
     
-    // Сохраняем URL для дальнейшего использования
+    // Сохраняем URL для дальнейшего использования во всех возможных местах
     localStorage.setItem('importWebhookUrl', importWebhookUrl);
     localStorage.setItem('adminImportWebhook', importWebhookUrl);
     
     // Обновляем статус
     console.log(`Используем фиксированный URL импорта: ${importWebhookUrl}`);
-    updateLoadingStatus(`Используем официальный URL импорта данных`);
+    updateLoadingStatus(`Отправка запроса на сервер...`);
+    updateGlobalLoadingStatus('Запрос данных с сервера...');
     
-    // Обновляем настройки вебхуков в localStorage
-    const webhookSettings = JSON.parse(localStorage.getItem('webhookSettings') || '{}');
-    webhookSettings.importUrl = importWebhookUrl;
-    webhookSettings.exportUrl = webhookSettings.exportUrl || 'https://auto.crm-s.com/webhook/SaveWebhooks';
-    webhookSettings.getUrl = webhookSettings.getUrl || 'https://auto.crm-s.com/webhook/GetOnboardingHooks';
+    // Обновляем настройки вебхуков в localStorage полностью
+    const webhookSettings = {
+      importUrl: importWebhookUrl,
+      exportUrl: 'https://auto.crm-s.com/webhook/SaveWebhooks',
+      getUrl: 'https://auto.crm-s.com/webhook/GetOnboardingHooks'
+    };
+    
     localStorage.setItem('webhookSettings', JSON.stringify(webhookSettings));
+    localStorage.setItem('adminGetWebhook', webhookSettings.getUrl);
+    localStorage.setItem('adminExportWebhook', webhookSettings.exportUrl);
 
-    // Если найден URL импорта, используем его
-    if (importWebhookUrl) {
-      if (window.devMode && window.devMode.enabled) {
-        console.log('🔧 [DevMode] Выполняется принудительная синхронизация с облаком');
-        console.log(`🔧 [DevMode] URL для импорта: ${importWebhookUrl}`);
-      }
+    // Всегда используем URL импорта
+    if (window.devMode && window.devMode.enabled) {
+      console.log('🔧 [DevMode] Выполняется принудительная синхронизация с облаком');
+      console.log(`🔧 [DevMode] URL для импорта: ${importWebhookUrl}`);
+    }
 
       try {
         // Сохраняем URL для использования в CourseManager
