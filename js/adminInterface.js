@@ -3512,6 +3512,38 @@ class AdminInterface {
             border-top: 1px solid #ddd;
             text-align: right;
           }
+          
+          .webhook-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+          }
+          
+          .webhook-item h4 {
+            margin-top: 0;
+            color: #3498db;
+          }
+          
+          .webhook-item-details {
+            margin-top: 10px;
+            font-size: 0.9em;
+          }
+          
+          .webhook-apply-btn {
+            margin-top: 10px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+          }
+          
+          .webhook-apply-btn:hover {
+            background-color: #27ae60;
+          }
         `;
         document.head.appendChild(style);
       }
@@ -3542,24 +3574,104 @@ class AdminInterface {
           // Пытаемся распарсить как JSON
           const jsonData = JSON.parse(responseText);
           
-          // Обновляем содержимое модального окна
-          modal.querySelector('.admin-modal-body').innerHTML = `
-            <div class="webhooks-data">
-              <pre>${JSON.stringify(jsonData, null, 2)}</pre>
-            </div>
+          // Обрабатываем полученные данные и заполняем поля ввода в интерфейсе
+          this.processWebhooksData(jsonData);
+          
+          // Обновляем содержимое модального окна со структурированным отображением вебхуков
+          let webhooksHtml = '<h3>Найденные вебхуки</h3>';
+          let foundWebhooks = false;
+          
+          // Проверяем наличие webhooks в объекте
+          if (jsonData.webhooks && Array.isArray(jsonData.webhooks)) {
+            foundWebhooks = true;
+            webhooksHtml += '<div class="webhooks-list">';
+            
+            jsonData.webhooks.forEach((webhook, index) => {
+              webhooksHtml += `
+                <div class="webhook-item">
+                  <h4>${webhook.description || webhook.id || `Вебхук ${index + 1}`}</h4>
+                  <div class="webhook-item-details">
+                    <p><strong>Тип:</strong> ${webhook.type || 'Не указан'}</p>
+                    <p><strong>URL:</strong> ${webhook.url || 'Не указан'}</p>
+                    <p><strong>Метод:</strong> ${webhook.method || 'GET'}</p>
+                    <p><strong>Статус:</strong> ${webhook.active ? 'Активен' : 'Неактивен'}</p>
+                  </div>
+                  <button class="webhook-apply-btn" data-webhook-index="${index}">Применить этот вебхук</button>
+                </div>
+              `;
+            });
+            
+            webhooksHtml += '</div>';
+          } else if (jsonData.exportUrl || jsonData.importUrl || jsonData.getWebhooksUrl) {
+            // Если это объект с настройками вебхуков
+            foundWebhooks = true;
+            webhooksHtml += `
+              <div class="webhook-item">
+                <h4>Настройки вебхуков</h4>
+                <div class="webhook-item-details">
+                  ${jsonData.exportUrl ? `<p><strong>URL экспорта:</strong> ${jsonData.exportUrl}</p>` : ''}
+                  ${jsonData.importUrl ? `<p><strong>URL импорта:</strong> ${jsonData.importUrl}</p>` : ''}
+                  ${jsonData.getWebhooksUrl ? `<p><strong>URL получения вебхуков:</strong> ${jsonData.getWebhooksUrl}</p>` : ''}
+                  ${jsonData.lastUpdated ? `<p><strong>Последнее обновление:</strong> ${jsonData.lastUpdated}</p>` : ''}
+                </div>
+                <button class="webhook-apply-settings-btn">Применить эти настройки</button>
+              </div>
+            `;
+          } else {
+            // Проверяем наличие URL-адресов в любом месте объекта
+            const foundUrls = this.findUrlsInObject(jsonData);
+            if (foundUrls.length > 0) {
+              foundWebhooks = true;
+              webhooksHtml += '<div class="webhooks-list">';
+              
+              foundUrls.forEach((urlInfo, index) => {
+                webhooksHtml += `
+                  <div class="webhook-item">
+                    <h4>Найденный URL ${index + 1}</h4>
+                    <div class="webhook-item-details">
+                      <p><strong>URL:</strong> ${urlInfo.url}</p>
+                      <p><strong>Путь в объекте:</strong> ${urlInfo.path}</p>
+                    </div>
+                    <button class="webhook-apply-url-btn" data-url="${urlInfo.url}" data-type="${urlInfo.type || 'unknown'}">
+                      Использовать как ${this.getWebhookTypeLabel(urlInfo.type)}
+                    </button>
+                  </div>
+                `;
+              });
+              
+              webhooksHtml += '</div>';
+            }
+          }
+          
+          if (!foundWebhooks) {
+            // Отображаем весь JSON, если не удалось найти структурированные данные
+            webhooksHtml = `
+              <div class="webhooks-data">
+                <h3>Полученные данные (формат JSON)</h3>
+                <pre>${JSON.stringify(jsonData, null, 2)}</pre>
+              </div>
+            `;
+          }
+          
+          // Добавляем кнопки действий
+          webhooksHtml += `
             <div class="admin-modal-actions">
               <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
               <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
-                <i class="fas fa-copy"></i> Скопировать
+                <i class="fas fa-copy"></i> Скопировать JSON
               </button>
             </div>
           `;
+          
+          // Обновляем содержимое модального окна
+          modal.querySelector('.admin-modal-body').innerHTML = webhooksHtml;
           
           // Добавляем обработчики для кнопок
           modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
             document.body.removeChild(modal);
           });
           
+          // Обработчик для копирования данных
           modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
             try {
               navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2))
@@ -3584,31 +3696,169 @@ class AdminInterface {
             }
           });
           
+          // Добавляем обработчики для кнопок применения вебхуков
+          const applyButtons = modal.querySelectorAll('.webhook-apply-btn');
+          applyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+              const index = parseInt(button.getAttribute('data-webhook-index'));
+              const webhook = jsonData.webhooks[index];
+              
+              if (webhook && webhook.url) {
+                // Определяем, какой тип вебхука перед нами
+                if (webhook.type === 'export' || webhook.id === 'export_courses_hook') {
+                  document.getElementById('admin-export-webhook-url').value = webhook.url;
+                  this.showWebhookStatus(`URL экспорта установлен: ${webhook.url}`, 'success');
+                } else if (webhook.type === 'import' || webhook.id === 'import_courses_hook') {
+                  document.getElementById('admin-import-webhook-url').value = webhook.url;
+                  this.showWebhookStatus(`URL импорта установлен: ${webhook.url}`, 'success');
+                } else if (webhook.type === 'notification' || webhook.id === 'notify_updates_hook') {
+                  // Можем добавить другие типы вебхуков по необходимости
+                  document.getElementById('admin-get-webhooks-url').value = webhook.url;
+                  this.showWebhookStatus(`URL уведомлений установлен: ${webhook.url}`, 'success');
+                } else {
+                  // Если тип не определен, предлагаем выбрать вручную
+                  const urlType = prompt(`Выберите тип для вебхука ${webhook.url} (export, import, get):`, 'export');
+                  
+                  if (urlType === 'export') {
+                    document.getElementById('admin-export-webhook-url').value = webhook.url;
+                    this.showWebhookStatus(`URL экспорта установлен: ${webhook.url}`, 'success');
+                  } else if (urlType === 'import') {
+                    document.getElementById('admin-import-webhook-url').value = webhook.url;
+                    this.showWebhookStatus(`URL импорта установлен: ${webhook.url}`, 'success');
+                  } else if (urlType === 'get') {
+                    document.getElementById('admin-get-webhooks-url').value = webhook.url;
+                    this.showWebhookStatus(`URL получения вебхуков установлен: ${webhook.url}`, 'success');
+                  }
+                }
+              }
+            });
+          });
+          
+          // Обработчик для кнопки применения настроек
+          const applySettingsBtn = modal.querySelector('.webhook-apply-settings-btn');
+          if (applySettingsBtn) {
+            applySettingsBtn.addEventListener('click', () => {
+              if (jsonData.exportUrl) {
+                document.getElementById('admin-export-webhook-url').value = jsonData.exportUrl;
+              }
+              if (jsonData.importUrl) {
+                document.getElementById('admin-import-webhook-url').value = jsonData.importUrl;
+              }
+              if (jsonData.getWebhooksUrl) {
+                document.getElementById('admin-get-webhooks-url').value = jsonData.getWebhooksUrl;
+              }
+              
+              this.showWebhookStatus('Настройки вебхуков успешно применены', 'success');
+            });
+          }
+          
+          // Обработчики для найденных URL
+          const applyUrlButtons = modal.querySelectorAll('.webhook-apply-url-btn');
+          applyUrlButtons.forEach(button => {
+            button.addEventListener('click', () => {
+              const url = button.getAttribute('data-url');
+              const type = button.getAttribute('data-type');
+              
+              if (url) {
+                if (type === 'export') {
+                  document.getElementById('admin-export-webhook-url').value = url;
+                  this.showWebhookStatus(`URL экспорта установлен: ${url}`, 'success');
+                } else if (type === 'import') {
+                  document.getElementById('admin-import-webhook-url').value = url;
+                  this.showWebhookStatus(`URL импорта установлен: ${url}`, 'success');
+                } else if (type === 'get') {
+                  document.getElementById('admin-get-webhooks-url').value = url;
+                  this.showWebhookStatus(`URL получения вебхуков установлен: ${url}`, 'success');
+                } else {
+                  // Если тип не определен, предлагаем выбрать вручную
+                  const urlType = prompt(`Выберите тип для URL ${url} (export, import, get):`, 'export');
+                  
+                  if (urlType === 'export') {
+                    document.getElementById('admin-export-webhook-url').value = url;
+                    this.showWebhookStatus(`URL экспорта установлен: ${url}`, 'success');
+                  } else if (urlType === 'import') {
+                    document.getElementById('admin-import-webhook-url').value = url;
+                    this.showWebhookStatus(`URL импорта установлен: ${url}`, 'success');
+                  } else if (urlType === 'get') {
+                    document.getElementById('admin-get-webhooks-url').value = url;
+                    this.showWebhookStatus(`URL получения вебхуков установлен: ${url}`, 'success');
+                  }
+                }
+              }
+            });
+          });
+          
           this.showWebhookStatus('Вебхуки успешно получены', 'success');
         } catch (e) {
-          // Если это не JSON, просто отображаем текст
-          modal.querySelector('.admin-modal-body').innerHTML = `
+          console.error('Ошибка при обработке JSON:', e);
+          
+          // Если это не JSON, просто отображаем текст и пытаемся найти URL в тексте
+          let textContent = `
             <div class="webhooks-data">
+              <h3>Получен текстовый ответ</h3>
               <pre>${responseText}</pre>
             </div>
+          `;
+          
+          // Пытаемся найти URL в тексте
+          const urlRegex = /(https?:\/\/[^\s"]+)/g;
+          const urls = responseText.match(urlRegex);
+          
+          if (urls && urls.length > 0) {
+            textContent += `
+              <div style="margin-top: 20px;">
+                <h3>Найденные URL-адреса:</h3>
+                <ul style="padding-left: 20px;">
+            `;
+            
+            urls.forEach((url, index) => {
+              textContent += `
+                <li style="margin-bottom: 10px;">
+                  ${url}
+                  <div style="margin-top: 5px;">
+                    <button class="webhook-text-url-btn" data-url="${url}" data-type="export">
+                      Использовать для экспорта
+                    </button>
+                    <button class="webhook-text-url-btn" data-url="${url}" data-type="import">
+                      Использовать для импорта
+                    </button>
+                    <button class="webhook-text-url-btn" data-url="${url}" data-type="get">
+                      Использовать для получения вебхуков
+                    </button>
+                  </div>
+                </li>
+              `;
+            });
+            
+            textContent += `
+                </ul>
+              </div>
+            `;
+          }
+          
+          textContent += `
             <div class="admin-modal-actions">
               <button id="close-webhooks-modal" class="admin-btn">Закрыть</button>
-              <button id="copy-webhooks-data" class="admin-btn admin-btn-primary">
-                <i class="fas fa-copy"></i> Скопировать
+              <button id="copy-text-data" class="admin-btn admin-btn-primary">
+                <i class="fas fa-copy"></i> Скопировать текст
               </button>
             </div>
           `;
+          
+          // Обновляем содержимое модального окна
+          modal.querySelector('.admin-modal-body').innerHTML = textContent;
           
           // Добавляем обработчики для кнопок
           modal.querySelector('#close-webhooks-modal').addEventListener('click', () => {
             document.body.removeChild(modal);
           });
           
-          modal.querySelector('#copy-webhooks-data').addEventListener('click', () => {
+          // Копирование текста
+          modal.querySelector('#copy-text-data').addEventListener('click', () => {
             try {
               navigator.clipboard.writeText(responseText)
                 .then(() => {
-                  alert('Данные скопированы в буфер обмена');
+                  alert('Текст скопирован в буфер обмена');
                 })
                 .catch(err => {
                   console.error('Ошибка при копировании: ', err);
@@ -3620,15 +3870,39 @@ class AdminInterface {
                   textArea.select();
                   document.execCommand('copy');
                   document.body.removeChild(textArea);
-                  alert('Данные скопированы в буфер обмена');
+                  alert('Текст скопирован в буфер обмена');
                 });
             } catch (err) {
               console.error('Ошибка при копировании: ', err);
-              alert('Не удалось скопировать данные: ' + err.message);
+              alert('Не удалось скопировать текст: ' + err.message);
             }
           });
           
-          this.showWebhookStatus('Вебхуки успешно получены (не JSON формат)', 'success');
+          // Добавляем обработчики для найденных URL
+          setTimeout(() => {
+            const urlButtons = modal.querySelectorAll('.webhook-text-url-btn');
+            urlButtons.forEach(button => {
+              button.addEventListener('click', () => {
+                const url = button.getAttribute('data-url');
+                const type = button.getAttribute('data-type');
+                
+                if (url) {
+                  if (type === 'export') {
+                    document.getElementById('admin-export-webhook-url').value = url;
+                    this.showWebhookStatus(`URL экспорта установлен: ${url}`, 'success');
+                  } else if (type === 'import') {
+                    document.getElementById('admin-import-webhook-url').value = url;
+                    this.showWebhookStatus(`URL импорта установлен: ${url}`, 'success');
+                  } else if (type === 'get') {
+                    document.getElementById('admin-get-webhooks-url').value = url;
+                    this.showWebhookStatus(`URL получения вебхуков установлен: ${url}`, 'success');
+                  }
+                }
+              });
+            });
+          }, 100);
+          
+          this.showWebhookStatus('Получен текстовый ответ, URL-адреса обработаны', 'success');
         }
       })
       .catch(error => {
@@ -3658,6 +3932,136 @@ class AdminInterface {
         
         this.showWebhookStatus(`Ошибка при получении вебхуков: ${error.message}`, 'error');
       });
+  }
+  
+  /**
+   * Получить текстовое описание типа вебхука
+   */
+  getWebhookTypeLabel(type) {
+    switch (type) {
+      case 'export': return 'URL экспорта';
+      case 'import': return 'URL импорта';
+      case 'get': return 'URL получения вебхуков';
+      default: return 'URL (назначение не определено)';
+    }
+  }
+  
+  /**
+   * Обработка данных вебхуков и заполнение полей формы
+   */
+  processWebhooksData(data) {
+    try {
+      // Проверяем разные форматы данных
+      
+      // 1. Если есть webhooks массив
+      if (data.webhooks && Array.isArray(data.webhooks)) {
+        console.log(`Найдено ${data.webhooks.length} вебхуков в массиве webhooks`);
+        
+        // Ищем вебхуки по типу или ID
+        for (const webhook of data.webhooks) {
+          if (webhook.url) {
+            if (webhook.type === 'export' || webhook.id === 'export_courses_hook') {
+              document.getElementById('admin-export-webhook-url').value = webhook.url;
+              console.log(`Установлен URL экспорта: ${webhook.url}`);
+            } else if (webhook.type === 'import' || webhook.id === 'import_courses_hook') {
+              document.getElementById('admin-import-webhook-url').value = webhook.url;
+              console.log(`Установлен URL импорта: ${webhook.url}`);
+            } else if (webhook.type === 'notification' || webhook.id === 'notify_updates_hook' || webhook.id === 'get_webhooks_hook') {
+              document.getElementById('admin-get-webhooks-url').value = webhook.url;
+              console.log(`Установлен URL получения вебхуков: ${webhook.url}`);
+            }
+          }
+        }
+      }
+      
+      // 2. Если данные содержат прямые поля с URL
+      if (data.exportUrl) {
+        document.getElementById('admin-export-webhook-url').value = data.exportUrl;
+        console.log(`Установлен URL экспорта: ${data.exportUrl}`);
+      }
+      
+      if (data.importUrl) {
+        document.getElementById('admin-import-webhook-url').value = data.importUrl;
+        console.log(`Установлен URL импорта: ${data.importUrl}`);
+      }
+      
+      if (data.getWebhooksUrl) {
+        document.getElementById('admin-get-webhooks-url').value = data.getWebhooksUrl;
+        console.log(`Установлен URL получения вебхуков: ${data.getWebhooksUrl}`);
+      }
+      
+      // 3. Если в данных есть URL в других форматах
+      const urls = this.findUrlsInObject(data);
+      if (urls.length > 0) {
+        console.log(`Найдено ${urls.length} URL-адресов в данных`);
+        
+        // Автоматически устанавливаем URL, если можем определить их тип
+        urls.forEach(urlInfo => {
+          if (urlInfo.type === 'export') {
+            document.getElementById('admin-export-webhook-url').value = urlInfo.url;
+            console.log(`Автоматически установлен URL экспорта: ${urlInfo.url}`);
+          } else if (urlInfo.type === 'import') {
+            document.getElementById('admin-import-webhook-url').value = urlInfo.url;
+            console.log(`Автоматически установлен URL импорта: ${urlInfo.url}`);
+          } else if (urlInfo.type === 'get') {
+            document.getElementById('admin-get-webhooks-url').value = urlInfo.url;
+            console.log(`Автоматически установлен URL получения вебхуков: ${urlInfo.url}`);
+          }
+        });
+      }
+      
+      // Обновляем настройки вебхуков
+      this.saveWebhookSettings();
+      this.showWebhookStatus('Данные вебхуков успешно обработаны', 'success');
+      
+    } catch (error) {
+      console.error('Ошибка при обработке данных вебхуков:', error);
+      this.showWebhookStatus(`Ошибка при обработке данных: ${error.message}`, 'error');
+    }
+  }
+  
+  /**
+   * Рекурсивный поиск URL в объекте
+   */
+  findUrlsInObject(obj, path = '', results = []) {
+    if (!obj || typeof obj !== 'object') return results;
+    
+    // Обрабатываем все свойства объекта
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = obj[key];
+        const currentPath = path ? `${path}.${key}` : key;
+        
+        // Если значение - строка, проверяем, является ли оно URL
+        if (typeof value === 'string' && this.isValidUrl(value)) {
+          // Определяем тип URL на основе ключа и содержимого
+          let type = 'unknown';
+          
+          if (key.toLowerCase().includes('export') || value.toLowerCase().includes('export') ||
+              key.toLowerCase().includes('save') || value.toLowerCase().includes('save')) {
+            type = 'export';
+          } else if (key.toLowerCase().includes('import') || value.toLowerCase().includes('import') ||
+                    key.toLowerCase().includes('get') || value.toLowerCase().includes('get')) {
+            type = 'import';
+          } else if (key.toLowerCase().includes('webhook') || value.toLowerCase().includes('webhook') ||
+                    key.toLowerCase().includes('notification') || value.toLowerCase().includes('notification')) {
+            type = 'get';
+          }
+          
+          results.push({
+            url: value,
+            path: currentPath,
+            type: type
+          });
+        } 
+        // Если значение - объект или массив, рекурсивно ищем URL в нем
+        else if (typeof value === 'object' && value !== null) {
+          this.findUrlsInObject(value, currentPath, results);
+        }
+      }
+    }
+    
+    return results;
   }
   
   /**
