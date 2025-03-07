@@ -1799,11 +1799,16 @@ class AdminInterface {
 
     const course = window.courseManager.courses[professionId];
     this.currentEditing.course = course;
+    // Сохраняем ID курса в объекте курса для дальнейшего использования
+    this.currentEditing.course.id = professionId;
     this.currentEditing.day = null;
     this.currentEditing.lesson = null;
 
     // Заполняем форму курса
-    document.getElementById('admin-course-id').value = professionId;
+    const courseIdInput = document.getElementById('admin-course-id');
+    courseIdInput.value = professionId;
+    // Сохраняем оригинальный ID для отслеживания изменений
+    courseIdInput.setAttribute('data-original-id', professionId);
     document.getElementById('admin-course-title-input').value = course.title || '';
     document.getElementById('admin-course-redirect').value = course.redirectUrl || '';
     document.getElementById('admin-course-title').textContent = course.title || professionId;
