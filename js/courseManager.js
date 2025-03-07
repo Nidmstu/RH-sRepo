@@ -104,6 +104,7 @@ class CourseManager {
     
     try {
       if (includeHidden) {
+        console.log('Получены все ключи курсов:', Object.keys(this.courses));
         return Object.keys(this.courses);
       } else {
         // Фильтруем скрытые курсы
