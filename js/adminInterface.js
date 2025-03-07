@@ -1117,6 +1117,14 @@ class AdminInterface {
       importCourseBtn.parentNode.appendChild(openJsonImportBtn);
     }
     
+    // Добавляем обработчик для кнопки показать/скрыть курс
+    const toggleVisibilityBtn = document.getElementById('admin-toggle-visibility');
+    if (toggleVisibilityBtn) {
+      toggleVisibilityBtn.addEventListener('click', () => {
+        this.toggleCourseVisibility();
+      });
+    }
+    
     openJsonImportBtn.addEventListener('click', () => {
       if (importJsonModal) {
         importJsonModal.style.display = 'block';
@@ -1867,6 +1875,9 @@ class AdminInterface {
       // Устанавливаем статус скрытия курса
       const hiddenCheckbox = document.getElementById('admin-course-hidden');
       if (hiddenCheckbox) hiddenCheckbox.checked = course.hidden || false;
+      
+      // Обновляем вид кнопки видимости курса
+      this.updateVisibilityButtonState();
 
       // Загружаем дни и специальные уроки
       this.loadDaysList();
@@ -1993,6 +2004,9 @@ class AdminInterface {
     // Обновляем список курсов и продолжаем редактирование
     this.loadCoursesList();
     this.editCourse(newId);
+    
+    // Обновляем состояние кнопки видимости
+    this.updateVisibilityButtonState();
 
     alert('Курс успешно сохранен!');
   }
@@ -2136,6 +2150,64 @@ class AdminInterface {
    * Показать модальное окно для выбора уроков для импорта
    */
   showLessonsSelectionModal(lessons) {
+
+  /**
+   * Обновляет стиль кнопки видимости в зависимости от статуса курса
+   */
+  updateVisibilityButtonState() {
+    const toggleVisibilityBtn = document.getElementById('admin-toggle-visibility');
+    if (!toggleVisibilityBtn || !this.currentEditing.course) return;
+
+    if (this.currentEditing.course.hidden) {
+      toggleVisibilityBtn.innerText = 'Показать курс';
+      toggleVisibilityBtn.classList.remove('admin-btn-success');
+      toggleVisibilityBtn.classList.add('admin-btn-warning');
+    } else {
+      toggleVisibilityBtn.innerText = 'Скрыть курс';
+      toggleVisibilityBtn.classList.remove('admin-btn-warning');
+      toggleVisibilityBtn.classList.add('admin-btn-success');
+    }
+  }
+
+  /**
+   * Переключает видимость текущего курса
+   */
+  toggleCourseVisibility() {
+    if (!this.currentEditing.course) return;
+    
+    // Переключаем состояние видимости
+    this.currentEditing.course.hidden = !this.currentEditing.course.hidden;
+    
+    // Обновляем чекбокс
+    const hiddenCheckbox = document.getElementById('admin-course-hidden');
+    if (hiddenCheckbox) {
+      hiddenCheckbox.checked = this.currentEditing.course.hidden;
+    }
+    
+    // Обновляем стиль кнопки
+    this.updateVisibilityButtonState();
+    
+    // Применяем изменения к объекту курса
+    const courseId = this.currentEditing.course.id;
+    if (window.courseManager.courses[courseId]) {
+      if (this.currentEditing.course.hidden) {
+        window.courseManager.courses[courseId].hidden = true;
+      } else if (window.courseManager.courses[courseId].hidden) {
+        delete window.courseManager.courses[courseId].hidden;
+      }
+      
+      // Сохраняем изменения
+      this.saveCoursesToJSON();
+      
+      // Обновляем список курсов
+      this.loadCoursesList();
+      
+      // Показываем уведомление
+      const state = this.currentEditing.course.hidden ? 'скрыт' : 'отображается';
+      alert(`Курс теперь ${state} в списке на главной странице`);
+    }
+  }
+
     // Создаем модальное окно
     const modalId = 'import-lessons-modal';
     let modal = document.createElement('div');
