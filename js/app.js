@@ -1,3 +1,102 @@
+
+/**
+ * Вспомогательная функция для создания кнопки управления интерфейсом
+ */
+function createUIToggleButton() {
+  const toggleButton = document.createElement('button');
+  toggleButton.id = 'ui-controls-toggle';
+  toggleButton.className = 'ui-controls-toggle';
+  toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+  toggleButton.title = 'Скрыть/показать кнопки управления';
+  
+  // Добавляем стили для кнопки
+  const style = document.createElement('style');
+  style.textContent = `
+    .ui-controls-toggle {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: rgba(52, 152, 219, 0.7);
+      color: white;
+      border: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 9998;
+      font-size: 18px;
+      transition: all 0.3s ease;
+    }
+    
+    .ui-controls-toggle:hover {
+      background-color: rgba(52, 152, 219, 0.9);
+      transform: scale(1.05);
+    }
+    
+    .ui-controls-toggle.controls-hidden {
+      background-color: rgba(231, 76, 60, 0.7);
+    }
+    
+    .ui-controls-toggle.controls-hidden:hover {
+      background-color: rgba(231, 76, 60, 0.9);
+    }
+    
+    .admin-toggle-hidden, .dev-mode-toggle-hidden {
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Добавляем обработчик события
+  toggleButton.addEventListener('click', function() {
+    // Находим кнопки
+    const adminToggle = document.getElementById('admin-toggle');
+    const devModeToggle = document.getElementById('dev-mode-toggle');
+    
+    // Переключаем видимость кнопок
+    if (adminToggle) {
+      adminToggle.classList.toggle('admin-toggle-hidden');
+    }
+    
+    if (devModeToggle) {
+      devModeToggle.classList.toggle('dev-mode-toggle-hidden');
+    }
+    
+    // Меняем иконку на кнопке в зависимости от состояния
+    if ((adminToggle && adminToggle.classList.contains('admin-toggle-hidden')) || 
+        (devModeToggle && devModeToggle.classList.contains('dev-mode-toggle-hidden'))) {
+      toggleButton.innerHTML = '<i class="fas fa-eye"></i>';
+      toggleButton.classList.add('controls-hidden');
+      toggleButton.title = 'Показать кнопки управления';
+    } else {
+      toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+      toggleButton.classList.remove('controls-hidden');
+      toggleButton.title = 'Скрыть кнопки управления';
+    }
+  });
+  
+  return toggleButton;
+}
+
+// Функция инициализации кнопки переключения после загрузки страницы
+function initUIToggleButton() {
+  // Добавляем кнопку после полной загрузки документа
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    document.body.appendChild(createUIToggleButton());
+  } else {
+    window.addEventListener('DOMContentLoaded', function() {
+      document.body.appendChild(createUIToggleButton());
+    });
+  }
+}
+
+// Инициализация кнопки при загрузке скрипта
+document.addEventListener('DOMContentLoaded', initUIToggleButton);
+
 /**
  * Основной модуль приложения
  */

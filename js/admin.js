@@ -57,6 +57,14 @@ const adminPanel = {
 // Инициализируем админ-панель после загрузки страницы
 document.addEventListener('DOMContentLoaded', () => {
   adminPanel.init();
+  
+  // Добавляем ID кнопке управления курсами для возможности её скрытия
+  window.setTimeout(() => {
+    const adminPanelButton = document.querySelector('[onclick="openAdminPanel()"]');
+    if (adminPanelButton) {
+      adminPanelButton.id = 'admin-toggle';
+    }
+  }, 500);
 });
 
 export default adminPanel;
