@@ -18,30 +18,30 @@ class CourseManager {
     try {
       console.log('CourseManager: Начало инициализации...');
       console.log('CourseManager: Текущее время:', new Date().toISOString());
-      
+
       // Подписчики на изменение курсов
       this.courseUpdateCallbacks = [];
-      
+
       // Выводим текущее состояние и проверяем наличие данных
       console.log('CourseManager: Текущее состояние courses:', this.courses ? Object.keys(this.courses) : 'null');
-      
+
       // Проверяем, есть ли уже загруженные данные из предыдущей синхронизации
       if (this.courses && Object.keys(this.courses).length > 0) {
         console.log('CourseManager: Данные уже загружены из синхронизации, продолжаем с ними');
         console.log('CourseManager: Количество загруженных профессий:', Object.keys(this.courses).length);
         console.log('CourseManager: Идентификаторы профессий:', Object.keys(this.courses).join(', '));
-        
+
         // Дополнительная проверка данных - наличие дней и уроков для каждой профессии
         let dataIsValid = true;
         for (const profId of Object.keys(this.courses)) {
           const course = this.courses[profId];
-          
+
           // Если это редирект, то дни не нужны
           if (course.redirectUrl) {
             console.log(`CourseManager: Профессия ${profId} имеет редирект, структура валидна`);
             continue;
           }
-          
+
           // Проверяем наличие дней для этой профессии
           if (!course.days || !Array.isArray(course.days) || course.days.length === 0) {
             console.warn(`CourseManager: Профессия ${profId} не имеет дней обучения!`);
@@ -63,7 +63,7 @@ class CourseManager {
             });
           }
         }
-        
+
         if (dataIsValid) {
           console.log('CourseManager: Проверка структуры данных успешна, данные валидны');
           // Уведомляем об имеющихся курсах
@@ -74,12 +74,12 @@ class CourseManager {
           // Не возвращаем, продолжаем загрузку для обновления данных
         }
       }
-      
+
       console.log('CourseManager: Данные не найдены, начинаю загрузку...');
 
       // Получаем настройки вебхуков из localStorage в порядке приоритета
       let importWebhookUrl = null;
-      
+
       // 1. Настройки из админ-панели (наивысший приоритет)
       const adminWebhookUrl = localStorage.getItem('adminImportWebhook');
       if (adminWebhookUrl) {
@@ -158,7 +158,7 @@ class CourseManager {
             console.log(`Найден URL импорта в testImportUrl: ${webhookUrl}`);
           }
         }
-        
+
         console.log('Попытка загрузки данных с URL:', webhookUrl);
 
         if (webhookUrl) {
@@ -169,7 +169,7 @@ class CourseManager {
           // Устанавливаем таймаут для запроса (10 секунд максимум)
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000);
-          
+
           try {
             const importResponse = await fetch(webhookUrl, {
               method: 'GET',
@@ -180,7 +180,7 @@ class CourseManager {
               cache: 'no-store',  // Всегда получаем свежие данные
               signal: controller.signal
             });
-            
+
             // Очищаем таймаут после получения ответа
             clearTimeout(timeoutId);
 
@@ -354,19 +354,19 @@ class CourseManager {
                 this.courses = coursesData;
                 console.log('Курсы успешно загружены с вебхука импорта');
                 console.log('Загружены следующие профессии:', Object.keys(this.courses));
-                
+
                 // Подробный лог информации о загруженных курсах
                 Object.keys(this.courses).forEach(profId => {
                   const course = this.courses[profId];
                   console.log(`Профессия ${profId}: ${course.title || 'Без названия'}`);
-                  
+
                   if (course.days) {
                     console.log(`- Дней обучения: ${course.days.length}`);
                     course.days.forEach(day => {
                       console.log(`  - День ${day.id}: ${day.title} (${day.lessons ? day.lessons.length : 0} уроков)`);
                     });
                   }
-                  
+
                   if (course.specialLessons) {
                     console.log(`- Специальных уроков: ${course.specialLessons.length}`);
                   }
@@ -396,7 +396,7 @@ class CourseManager {
           } catch (fetchError) {
             // Очищаем таймаут, если ошибка произошла до его истечения
             clearTimeout(timeoutId);
-            
+
             // Ошибка fetch (может быть таймаут, сетевая ошибка и т.д.)
             if (fetchError.name === 'AbortError') {
               throw new Error('Таймаут запроса к вебхуку импорта');
@@ -517,7 +517,7 @@ class CourseManager {
       console.error('Объект courses не определен или не является объектом:', this.courses);
       return [];
     }
-    
+
     if (includeHidden) {
       return Object.keys(this.courses);
     } else {
@@ -640,7 +640,7 @@ class CourseManager {
       console.error('Ошибка: текущий урок не выбран');
       return null;
     }
-    
+
     console.log(`Загрузка контента для урока: ${this.currentLesson.id} (${this.currentLesson.title})`);
 
     const source = this.currentLesson.contentSource;
@@ -648,18 +648,18 @@ class CourseManager {
       console.error('Ошибка: у урока нет источника контента');
       return `# ${this.currentLesson.title}\n\nК сожалению, для данного урока не указан источник контента.`;
     }
-    
+
     console.log(`Источник контента:`, source);
 
     // Показываем индикатор загрузки
     this.showLoadingIndicator();
-    
+
     // Добавим индикатор загрузки в глобальный индикатор
     const globalStatusElement = document.getElementById('global-loading-status');
     if (globalStatusElement) {
       globalStatusElement.textContent = `Загрузка контента урока "${this.currentLesson.title}"...`;
     }
-    
+
     // Показываем глобальный индикатор при загрузке урока
     const globalLoadingOverlay = document.getElementById('global-loading-overlay');
     if (globalLoadingOverlay) {
@@ -684,7 +684,7 @@ class CourseManager {
           // Используем более надежный подход для загрузки данных
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд таймаут
-          
+
           const response = await fetch(source.url, {
             method: 'GET',
             headers: {
@@ -696,7 +696,7 @@ class CourseManager {
             cache: 'no-store', // Всегда получаем свежие данные
             signal: controller.signal
           });
-          
+
           // Очищаем таймаут после получения ответа
           clearTimeout(timeoutId);
 
@@ -802,7 +802,7 @@ class CourseManager {
 
       throw error;
     }
-  }
+    }
 
   async fetchTest(lesson = this.currentLesson) {
     if (!lesson || !lesson.testSource) {

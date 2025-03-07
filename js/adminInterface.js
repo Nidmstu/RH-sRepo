@@ -289,6 +289,12 @@ class AdminInterface {
                 <label for="admin-course-redirect">URL перенаправления (опционально):</label>
                 <input type="text" id="admin-course-redirect" class="admin-input" placeholder="Оставьте пустым, если перенаправление не требуется">
               </div>
+              <div class="admin-form-group">
+                <label for="admin-course-hidden">
+                  <input type="checkbox" id="admin-course-hidden" style="width: auto; margin-right: 10px;">
+                  Скрыть курс (курс будет виден только в админке)
+                </label>
+              </div>
             </div>
 
             <div class="admin-section-divider"></div>
@@ -577,6 +583,22 @@ class AdminInterface {
   addStyles() {
     const styleElement = document.createElement('style');
     styleElement.textContent = `
+      /* Стили для скрытых курсов */
+      .admin-list-item-hidden {
+        opacity: 0.7;
+        background-color: #f9f9f9;
+      }
+      
+      .admin-hidden-badge {
+        display: inline-block;
+        background-color: #f0ad4e;
+        color: white;
+        font-size: 0.7em;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
       /* Основные стили для админ-панели */
       .admin-panel {
         position: fixed;
@@ -1666,7 +1688,8 @@ class AdminInterface {
       return;
     }
 
-    const professions = window.courseManager.getProfessions();
+    // В админке показываем все курсы, включая скрытые
+    const professions = window.courseManager.getProfessions(true); 
     console.log('Полученные профессии:', professions);
 
     if (!professions || professions.length === 0) {
@@ -1692,9 +1715,18 @@ class AdminInterface {
 
       const courseItem = document.createElement('div');
       courseItem.className = 'admin-list-item';
+      
+      // Добавляем класс для скрытых курсов
+      if (course.hidden) {
+        courseItem.classList.add('admin-list-item-hidden');
+      }
+      
       courseItem.innerHTML = `
         <div class="admin-list-item-info">
-          <div class="admin-list-item-title">${title}</div>
+          <div class="admin-list-item-title">
+            ${title}
+            ${course.hidden ? '<span class="admin-hidden-badge">Скрыт</span>' : ''}
+          </div>
           <div class="admin-list-item-subtitle">${professionId}</div>
         </div>
         <div class="admin-list-item-actions">
@@ -1775,6 +1807,9 @@ class AdminInterface {
     document.getElementById('admin-course-title-input').value = course.title || '';
     document.getElementById('admin-course-redirect').value = course.redirectUrl || '';
     document.getElementById('admin-course-title').textContent = course.title || professionId;
+    
+    // Устанавливаем статус скрытия курса
+    document.getElementById('admin-course-hidden').checked = course.hidden || false;
 
     // Загружаем дни и специальные уроки
     this.loadDaysList();
@@ -1856,9 +1891,17 @@ class AdminInterface {
     const newId = document.getElementById('admin-course-id').value;
     const title = document.getElementById('admin-course-title-input').value;
     const redirectUrl = document.getElementById('admin-course-redirect').value;
+    const isHidden = document.getElementById('admin-course-hidden').checked;
 
     // Обновляем данные курса
     this.currentEditing.course.title = title;
+    
+    // Обновляем статус скрытия курса
+    if (isHidden) {
+      this.currentEditing.course.hidden = true;
+    } else if (this.currentEditing.course.hidden) {
+      delete this.currentEditing.course.hidden;
+    }
 
     if (redirectUrl) {
       this.currentEditing.course.redirectUrl = redirectUrl;
