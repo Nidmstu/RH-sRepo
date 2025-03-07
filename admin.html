@@ -828,8 +828,25 @@
     }
 
     .edit-course, .delete-course {
-      z-index: 15;
+      z-index: 1000;
       cursor: pointer !important;
+      position: relative;
+      padding: 8px 12px !important;
+      min-height: 36px !important;
+      margin: 0 3px !important;
+      display: inline-block !important;
+      pointer-events: auto !important;
+    }
+    
+    .admin-list-item-actions {
+      z-index: 1000;
+      position: relative;
+      pointer-events: auto !important;
+    }
+    
+    .admin-list-item {
+      position: relative;
+      z-index: 1;
     }
   </style>
 </head>

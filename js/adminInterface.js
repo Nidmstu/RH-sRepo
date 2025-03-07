@@ -1739,17 +1739,17 @@ class AdminInterface {
         </div>
       `;
 
-      // Добавляем прямые обработчики событий для кнопок
+      // Добавляем усиленные прямые обработчики событий для кнопок
       const editButton = courseItem.querySelector('.edit-course');
       const deleteButton = courseItem.querySelector('.delete-course');
 
       if (editButton) {
-        // Используем прямой onclick вместо addEventListener
-        editButton.onclick = (e) => {
+        // Используем несколько способов привязки событий
+        editButton.onclick = function(e) {
           e.preventDefault();
           e.stopPropagation();
           console.log("Клик по кнопке Изменить для курса:", professionId);
-          this.editCourse(professionId);
+          adminInterface.editCourse(professionId);
 
           // На мобильных устройствах скрываем боковую панель после выбора курса
           if (window.innerWidth <= 768) {
@@ -1763,6 +1763,15 @@ class AdminInterface {
           }
           return false;
         };
+        
+        // Добавим еще один обработчик для надежности
+        editButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("addEventListener клик по кнопке Изменить для курса:", professionId);
+          adminInterface.editCourse(professionId);
+          return false;
+        });
       }
 
       if (deleteButton) {
