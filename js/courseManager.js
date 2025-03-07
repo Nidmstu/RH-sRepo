@@ -10,14 +10,20 @@
 
     console.log('getProfessions с includeHidden =', includeHidden);
     
-    if (includeHidden) {
+    try {
+      if (includeHidden) {
+        return Object.keys(this.courses);
+      } else {
+        // Фильтруем скрытые курсы
+        return Object.keys(this.courses).filter(profId => {
+          const course = this.courses[profId];
+          // Проверяем точное значение hidden: true
+          return course && course.hidden !== true;
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка при фильтрации курсов:', error);
+      // В случае ошибки просто возвращаем все ключи
       return Object.keys(this.courses);
-    } else {
-      // Фильтруем скрытые курсы
-      return Object.keys(this.courses).filter(profId => {
-        const course = this.courses[profId];
-        // Проверяем точное значение hidden: true
-        return course && course.hidden !== true;
-      });
     }
   }

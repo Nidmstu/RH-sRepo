@@ -1632,16 +1632,31 @@
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Страница администратора загружена, инициализация...");
 
-      // Инициализируем менеджер курсов
-      await courseManager.initialize();
-
-      // Инициализируем и показываем административный интерфейс
-      await adminInterface.initialize();
-      adminInterface.show();
-
       // Глобальный доступ к менеджеру курсов и административному интерфейсу
       window.courseManager = courseManager;
       window.adminInterface = adminInterface;
+
+      try {
+        // Инициализируем менеджер курсов
+        console.log("Инициализация courseManager...");
+        await courseManager.initialize();
+        console.log("CourseManager инициализирован успешно");
+        
+        // Проверяем наличие курсов
+        if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
+          console.log("Курсы не найдены, инициализация пустого объекта");
+          courseManager.courses = {};
+        }
+
+        // Инициализируем и показываем административный интерфейс
+        console.log("Инициализация административного интерфейса...");
+        await adminInterface.initialize();
+        adminInterface.show();
+        console.log("Административный интерфейс загружен");
+      } catch (error) {
+        console.error("Ошибка при инициализации приложения:", error);
+        alert("Произошла ошибка при инициализации приложения: " + error.message);
+      }
 
 
       // Обработчики для кнопок справки

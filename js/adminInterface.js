@@ -1679,22 +1679,41 @@ class AdminInterface {
     coursesList.innerHTML = '';
 
     console.log('Загружаю список курсов...');
-    console.log('Доступные профессии:', Object.keys(window.courseManager.courses || {}));
-
-    // Убеждаемся, что courseManager и courses существуют
-    if (!window.courseManager || !window.courseManager.courses) {
-      console.error('CourseManager не инициализирован или отсутствуют данные о курсах');
-      coursesList.innerHTML = '<div class="admin-list-empty">Ошибка загрузки курсов. Обновите страницу.</div>';
-      return;
-    }
-
-    // В админке показываем все курсы, включая скрытые
-    const professions = window.courseManager.getProfessions(true); 
-    console.log('Полученные профессии:', professions);
-
-    if (!professions || professions.length === 0) {
-      console.log('Курсы не найдены в системе');
-      coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
+    
+    try {
+      // Убеждаемся, что courseManager и courses существуют
+      if (!window.courseManager) {
+        console.error('CourseManager не инициализирован');
+        coursesList.innerHTML = '<div class="admin-list-empty">Ошибка: CourseManager не инициализирован. Обновите страницу.</div>';
+        return;
+      }
+      
+      if (!window.courseManager.courses) {
+        console.log('Объект courses отсутствует, создаем пустой объект');
+        window.courseManager.courses = {};
+      }
+      
+      console.log('Доступные профессии:', Object.keys(window.courseManager.courses));
+      
+      // В админке показываем все курсы, включая скрытые
+      let professions = [];
+      try {
+        professions = window.courseManager.getProfessions(true);
+        console.log('Полученные профессии:', professions);
+      } catch (error) {
+        console.error('Ошибка при получении профессий:', error);
+        professions = Object.keys(window.courseManager.courses);
+        console.log('Используем прямой список ключей:', professions);
+      }
+      
+      if (!professions || professions.length === 0) {
+        console.log('Курсы не найдены в системе');
+        coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
+        return;
+      }
+    } catch (error) {
+      console.error('Критическая ошибка при загрузке курсов:', error);
+      coursesList.innerHTML = '<div class="admin-list-empty">Произошла ошибка при загрузке курсов: ' + error.message + '</div>';
       return;
     }
 
