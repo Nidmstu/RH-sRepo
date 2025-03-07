@@ -1634,6 +1634,16 @@ class AdminInterface {
         // Для встроенной панели, показываем контейнер
         this.container.classList.remove('hidden');
         this.loadCoursesList();
+        
+        // Убедимся, что кнопка управления интерфейсом видна
+        setTimeout(() => {
+          const toggleContainer = document.getElementById('ui-controls-container');
+          if (toggleContainer) {
+            toggleContainer.style.display = 'inline-block';
+          } else if (window.adminPanel && typeof window.adminPanel.addUIToggleButton === 'function') {
+            window.adminPanel.addUIToggleButton();
+          }
+        }, 200);
       }
     });
   }
