@@ -1691,12 +1691,6 @@ class AdminInterface {
     // В админке показываем все курсы, включая скрытые
     const professions = window.courseManager.getProfessions(true); 
     console.log('Полученные профессии:', professions);
-    
-    // Логируем для отладки скрытые курсы
-    console.log('Скрытые курсы:', professions.filter(id => {
-      const course = window.courseManager.courses[id];
-      return course && course.hidden === true;
-    }));
 
     if (!professions || professions.length === 0) {
       console.log('Курсы не найдены в системе');
