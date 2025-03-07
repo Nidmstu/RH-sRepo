@@ -1739,12 +1739,16 @@ class AdminInterface {
         </div>
       `;
 
-      // Добавляем обработчики событий
+      // Добавляем прямые обработчики событий для кнопок
       const editButton = courseItem.querySelector('.edit-course');
       const deleteButton = courseItem.querySelector('.delete-course');
 
       if (editButton) {
-        editButton.addEventListener('click', () => {
+        // Используем прямой onclick вместо addEventListener
+        editButton.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Клик по кнопке Изменить для курса:", professionId);
           this.editCourse(professionId);
 
           // На мобильных устройствах скрываем боковую панель после выбора курса
@@ -1757,13 +1761,19 @@ class AdminInterface {
               toggleBtn.innerHTML = '<i class="fas fa-bars"></i> Показать меню курсов';
             }
           }
-        });
+          return false;
+        };
       }
 
       if (deleteButton) {
-        deleteButton.addEventListener('click', () => {
+        // Используем прямой onclick вместо addEventListener
+        deleteButton.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Клик по кнопке Удалить для курса:", professionId);
           this.deleteCourse(professionId);
-        });
+          return false;
+        };
       }
 
       fragment.appendChild(courseItem);

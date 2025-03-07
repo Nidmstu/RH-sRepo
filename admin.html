@@ -699,6 +699,9 @@
         padding: 10px;
         flex: 1;
         min-width: 40%;
+        cursor: pointer;
+        position: relative;
+        z-index: 10;
       }
     }
 
@@ -822,6 +825,11 @@
       padding: 10px;
       border-radius: 4px;
       overflow-x: auto;
+    }
+
+    .edit-course, .delete-course {
+      z-index: 15;
+      cursor: pointer !important;
     }
   </style>
 </head>
@@ -1612,12 +1620,12 @@
       if (jsonTemplateSelector) {
         jsonTemplateSelector.addEventListener('change', () => {
           const selectedTemplate = jsonTemplateSelector.value;
-          
+
           if (selectedTemplate === 'full') {
             // Используем стандартный шаблон
             return;
           }
-          
+
           // Получаем соответствующий шаблон
           const templateElement = document.getElementById(`${selectedTemplate}-template`);
           if (templateElement && jsonTemplate) {
