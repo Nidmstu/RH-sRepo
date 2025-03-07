@@ -831,22 +831,51 @@
       z-index: 1000;
       cursor: pointer !important;
       position: relative;
-      padding: 8px 12px !important;
-      min-height: 36px !important;
+      padding: 12px 15px !important;
+      min-height: 44px !important;
       margin: 0 3px !important;
       display: inline-block !important;
       pointer-events: auto !important;
+      -webkit-tap-highlight-color: rgba(0,0,0,0.2) !important;
+      touch-action: manipulation !important;
     }
     
     .admin-list-item-actions {
       z-index: 1000;
       position: relative;
       pointer-events: auto !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 8px !important;
     }
     
     .admin-list-item {
       position: relative;
       z-index: 1;
+      padding: 15px 10px !important;
+    }
+    
+    /* Улучшения для мобильных устройств */
+    @media (max-width: 768px) {
+      .admin-list-item {
+        padding: 18px 12px !important;
+      }
+      
+      .edit-course, .delete-course {
+        padding: 12px 18px !important;
+        font-size: 16px !important;
+        min-width: 80px !important;
+      }
+      
+      .admin-list-item-actions {
+        margin-top: 10px !important;
+        width: 100% !important;
+      }
+      
+      /* Улучшение для планшетов */
+      .admin-sidebar, .admin-content {
+        padding: 10px !important;
+      }
     }
   </style>
 </head>

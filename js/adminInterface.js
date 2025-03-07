@@ -1744,13 +1744,17 @@ class AdminInterface {
       const deleteButton = courseItem.querySelector('.delete-course');
 
       if (editButton) {
-        // Используем несколько способов привязки событий
-        editButton.onclick = function(e) {
+        // Используем более надежные обработчики для мобильных устройств
+        const clickHandler = function(e) {
           e.preventDefault();
           e.stopPropagation();
           console.log("Клик по кнопке Изменить для курса:", professionId);
-          adminInterface.editCourse(professionId);
-
+          
+          // Короткая задержка чтобы избежать проблем с двойными кликами на мобильных
+          setTimeout(function() {
+            adminInterface.editCourse(professionId);
+          }, 50);
+          
           // На мобильных устройствах скрываем боковую панель после выбора курса
           if (window.innerWidth <= 768) {
             const sidebar = document.querySelector('.admin-sidebar');
@@ -1764,14 +1768,15 @@ class AdminInterface {
           return false;
         };
         
-        // Добавим еще один обработчик для надежности
-        editButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("addEventListener клик по кнопке Изменить для курса:", professionId);
-          adminInterface.editCourse(professionId);
-          return false;
-        });
+        // Назначаем обработчик на разные события для лучшей работы на мобильных
+        editButton.onclick = clickHandler;
+        editButton.addEventListener('click', clickHandler);
+        editButton.addEventListener('touchstart', clickHandler);
+        editButton.addEventListener('touchend', clickHandler);
+        
+        // Добавляем атрибуты для улучшения доступности на мобильных
+        editButton.setAttribute('role', 'button');
+        editButton.setAttribute('tabindex', '0');
       }
 
       if (deleteButton) {
