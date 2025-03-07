@@ -1797,41 +1797,83 @@ class AdminInterface {
   editCourse(professionId) {
     console.log(`Редактирование курса: ${professionId}`);
 
+    if (!window.courseManager || !window.courseManager.courses) {
+      console.error('CourseManager не инициализирован или отсутствуют данные о курсах');
+      alert('Ошибка: не удалось получить данные курса. Пожалуйста, обновите страницу.');
+      return;
+    }
+
     const course = window.courseManager.courses[professionId];
-    this.currentEditing.course = course;
-    // Сохраняем ID курса в объекте курса для дальнейшего использования
+    if (!course) {
+      console.error(`Курс с ID ${professionId} не найден`);
+      alert(`Ошибка: курс с ID "${professionId}" не найден`);
+      return;
+    }
+
+    // Создаем копию объекта курса для предотвращения непреднамеренного изменения
+    this.currentEditing.course = Object.assign({}, course);
+    // Явно добавляем ID в объект курса для дальнейшего использования
     this.currentEditing.course.id = professionId;
     this.currentEditing.day = null;
     this.currentEditing.lesson = null;
-
-    // Заполняем форму курса
-    const courseIdInput = document.getElementById('admin-course-id');
-    courseIdInput.value = professionId;
-    // Сохраняем оригинальный ID для отслеживания изменений
-    courseIdInput.setAttribute('data-original-id', professionId);
-    document.getElementById('admin-course-title-input').value = course.title || '';
-    document.getElementById('admin-course-redirect').value = course.redirectUrl || '';
-    document.getElementById('admin-course-title').textContent = course.title || professionId;
     
-    // Устанавливаем статус скрытия курса
-    document.getElementById('admin-course-hidden').checked = course.hidden || false;
+    console.log('Текущий редактируемый курс:', this.currentEditing.course);
 
-    // Загружаем дни и специальные уроки
-    this.loadDaysList();
-    this.loadSpecialLessonsList();
-    this.loadNoDayLessonsList(); //Load lessons without day
-    
-    // Загружаем настройки вебхуков
-    this.loadWebhookSettings();
+    try {
+      // Заполняем форму курса
+      const courseIdInput = document.getElementById('admin-course-id');
+      if (!courseIdInput) {
+        throw new Error('Элемент admin-course-id не найден');
+      }
+      
+      courseIdInput.value = professionId;
+      // Сохраняем оригинальный ID для отслеживания изменений
+      courseIdInput.setAttribute('data-original-id', professionId);
+      
+      // Заполняем остальные поля формы
+      const titleInput = document.getElementById('admin-course-title-input');
+      if (titleInput) titleInput.value = course.title || '';
+      
+      const redirectInput = document.getElementById('admin-course-redirect');
+      if (redirectInput) redirectInput.value = course.redirectUrl || '';
+      
+      const titleElement = document.getElementById('admin-course-title');
+      if (titleElement) titleElement.textContent = course.title || professionId;
+      
+      // Устанавливаем статус скрытия курса
+      const hiddenCheckbox = document.getElementById('admin-course-hidden');
+      if (hiddenCheckbox) hiddenCheckbox.checked = course.hidden || false;
 
-    // Показываем редактор курса
-    document.getElementById('admin-welcome').classList.add('hidden');
-    document.getElementById('admin-day-editor').classList.add('hidden');
-    document.getElementById('admin-lesson-editor').classList.add('hidden');
-    document.getElementById('admin-course-editor').classList.remove('hidden');
+      // Загружаем дни и специальные уроки
+      this.loadDaysList();
+      this.loadSpecialLessonsList();
+      this.loadNoDayLessonsList(); // Load lessons without day
+      
+      // Загружаем настройки вебхуков
+      this.loadWebhookSettings();
 
-    // Переключаемся на вкладку с днями
-    this.switchTab('days');
+      // Показываем редактор курса
+      const welcomePanel = document.getElementById('admin-welcome');
+      if (welcomePanel) welcomePanel.classList.add('hidden');
+      
+      const dayEditor = document.getElementById('admin-day-editor');
+      if (dayEditor) dayEditor.classList.add('hidden');
+      
+      const lessonEditor = document.getElementById('admin-lesson-editor');
+      if (lessonEditor) lessonEditor.classList.add('hidden');
+      
+      const courseEditor = document.getElementById('admin-course-editor');
+      if (courseEditor) courseEditor.classList.remove('hidden');
+      else console.error('Элемент admin-course-editor не найден');
+
+      // Переключаемся на вкладку с днями
+      this.switchTab('days');
+      
+      console.log('Курс успешно открыт для редактирования');
+    } catch (error) {
+      console.error('Ошибка при открытии курса для редактирования:', error);
+      alert(`Ошибка при открытии курса для редактирования: ${error.message}`);
+    }
   }
 
   /**
