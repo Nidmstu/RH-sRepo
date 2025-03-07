@@ -107,11 +107,13 @@ class CourseManager {
         return Object.keys(this.courses);
       } else {
         // Фильтруем скрытые курсы
-        return Object.keys(this.courses).filter(profId => {
+        const filtered = Object.keys(this.courses).filter(profId => {
           const course = this.courses[profId];
           // Проверяем точное значение hidden: true
           return course && course.hidden !== true;
         });
+        console.log('Отфильтрованные курсы:', filtered);
+        return filtered;
       }
     } catch (error) {
       console.error('Ошибка при фильтрации курсов:', error);
@@ -133,7 +135,23 @@ class CourseManager {
    */
   saveCourses() {
     try {
-      localStorage.setItem('courses', JSON.stringify(this.courses));
+      // Проверяем, что courses - это объект
+      if (!this.courses || typeof this.courses !== 'object') {
+        console.error('Ошибка: this.courses не является объектом', this.courses);
+        return false;
+      }
+      
+      // Преобразуем объект в JSON строку
+      const coursesJson = JSON.stringify(this.courses);
+      
+      // Проверяем, что получили валидную JSON строку
+      if (!coursesJson || coursesJson === 'undefined' || coursesJson === 'null') {
+        console.error('Ошибка: Невалидная JSON строка', coursesJson);
+        return false;
+      }
+      
+      // Сохраняем в localStorage
+      localStorage.setItem('courses', coursesJson);
       console.log('Курсы успешно сохранены в локальное хранилище');
       return true;
     } catch (error) {

@@ -1698,12 +1698,12 @@ class AdminInterface {
       // В админке показываем все курсы, включая скрытые
       let professions = [];
       try {
-        professions = window.courseManager.getProfessions(true);
-        console.log('Полученные профессии:', professions);
-      } catch (error) {
-        console.error('Ошибка при получении профессий:', error);
+        // Принудительно получаем все курсы
         professions = Object.keys(window.courseManager.courses);
-        console.log('Используем прямой список ключей:', professions);
+        console.log('Получены все ключи курсов:', professions);
+      } catch (error) {
+        console.error('Ошибка при получении ключей курсов:', error);
+        professions = [];
       }
       
       if (!professions || professions.length === 0) {
