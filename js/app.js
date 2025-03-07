@@ -1528,7 +1528,11 @@ window.selectLesson = function(lessonId) {
   // Проверяем и отображаем аудио для урока
   const audioInfo = courseManager.getAudioInfo();
   if (audioInfo) {
+    console.log('Найдена информация об аудио для урока:', lesson.id);
+    console.log('Аудио информация:', JSON.stringify(audioInfo));
     showAudioForLesson(lesson);
+  } else {
+    console.log('Для урока', lesson.id, 'аудио не найдено');
   }
 
   // Показываем страницу гайда и загружаем контент
@@ -1710,22 +1714,33 @@ window.goBackToTaskSelection = function() {
 
 // Скрыть все аудио
 function hideAllAudio() {
-    const audioIds = [
-      "audio-first-lesson",
-      "audio-vocabulary",
-      "audio-embed"
-    ];
-    audioIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.classList.add("hidden");
-        // Очищаем embed-контейнер для предотвращения проблем
-        if (id === "audio-embed") {
-          el.innerHTML = '';
-        }
+  const audioIds = [
+    "audio-first-lesson",
+    "audio-vocabulary",
+    "audio-embed"
+  ];
+  audioIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add("hidden");
+      // Очищаем embed-контейнер для предотвращения проблем
+      if (id === "audio-embed") {
+        el.innerHTML = '';
       }
+    } else {
+      console.log(`Аудио элемент с ID ${id} не найден на странице`);
+    }
+  });
+
+  // Добавляем проверку для дополнительных аудио контейнеров
+  const audioContainers = document.querySelectorAll('.audio-container');
+  if (audioContainers.length > 0) {
+    audioContainers.forEach(container => {
+      container.classList.add('hidden');
     });
+    console.log(`Скрыто ${audioContainers.length} дополнительных аудио контейнеров`);
   }
+}
 
 // Показать определенную секцию
 function showSection(id) {
@@ -1982,65 +1997,118 @@ function updateVocabularyButton() {
 }
 
 // Определяем, какое аудио отображать
-  function showAudioForLesson(lesson) {
-    // Сначала скрываем все аудио
-    hideAllAudio();
+function showAudioForLesson(lesson) {
+  // Сначала скрываем все аудио
+  hideAllAudio();
 
-    if (!lesson) return;
+  if (!lesson) return;
 
-    // Проверяем, есть ли у урока аудио
-    if (lesson.audioSource) {
-      const audioType = lesson.audioSource.type;
-      const audioEmbed = document.getElementById('audio-embed');
+  // Проверяем, есть ли у урока аудио
+  if (lesson.audioSource) {
+    console.log('Обработка аудио для урока:', lesson.id, 'Тип аудио:', lesson.audioSource.type);
+    console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
+    
+    const audioType = lesson.audioSource.type;
+    const audioEmbed = document.getElementById('audio-embed');
+    const audioVocabulary = document.getElementById('audio-vocabulary');
+    const audioFirstLesson = document.getElementById('audio-first-lesson');
 
-      // Для SoundCloud
-      if (audioType === 'soundcloud') {
-        const audioVocabulary = document.getElementById('audio-vocabulary');
-        if (audioVocabulary) {
-          // Обновляем iframe с правильным URL
-          const iframe = audioVocabulary.querySelector('iframe');
-          if (iframe && lesson.audioSource.trackUrl) {
-            iframe.src = lesson.audioSource.trackUrl;
+    // Для SoundCloud
+    if (audioType === 'soundcloud') {
+      if (audioVocabulary) {
+        // Обновляем iframe с правильным URL
+        const iframe = audioVocabulary.querySelector('iframe');
+        if (iframe && lesson.audioSource.trackUrl) {
+          iframe.src = lesson.audioSource.trackUrl;
+          console.log('Обновлен SoundCloud iframe с URL:', lesson.audioSource.trackUrl);
+        } else {
+          console.log('Не найден iframe или trackUrl для SoundCloud аудио');
+        }
+
+        // Обновляем ссылки
+        const links = audioVocabulary.querySelectorAll('a');
+        if (links.length >= 1 && lesson.audioSource.url) {
+          links[0].href = lesson.audioSource.url;
+        }
+
+        audioVocabulary.classList.remove('hidden');
+        console.log('Отображено SoundCloud аудио в audioVocabulary');
+      } else {
+        // Если audioVocabulary не найден, пробуем использовать общий embed
+        if (audioEmbed && (lesson.audioSource.trackUrl || lesson.audioSource.embedCode || lesson.audioSource.embed)) {
+          let embedCode = '';
+          
+          if (lesson.audioSource.embedCode) {
+            embedCode = lesson.audioSource.embedCode;
+          } else if (lesson.audioSource.embed) {
+            embedCode = lesson.audioSource.embed;
+          } else if (lesson.audioSource.trackUrl) {
+            embedCode = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" 
+              src="${lesson.audioSource.trackUrl}"></iframe>`;
           }
-
-          // Обновляем ссылки
-          const links = audioVocabulary.querySelectorAll('a');
-          if (links.length >= 1 && lesson.audioSource.url) {
-            links[0].href = lesson.audioSource.url;
-          }
-
-          audioVocabulary.classList.remove('hidden');
-        }
-      }
-      // Для произвольного embed-кода
-      else if (audioType === 'embed' && lesson.audioSource.embedCode) {
-        if (audioEmbed) {
-          // Вставляем произвольный HTML-код
-          audioEmbed.innerHTML = lesson.audioSource.embedCode;
+          
+          audioEmbed.innerHTML = embedCode;
           audioEmbed.classList.remove('hidden');
-          console.log('Отображено аудио с embed-кодом:', lesson.audioSource.embedCode.substring(0, 100) + '...');
-        }
-      }
-      // Для Audiomack
-      else if (audioType === 'audiomack' && lesson.audioSource.embed) {
-        if (audioEmbed) {
-          // Вставляем embed-код Audiomack
-          audioEmbed.innerHTML = lesson.audioSource.embed;
-          audioEmbed.classList.remove('hidden');
-          console.log('Отображено аудио Audiomack:', lesson.audioSource.embed.substring(0, 100) + '...');
-        }
-      }
-      // Поддержка любого типа с полем embed
-      else if (lesson.audioSource.embed) {
-        if (audioEmbed) {
-          // Вставляем embed-код из поля embed
-          audioEmbed.innerHTML = lesson.audioSource.embed;
-          audioEmbed.classList.remove('hidden');
-          console.log('Отображено аудио с embed:', audioType);
+          console.log('Отображено SoundCloud аудио в общем embed');
         }
       }
     }
+    // Для произвольного embed-кода
+    else if (audioType === 'embed' || lesson.audioSource.embedCode) {
+      if (audioEmbed) {
+        // Определяем код для вставки
+        let embedContent = lesson.audioSource.embedCode || lesson.audioSource.embed || '';
+        
+        // Вставляем произвольный HTML-код
+        audioEmbed.innerHTML = embedContent;
+        audioEmbed.classList.remove('hidden');
+        console.log('Отображено аудио с embed-кодом:', embedContent.substring(0, 100) + (embedContent.length > 100 ? '...' : ''));
+      } else {
+        console.log('Не найден элемент audio-embed для отображения embed-кода');
+      }
+    }
+    // Для Audiomack
+    else if (audioType === 'audiomack') {
+      if (audioEmbed) {
+        // Вставляем embed-код Audiomack
+        let embedContent = lesson.audioSource.embed || '';
+        audioEmbed.innerHTML = embedContent;
+        audioEmbed.classList.remove('hidden');
+        console.log('Отображено аудио Audiomack:', embedContent.substring(0, 100) + (embedContent.length > 100 ? '...' : ''));
+      }
+    }
+    // Для первого урока (специальный случай)
+    else if (audioType === 'first-lesson' && audioFirstLesson) {
+      audioFirstLesson.classList.remove('hidden');
+      console.log('Отображено аудио для первого урока');
+    }
+    // Поддержка любого типа с полем embed или trackUrl
+    else if (lesson.audioSource.embed || lesson.audioSource.trackUrl) {
+      if (audioEmbed) {
+        // Определяем содержимое для вставки
+        let embedContent = '';
+        
+        if (lesson.audioSource.embed) {
+          embedContent = lesson.audioSource.embed;
+        } else if (lesson.audioSource.trackUrl) {
+          embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" 
+            src="${lesson.audioSource.trackUrl}"></iframe>`;
+        }
+        
+        // Вставляем embed-код
+        audioEmbed.innerHTML = embedContent;
+        audioEmbed.classList.remove('hidden');
+        console.log('Отображено аудио с embed/trackUrl для типа:', audioType);
+      } else {
+        console.log('Не найден элемент audio-embed для отображения embed/trackUrl');
+      }
+    } else {
+      console.log('Неизвестный тип аудио или отсутствует необходимая информация для отображения:', audioType);
+    }
+  } else {
+    console.log('У урока нет аудио источника');
   }
+}
 
 async function createJsonBackup(coursesData) {
   const timestamp = new Date().toISOString().replace(/:/g, '-');
