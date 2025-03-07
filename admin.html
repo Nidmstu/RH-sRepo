@@ -926,6 +926,7 @@
             <button id="admin-save-course" class="admin-btn admin-btn-primary">Сохранить</button>
             <button id="admin-export-course" class="admin-btn">Экспорт</button>
             <button id="admin-import-course" class="admin-btn">Импорт</button>
+            <button id="admin-toggle-visibility" class="admin-btn">Видимость курса</button>
           </div>
         </div>
 
@@ -941,6 +942,12 @@
           <div class="admin-form-group">
             <label for="admin-course-redirect">URL перенаправления (опционально):</label>
             <input type="text" id="admin-course-redirect" class="admin-input" placeholder="Оставьте пустым, если перенаправление не требуется">
+          </div>
+          <div class="admin-form-group">
+            <label for="admin-course-hidden">
+              <input type="checkbox" id="admin-course-hidden" style="width: auto; margin-right: 10px;">
+              Скрыть курс (курс будет виден только в админке)
+            </label>
           </div>
         </div>
 
