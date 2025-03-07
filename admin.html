@@ -1646,7 +1646,31 @@
         if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
           console.log("Курсы не найдены, инициализация пустого объекта");
           courseManager.courses = {};
+          
+          // Загружаем тестовый курс, если нет ни одного курса
+          courseManager.courses['test-course'] = {
+            title: "Тестовый курс",
+            days: [
+              {
+                id: 1,
+                title: "День 1",
+                lessons: [
+                  {
+                    id: "lesson-1",
+                    title: "Урок 1",
+                    contentSource: {
+                      type: "markdown",
+                      content: "# Тестовый урок\nЭто контент для тестового урока."
+                    }
+                  }
+                ]
+              }
+            ]
+          };
+          console.log("Создан тестовый курс для проверки отображения");
         }
+        
+        console.log("Доступные курсы:", Object.keys(courseManager.courses));
 
         // Инициализируем и показываем административный интерфейс
         console.log("Инициализация административного интерфейса...");
