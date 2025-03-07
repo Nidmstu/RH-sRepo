@@ -8,6 +8,8 @@
       return [];
     }
 
+    console.log('getProfessions с includeHidden =', includeHidden);
+    
     if (includeHidden) {
       return Object.keys(this.courses);
     } else {
@@ -15,7 +17,7 @@
       return Object.keys(this.courses).filter(profId => {
         const course = this.courses[profId];
         // Проверяем точное значение hidden: true
-        return course.hidden !== true;
+        return course && course.hidden !== true;
       });
     }
   }
