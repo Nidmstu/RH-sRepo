@@ -1,0 +1,657 @@
+﻿{
+  "prompt-engineer": {
+    "title": "Prompt Engineering Onboarding",
+    "days": [
+      {
+        "id": 1,
+        "title": "Day 1",
+        "lessons": [
+          {
+            "id": "what-prompting-is",
+            "title": "What prompting is",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/PromptEngineering/WhatPromptingIs",
+              "fallbackType": "local",
+              "fallbackId": "what-prompting-is"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/PromptEngineering/Tests/WhatPromptingIs",
+              "fallbackType": "markdown",
+              "fallbackId": "test-what-prompting-is"
+            },
+            "taskSource": {
+              "type": "markdown",
+              "content": "# Task: Create your first prompt\n\nCreate a prompt that asks the AI to explain what photosynthesis is to a 10-year-old child."
+            },
+            "audioSource": null
+          },
+          {
+            "id": "five-step-framework",
+            "title": "Five-step Framework",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/FiveStepFramework",
+              "fallbackType": "local",
+              "fallbackId": "five-step-framework"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Oboarding/PromptEngineering/tests/FiveStepFramework"
+            },
+            "taskSource": {
+              "type": "markdown",
+              "content": "# Task: Apply the Five-step Framework\n\nUse the five-step framework to create a prompt that generates a recipe based on ingredients in your refrigerator."
+            }
+          },
+          {
+            "id": "personas-in-prompting",
+            "title": "Personas in prompting",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/PersonasInPrompting",
+              "fallbackType": "local",
+              "fallbackId": "personas-in-prompting"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Tests/PersonasInPrompting"
+            },
+            "taskSource": null
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Day 2",
+        "lessons": [
+          {
+            "id": "iteration-methods",
+            "title": "Iteration methods",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/IterationMethods",
+              "fallbackType": "local",
+              "fallbackId": "iteration-methods"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/Test/IterationMethods"
+            },
+            "taskSource": null
+          },
+          {
+            "id": "multimodal-prompting",
+            "title": "Multimodal prompting",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineering/MultimodalPrompting",
+              "fallbackType": "local",
+              "fallbackId": "multimodal-prompting"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/Onboarding/PromptEngineer/Test/MultimodalPrompting"
+            },
+            "taskSource": null
+          },
+          {
+            "id": "responsible-ai-use",
+            "title": "Responsible AI Use",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/adbb488e-bf3d-4bbe-8225-cb8a825826b0"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/aa101581-de08-4530-817d-429383b18edd"
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Day 3",
+        "lessons": [
+          {
+            "id": "content-generation",
+            "title": "Content Generation",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/1d7684c8-a0d7-46f0-8ef7-5d7185e3df6f"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/fb396874-abe0-4e31-99e9-8e250ce79565"
+            }
+          },
+          {
+            "id": "data-analysis",
+            "title": "Data analysis",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/55ee44df-dc0d-4d52-b51d-66352eeea55c"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/9c53f10c-acee-421f-b981-3d2ce3665d19"
+            }
+          },
+          {
+            "id": "presentation-building",
+            "title": "Presentation building",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/36a54e60-92fe-427b-8e79-cf9578a622a6"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/5c4ea3d9-ac19-425f-8245-297f6c3c24f9"
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Day 4",
+        "lessons": [
+          {
+            "id": "prompt-chaining",
+            "title": "Prompt chaining",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/487b2b98-6935-4621-b872-db8bbbb634a1"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/dc1477a3-e233-4deb-a758-cf0304479d7e"
+            }
+          },
+          {
+            "id": "chain-of-thought",
+            "title": "Chain Of Thought ",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/ad3c9f90-e39e-49dc-b2f5-2a37fcda26ab"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/9b37686e-6d39-4320-a952-a91c1f05b92d"
+            }
+          },
+          {
+            "id": "tree-of-thought",
+            "title": "Tree of Thought",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/e62faf53-2e85-419d-b3ff-4417e2bacac3"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/ab5dd67b-1d2e-41c6-ad39-ce08697be82a"
+            }
+          },
+          {
+            "id": "meta-prompting",
+            "title": "Meta prompting",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/b49cb24c-170b-4d6e-af3c-2dd59594a0a8"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/7af98ef4-b564-4ff6-9dd6-1ac498171811"
+            }
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Day 5",
+        "lessons": [
+          {
+            "id": "ai-agent-definition ",
+            "title": "AI agent definition",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/a793374f-13f1-4bb2-b7d6-f709893abd7d"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/29576c14-b77d-4f03-8251-e684d771fc53"
+            }
+          },
+          {
+            "id": "agent-sim",
+            "title": "Agent Sim",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/622eb756-9b7f-4404-8ce4-08dad5967e89"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/8d7586da-eb0c-4a01-92b3-4e435f8f9ecd"
+            }
+          },
+          {
+            "id": "agent-x",
+            "title": "Agent X",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/7ab30047-d1c5-4a1a-9e0b-faf6bdd8134c"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/7071c4bd-b281-451a-ad28-9f79658d43b6"
+            }
+          }
+        ]
+      }
+    ],
+    "specialLessons": [
+      {
+        "id": "vocabulary",
+        "title": "Prompt Engineering Vocabulary",
+        "contentSource": {
+          "type": "webhook",
+          "url": "https://auto.crm-s.com/webhook/PromptEngineering/Vocabulary",
+          "fallbackType": "local",
+          "fallbackId": "vocabulary"
+        }
+      }
+    ]
+  },
+  "lead-generator": {
+    "redirectUrl": "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n"
+  },
+  "ai-onboarding": {
+    "title": "Onboarding for AI",
+    "courseOptions": [
+      "AI Engineer",
+      "LG Onboarding",
+      "Profession: Prompt Engineering"
+    ],
+    "selectedCourse": "AI Engineer",
+    "days": [
+      {
+        "id": 1,
+        "title": "Day 1",
+        "lessons": [
+          {
+            "id": "what-is-artificial-intelligence",
+            "title": "What is Artificial Intelligence?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/d3424e5a-a604-4c59-8594-c4cb4e7f194b",
+              "fallbackType": "local",
+              "fallbackId": "what-is-artificial-intelligence"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/WhatIsArtificialIntelligence"
+            },
+            "audioSource": {
+              "type": "embed",
+              "embedCode": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7039de5da5\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"1) What is Artificial Intelligence\"></iframe>"
+            }
+          },
+          {
+            "id": "how-does-ai-work",
+            "title": "How Does AI Work?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/0e52b435-3839-44b8-ab95-8866f1291c4a",
+              "fallbackType": "local",
+              "fallbackId": "how-does-ai-work"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/HowDoesAiWorks"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7039d5dba5\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"2) How Does AI Work\"></iframe>"
+            }
+          },
+          {
+            "id": "the-ai-ecosystem",
+            "title": "The AI Ecosystem",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/d8e17a85-294d-4d9b-aa3c-306956e31ce5",
+              "fallbackType": "local",
+              "fallbackId": "the-ai-ecosystem"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/TheAIEcosystem"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c70397554e4\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"3) The AI Ecosystem\"></iframe>"
+            }
+          },
+          {
+            "id": "ai-tools-landscape",
+            "title": "AI Tools Landscape",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/fd217209-af74-440b-a4ff-1e3c0e56d0de",
+              "fallbackType": "local",
+              "fallbackId": "ai-tools-landscape"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/AIToolsLandscape"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7039a5088e\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"4) AI Tools Landscape\"></iframe>"
+            }
+          },
+          {
+            "id": "ai-learning",
+            "title": "AI Learning",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/a000cc94-90d6-493f-80f9-9ed3c2f51b67",
+              "fallbackType": "local",
+              "fallbackId": "ai-learning"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/AILearning"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7039871983\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"5) AI Learning\"></iframe>"
+            }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Day 2",
+        "lessons": [
+          {
+            "id": "what-is-an-api",
+            "title": "What is an API?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/581c39d2-f905-42c1-9412-c7726ffcda14",
+              "fallbackType": "local",
+              "fallbackId": "what-is-an-api"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/WhatIsAnAPI"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c70441abd09\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"6) What is an API\"></iframe>"
+            }
+          },
+          {
+            "id": "how-to-use-ai-apis",
+            "title": "How to Use AI APIs?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/e2e26504-97f6-4b10-b4fb-bae1c2d80923",
+              "fallbackType": "local",
+              "fallbackId": "how-to-use-ai-apis"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/HowToUseAIAPIs"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c70441b24de\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"7) How to Use AI APIs\"></iframe>"
+            }
+          },
+          {
+            "id": "real-world-api-use-cases",
+            "title": "Real-World API Use Cases",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/07f212d7-8e10-4c45-81aa-9462241c1ede",
+              "fallbackType": "local",
+              "fallbackId": "real-world-api-use-cases"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/Real-WorldAPIUseCases"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7043f2fe07\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"8) Real-World API Use Cases\"></iframe>"
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Day 3",
+        "lessons": [
+          {
+            "id": "what-is-prompt-engineering",
+            "title": "What is Prompt Engineering?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/3b220bee-17c7-44a7-ada4-5bbc3b1f6bda",
+              "fallbackType": "local",
+              "fallbackId": "what-is-prompt-engineering"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/WhatIsPromptEngineering"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7043f47d16\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"9) What is Prompt Engineering\"></iframe>"
+            }
+          },
+          {
+            "id": "best-practices-for-prompt-writing",
+            "title": "Best Practices for Prompt Writing",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/b6a48197-7776-45fb-9cec-88c976971b57",
+              "fallbackType": "local",
+              "fallbackId": "best-practices-for-prompt-writing"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/BestPracticesForPromptWriting"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c7043fcdca4\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"10) Best Practices for Prompt Writing\"></iframe>"
+            }
+          },
+          {
+            "id": "advanced-prompt-engineering",
+            "title": "Advanced Prompt Engineering",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/b6b18a77-edce-4b68-9430-4ea88b600da0",
+              "fallbackType": "local",
+              "fallbackId": "advanced-prompt-engineering"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/AdvancedPromptEngineering"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705c906abd\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"11) Advanced Prompt Engineering\"></iframe>"
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Day 4",
+        "lessons": [
+          {
+            "id": "what-are-automation-triggers",
+            "title": "What are Automation Triggers?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/ad94d93c-ed85-4366-a496-317127b44755",
+              "fallbackType": "local",
+              "fallbackId": "what-are-automation-triggers"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/WhatAreAutomationTriggers"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705cae23dc\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"12) What are Automation Triggers\"></iframe>"
+            }
+          },
+          {
+            "id": "trigger-based-ai-automations",
+            "title": "Trigger-Based AI Automations",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/ef902ea0-81fb-401e-a973-3ced1b908a21",
+              "fallbackType": "local",
+              "fallbackId": "trigger-based-ai-automations"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/Trigger-BasedAIAutomations"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705cd74722\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"13) Trigger-Based AI Automations\"></iframe>"
+            }
+          },
+          {
+            "id": "how-to-set-up-ai-triggers",
+            "title": "How to Set Up AI Triggers?",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/2d5fe2e8-8d52-4d96-875b-4602d927f9c4",
+              "fallbackType": "local",
+              "fallbackId": "how-to-set-up-ai-triggers"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/HowToSetUpAITriggers"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705d239ab3\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"14) How to Set Up AI Triggers\"></iframe>"
+            }
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Day 5",
+        "lessons": [
+          {
+            "id": "understanding-webhooks",
+            "title": "Understanding Webhooks",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/2f434695-09a9-41ff-9426-878c9408d0d0",
+              "fallbackType": "local",
+              "fallbackId": "understanding-webhooks"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/UnderstandingWebhooks"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705d5a6383\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"15) Understanding Webhooks\"></iframe>"
+            }
+          },
+          {
+            "id": "webhooks-vs-triggers-key-differences",
+            "title": "Webhooks vs. Triggers: Key Differences",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/9b03e91a-1780-442e-852a-c11c774950dd",
+              "fallbackType": "local",
+              "fallbackId": "webhooks-vs-triggers-key-differences"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/WebhooksVsTriggersKeyDifferences"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705d7b1bb7\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"16) Webhooks vs. Triggers Key Differences\"></iframe>"
+            }
+          },
+          {
+            "id": "setting-up-webhooks-in-ai-workflows",
+            "title": "Setting Up Webhooks in AI Workflows",
+            "contentSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/441e348f-8ec2-4823-8285-d4d8a3131f23",
+              "fallbackType": "local",
+              "fallbackId": "setting-up-webhooks-in-ai-workflows"
+            },
+            "testSource": {
+              "type": "webhook",
+              "url": "https://auto.crm-s.com/webhook/onboarding/ai/tests/SettingUpWebhooksInAIWorkflows"
+            },
+            "taskSource": null,
+            "audioSource": {
+              "type": "audiomack",
+              "embed": "<iframe src=\"https://audiomack.com/embed/dev-763/song/67c705d9c9e91\" scrolling=\"no\" width=\"100%\" height=\"252\" frameborder=\"0\" title=\"17) Setting Up Webhooks in AI Workflows\"></iframe>"
+            }
+          }
+        ]
+      }
+    ],
+    "specialLessons": [
+      {
+        "id": "vocabulary",
+        "title": "AI Vocabulary",
+        "contentSource": {
+          "type": "webhook",
+          "url": "https://auto.crm-s.com/webhook/b738c824-4044-4704-8053-bc0f39b2ae77",
+          "fallbackType": "local",
+          "fallbackId": "vocabulary"
+        }
+      }
+    ],
+    "noDayLessons": [],
+    "audioSources": {
+      "static": [
+        {
+          "title": "First Lesson Audio",
+          "embed": "<iframe width=\"100%\" height=\"300\" scrolling=\"no\" frameborder=\"no\" allow=\"autoplay\" src=\"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2041898968&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true\"></iframe>"
+        },
+        {
+          "title": "AI Vocabulary",
+          "embed": "<iframe width=\"100%\" height=\"300\" scrolling=\"no\" frameborder=\"no\" allow=\"autoplay\" src=\"https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2028455920&color=%230066cc&auto_play=false\"></iframe>"
+        }
+      ],
+      "dynamic": "Audiomack embed codes used in each lesson"
+    }
+  }
+}
