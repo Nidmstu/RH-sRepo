@@ -522,10 +522,14 @@ class CourseManager {
       return Object.keys(this.courses);
     } else {
       // Фильтруем скрытые курсы
-      return Object.keys(this.courses).filter(profId => {
+      const visibleCourses = Object.keys(this.courses).filter(profId => {
         const course = this.courses[profId];
-        return !course.hidden;
+        const isHidden = course.hidden === true;
+        console.log(`Проверка видимости курса ${profId}: hidden=${course.hidden}, isHidden=${isHidden}`);
+        return !isHidden;
       });
+      console.log('Видимые курсы:', visibleCourses);
+      return visibleCourses;
     }
   }
 
