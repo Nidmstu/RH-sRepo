@@ -440,6 +440,19 @@
     import devMode from './js/devMode.js';
     import adminPanel from './js/admin.js';
     import app from './js/app.js';
+    
+    // Глобальная функция для фильтрации скрытых курсов
+    window.filterHiddenCourses = function(courses) {
+      if (!courses) return {};
+      
+      const filteredCourses = {};
+      for (const courseId in courses) {
+        if (!courses[courseId].hidden) {
+          filteredCourses[courseId] = courses[courseId];
+        }
+      }
+      return filteredCourses;
+    };
 
     // Добавляем обработчик событий для повторной загрузки данных
     function setupRetryHandler() {

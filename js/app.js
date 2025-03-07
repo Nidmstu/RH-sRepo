@@ -808,7 +808,7 @@ function syncWithCloud() {
         }
       }
 
-      // Если URL не найден в webhookSettings, проверяем другие источники
+      // ЕслиURL не найден в webhookSettings, проверяем другие источники
       if (!importWebhookUrl) {
         importWebhookUrl = localStorage.getItem('importWebhookUrl') || 
                           localStorage.getItem('adminImportWebhook') || 
