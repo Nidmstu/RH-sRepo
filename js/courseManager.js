@@ -524,7 +524,8 @@ class CourseManager {
       // Фильтруем скрытые курсы
       return Object.keys(this.courses).filter(profId => {
         const course = this.courses[profId];
-        return !course.hidden;
+        // Проверяем явно на true, чтобы избежать проблем с falsy-значениями
+        return course && course.hidden !== true;
       });
     }
   }
