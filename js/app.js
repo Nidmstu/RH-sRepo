@@ -1991,6 +1991,7 @@ function updateVocabularyButton() {
     // Проверяем, есть ли у урока аудио
     if (lesson.audioSource) {
       const audioType = lesson.audioSource.type;
+      const audioEmbed = document.getElementById('audio-embed');
 
       // Для SoundCloud
       if (audioType === 'soundcloud') {
@@ -2013,13 +2014,30 @@ function updateVocabularyButton() {
       }
       // Для произвольного embed-кода
       else if (audioType === 'embed' && lesson.audioSource.embedCode) {
-        const audioEmbed = document.getElementById('audio-embed');
         if (audioEmbed) {
           // Вставляем произвольный HTML-код
           audioEmbed.innerHTML = lesson.audioSource.embedCode;
           audioEmbed.classList.remove('hidden');
+          console.log('Отображено аудио с embed-кодом:', lesson.audioSource.embedCode.substring(0, 100) + '...');
         }
       }
-      // Можно добавить другие типы аудио в будущем
+      // Для Audiomack
+      else if (audioType === 'audiomack' && lesson.audioSource.embed) {
+        if (audioEmbed) {
+          // Вставляем embed-код Audiomack
+          audioEmbed.innerHTML = lesson.audioSource.embed;
+          audioEmbed.classList.remove('hidden');
+          console.log('Отображено аудио Audiomack:', lesson.audioSource.embed.substring(0, 100) + '...');
+        }
+      }
+      // Поддержка любого типа с полем embed
+      else if (lesson.audioSource.embed) {
+        if (audioEmbed) {
+          // Вставляем embed-код из поля embed
+          audioEmbed.innerHTML = lesson.audioSource.embed;
+          audioEmbed.classList.remove('hidden');
+          console.log('Отображено аудио с embed:', audioType);
+        }
+      }
     }
   }
