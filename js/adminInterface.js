@@ -1712,12 +1712,13 @@ class AdminInterface {
 
       const title = course.title || professionId;
       console.log(`Название курса: ${title}`);
+      console.log(`Статус скрытия:`, course.hidden === true ? 'скрыт' : 'виден');
 
       const courseItem = document.createElement('div');
       courseItem.className = 'admin-list-item';
       
-      // Добавляем класс для скрытых курсов
-      if (course.hidden) {
+      // Добавляем класс для скрытых курсов (проверяем точное значение true)
+      if (course.hidden === true) {
         courseItem.classList.add('admin-list-item-hidden');
       }
       
@@ -1725,7 +1726,7 @@ class AdminInterface {
         <div class="admin-list-item-info">
           <div class="admin-list-item-title">
             ${title}
-            ${course.hidden ? '<span class="admin-hidden-badge">Скрыт</span>' : ''}
+            ${course.hidden === true ? '<span class="admin-hidden-badge">Скрыт</span>' : ''}
           </div>
           <div class="admin-list-item-subtitle">${professionId}</div>
         </div>
@@ -1842,6 +1843,7 @@ class AdminInterface {
     this.currentEditing.lesson = null;
     
     console.log('Текущий редактируемый курс:', this.currentEditing.course);
+    console.log('Статус скрытия курса:', this.currentEditing.course.hidden);
 
     try {
       // Заполняем форму курса
@@ -1864,9 +1866,12 @@ class AdminInterface {
       const titleElement = document.getElementById('admin-course-title');
       if (titleElement) titleElement.textContent = course.title || professionId;
       
-      // Устанавливаем статус скрытия курса
+      // Устанавливаем статус скрытия курса (проверяем точное значение true)
       const hiddenCheckbox = document.getElementById('admin-course-hidden');
-      if (hiddenCheckbox) hiddenCheckbox.checked = course.hidden || false;
+      if (hiddenCheckbox) {
+        hiddenCheckbox.checked = course.hidden === true;
+        console.log('Установлен статус чекбокса:', hiddenCheckbox.checked);
+      }
 
       // Загружаем дни и специальные уроки
       this.loadDaysList();
@@ -1967,12 +1972,8 @@ class AdminInterface {
     // Обновляем данные курса
     this.currentEditing.course.title = title;
     
-    // Обновляем статус скрытия курса
-    if (isHidden) {
-      this.currentEditing.course.hidden = true;
-    } else if (this.currentEditing.course.hidden) {
-      delete this.currentEditing.course.hidden;
-    }
+    // Обновляем статус скрытия курса (просто устанавливаем значение)
+    this.currentEditing.course.hidden = isHidden;
 
     if (redirectUrl) {
       this.currentEditing.course.redirectUrl = redirectUrl;
