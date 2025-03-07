@@ -108,11 +108,7 @@ async function initApp() {
       updateLoadingStatus('Синхронизация не удалась, загрузка локальных данных...');
       updateGlobalLoadingStatus('Использование резервных данных...');
     }
-    
-    // Добавляем отладочную информацию о курсах
-    console.log('Все курсы:', Object.keys(window.courseManager.courses || {}));
-    console.log('Видимые курсы:', window.courseManager.getProfessions(false));
-    console.log('Все курсы (включая скрытые):', window.courseManager.getProfessions(true));
+
     // Теперь инициализируем менеджер курсов
     updateLoadingStatus('Инициализация менеджера курсов...');
     updateGlobalLoadingStatus('Инициализация менеджера курсов...');

@@ -447,12 +447,10 @@
       
       const filteredCourses = {};
       for (const courseId in courses) {
-        // Проверяем точное значение hidden: true
-        if (courses[courseId] && courses[courseId].hidden !== true) {
+        if (!courses[courseId].hidden) {
           filteredCourses[courseId] = courses[courseId];
         }
       }
-      console.log('Отфильтрованные курсы:', Object.keys(filteredCourses));
       return filteredCourses;
     };
 

@@ -1679,41 +1679,22 @@ class AdminInterface {
     coursesList.innerHTML = '';
 
     console.log('Загружаю список курсов...');
-    
-    try {
-      // Убеждаемся, что courseManager и courses существуют
-      if (!window.courseManager) {
-        console.error('CourseManager не инициализирован');
-        coursesList.innerHTML = '<div class="admin-list-empty">Ошибка: CourseManager не инициализирован. Обновите страницу.</div>';
-        return;
-      }
-      
-      if (!window.courseManager.courses) {
-        console.log('Объект courses отсутствует, создаем пустой объект');
-        window.courseManager.courses = {};
-      }
-      
-      console.log('Доступные профессии:', Object.keys(window.courseManager.courses));
-      
-      // В админке показываем все курсы, включая скрытые
-      let professions = [];
-      try {
-        // Принудительно получаем все курсы
-        professions = Object.keys(window.courseManager.courses);
-        console.log('Получены все ключи курсов:', professions);
-      } catch (error) {
-        console.error('Ошибка при получении ключей курсов:', error);
-        professions = [];
-      }
-      
-      if (!professions || professions.length === 0) {
-        console.log('Курсы не найдены в системе');
-        coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
-        return;
-      }
-    } catch (error) {
-      console.error('Критическая ошибка при загрузке курсов:', error);
-      coursesList.innerHTML = '<div class="admin-list-empty">Произошла ошибка при загрузке курсов: ' + error.message + '</div>';
+    console.log('Доступные профессии:', Object.keys(window.courseManager.courses || {}));
+
+    // Убеждаемся, что courseManager и courses существуют
+    if (!window.courseManager || !window.courseManager.courses) {
+      console.error('CourseManager не инициализирован или отсутствуют данные о курсах');
+      coursesList.innerHTML = '<div class="admin-list-empty">Ошибка загрузки курсов. Обновите страницу.</div>';
+      return;
+    }
+
+    // В админке показываем все курсы, включая скрытые
+    const professions = window.courseManager.getProfessions(true); 
+    console.log('Полученные профессии:', professions);
+
+    if (!professions || professions.length === 0) {
+      console.log('Курсы не найдены в системе');
+      coursesList.innerHTML = '<div class="admin-list-empty">Курсы не найдены. Добавьте новый курс.</div>';
       return;
     }
 
@@ -1731,13 +1712,12 @@ class AdminInterface {
 
       const title = course.title || professionId;
       console.log(`Название курса: ${title}`);
-      console.log(`Статус скрытия:`, course.hidden === true ? 'скрыт' : 'виден');
 
       const courseItem = document.createElement('div');
       courseItem.className = 'admin-list-item';
       
-      // Добавляем класс для скрытых курсов (проверяем точное значение true)
-      if (course.hidden === true) {
+      // Добавляем класс для скрытых курсов
+      if (course.hidden) {
         courseItem.classList.add('admin-list-item-hidden');
       }
       
@@ -1745,7 +1725,7 @@ class AdminInterface {
         <div class="admin-list-item-info">
           <div class="admin-list-item-title">
             ${title}
-            ${course.hidden === true ? '<span class="admin-hidden-badge">Скрыт</span>' : ''}
+            ${course.hidden ? '<span class="admin-hidden-badge">Скрыт</span>' : ''}
           </div>
           <div class="admin-list-item-subtitle">${professionId}</div>
         </div>
@@ -1862,7 +1842,6 @@ class AdminInterface {
     this.currentEditing.lesson = null;
     
     console.log('Текущий редактируемый курс:', this.currentEditing.course);
-    console.log('Статус скрытия курса:', this.currentEditing.course.hidden);
 
     try {
       // Заполняем форму курса
@@ -1885,12 +1864,9 @@ class AdminInterface {
       const titleElement = document.getElementById('admin-course-title');
       if (titleElement) titleElement.textContent = course.title || professionId;
       
-      // Устанавливаем статус скрытия курса (проверяем точное значение true)
+      // Устанавливаем статус скрытия курса
       const hiddenCheckbox = document.getElementById('admin-course-hidden');
-      if (hiddenCheckbox) {
-        hiddenCheckbox.checked = course.hidden === true;
-        console.log('Установлен статус чекбокса:', hiddenCheckbox.checked);
-      }
+      if (hiddenCheckbox) hiddenCheckbox.checked = course.hidden || false;
 
       // Загружаем дни и специальные уроки
       this.loadDaysList();
@@ -1991,8 +1967,12 @@ class AdminInterface {
     // Обновляем данные курса
     this.currentEditing.course.title = title;
     
-    // Обновляем статус скрытия курса (просто устанавливаем значение)
-    this.currentEditing.course.hidden = isHidden;
+    // Обновляем статус скрытия курса
+    if (isHidden) {
+      this.currentEditing.course.hidden = true;
+    } else if (this.currentEditing.course.hidden) {
+      delete this.currentEditing.course.hidden;
+    }
 
     if (redirectUrl) {
       this.currentEditing.course.redirectUrl = redirectUrl;
@@ -3609,80 +3589,79 @@ class AdminInterface {
       type: 'full_courses_export'
     };
     
-    // Используем Fetch API для большей совместимости с современными браузерами
-    fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*',
-        'X-DevMode': window.devMode && window.devMode.enabled ? 'true' : 'false'
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => {
-      console.log('ЭКСПОРТ: Fetch статус:', response.status);
-      
-      response.text().then(text => {
-        console.log('ЭКСПОРТ: Fetch ответ:', text);
+    // Используем только XMLHttpRequest для максимальной совместимости
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', targetUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+    
+    // Добавляем заголовок для идентификации запросов в режиме разработчика
+    if (window.devMode && window.devMode.enabled) {
+      xhr.setRequestHeader('X-DevMode', 'true');
+    }
+    
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        console.log('ЭКСПОРТ: XHR статус:', xhr.status);
+        console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
         
-        if (response.ok) {
+        if (xhr.status >= 200 && xhr.status < 300) {
           this.showWebhookStatus('Данные курсов успешно отправлены на вебхук', 'success');
           
+          // Добавляем информацию для режима разработчика
           if (window.devMode && window.devMode.enabled) {
-            console.log(`🔧 [DevMode] Экспорт данных успешно выполнен, получен ответ: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`);
+            console.log(`🔧 [DevMode] Экспорт данных успешно выполнен, получен ответ: ${xhr.responseText.substring(0, 100)}${xhr.responseText.length > 100 ? '...' : ''}`);
           }
         } else {
-          this.showWebhookStatus(`Ошибка при отправке данных: ${response.statusText || 'Неизвестная ошибка'}`, 'error');
+          this.showWebhookStatus(`Ошибка при отправке данных: ${xhr.statusText || 'Неизвестная ошибка'}`, 'error');
           
+          // Добавляем информацию для режима разработчика
           if (window.devMode && window.devMode.enabled) {
-            console.log(`🔧 [DevMode] Ошибка при экспорте данных: ${response.status} ${response.statusText}`);
+            console.log(`🔧 [DevMode] Ошибка при экспорте данных: ${xhr.status} ${xhr.statusText}`);
           }
         }
-      });
-    })
-    .catch(error => {
-      console.error('ЭКСПОРТ: Fetch ошибка:', error);
-      this.showWebhookStatus(`Ошибка соединения: ${error.message}`, 'error');
-      
-      if (window.devMode && window.devMode.enabled) {
-        console.log(`🔧 [DevMode] Ошибка соединения при экспорте данных:`, error);
       }
-    });
+    };
     
-    // Также отправляем через XMLHttpRequest для совместимости со старыми браузерами
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', targetUrl, true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
+    xhr.onerror = (e) => {
+      console.error('ЭКСПОРТ: XHR ошибка:', e);
+      this.showWebhookStatus('Ошибка соединения с сервером при экспорте данных', 'error');
       
+      // Добавляем информацию для режима разработчика
       if (window.devMode && window.devMode.enabled) {
-        xhr.setRequestHeader('X-DevMode', 'true');
+        console.log(`🔧 [DevMode] Ошибка соединения при экспорте данных:`, e);
       }
+    };
+    
+    xhr.timeout = 15000; // 15 секунд таймаут
+    xhr.ontimeout = () => {
+      this.showWebhookStatus('Истекло время ожидания ответа от сервера при экспорте данных', 'error');
       
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          console.log('ЭКСПОРТ: XHR статус:', xhr.status);
-          console.log('ЭКСПОРТ: XHR ответ:', xhr.responseText);
-        }
-      };
-      
-      xhr.onerror = (e) => {
-        console.error('ЭКСПОРТ: XHR ошибка:', e);
-      };
-      
-      xhr.timeout = 15000; // 15 секунд таймаут
-      
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Таймаут соединения (15 сек) при экспорте данных на URL: ${targetUrl}`);
+      }
+    };
+    
+    try {
       // Преобразовываем JSON и отправляем данные
       const jsonData = JSON.stringify(data);
       console.log('ЭКСПОРТ: Размер данных для отправки:', jsonData.length, 'байт');
       
+      // Добавляем информацию для режима разработчика
+      if (window.devMode && window.devMode.enabled) {
+        console.log(`🔧 [DevMode] Отправка данных размером ${jsonData.length} байт на URL: ${targetUrl}`);
+        console.log(`🔧 [DevMode] Формат данных: JSON с курсами как текст в поле 'data'`);
+      }
+      
       xhr.send(jsonData);
     } catch (e) {
-      console.error('ЭКСПОРТ: Ошибка при отправке XHR запроса:', e);
+      console.error('ЭКСПОРТ: Ошибка при отправке запроса:', e);
+      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
       
+      // Добавляем информацию для режима разработчика
       if (window.devMode && window.devMode.enabled) {
-        console.log(`🔧 [DevMode] Исключение при отправке данных через XHR: ${e.message}`);
+        console.log(`🔧 [DevMode] Исключение при отправке данных: ${e.message}`);
       }
     }
   }
@@ -3697,7 +3676,6 @@ class AdminInterface {
     }
     
     this.showWebhookStatus('Получение данных с вебхука...', 'info');
-    console.log('ИМПОРТ: Отправка запроса на URL:', webhookUrl);
     
     // Сохраняем URL для использования при следующей загрузке приложения
     localStorage.setItem('importWebhookUrl', webhookUrl);
@@ -3708,331 +3686,210 @@ class AdminInterface {
       console.log(`🔧 [DevMode] Импорт данных с URL: ${webhookUrl}`);
     }
     
-    // Используем XMLHttpRequest для максимальной совместимости
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', webhookUrl, true);
-    xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
-    
+    // Создаём заголовки запроса с информацией о режиме разработчика
+    const headers = new Headers();
     if (window.devMode && window.devMode.enabled) {
-      xhr.setRequestHeader('X-DevMode', 'true');
+      headers.append('X-DevMode', 'true');
     }
+    headers.append('Accept', 'application/json, text/plain, */*');
     
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) {
-        console.log('ИМПОРТ: XHR статус:', xhr.status);
-        console.log('ИМПОРТ: XHR ответ первые 100 символов:', xhr.responseText.substring(0, 100));
-        
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            // Попытка обработать ответ
-            this.processImportedData(xhr.responseText);
-          } catch (e) {
-            console.error('Ошибка при обработке импортированных данных:', e);
-            this.showWebhookStatus(`Ошибка при обработке данных: ${e.message}`, 'error');
-          }
-        } else {
-          this.showWebhookStatus(`Ошибка сервера: ${xhr.status} ${xhr.statusText}`, 'error');
-        }
-      }
-    };
-    
-    xhr.onerror = (e) => {
-      console.error('ИМПОРТ: XHR ошибка:', e);
-      this.showWebhookStatus('Ошибка соединения с сервером', 'error');
-    };
-    
-    xhr.timeout = 15000; // 15 секунд таймаут
-    xhr.ontimeout = () => {
-      this.showWebhookStatus('Истекло время ожидания ответа от сервера', 'error');
-    };
-    
-    try {
-      xhr.send();
-    } catch (e) {
-      console.error('ИМПОРТ: Ошибка при отправке запроса:', e);
-      this.showWebhookStatus(`Ошибка при отправке запроса: ${e.message}`, 'error');
-    }
-    
-    // Дублируем запрос через Fetch API для современных браузеров
-    fetch(webhookUrl, {
+    fetch(webhookUrl, { 
       method: 'GET',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'X-DevMode': window.devMode && window.devMode.enabled ? 'true' : 'false'
-      },
-      cache: 'no-store'
+      headers: headers,
+      mode: 'cors',
+      cache: 'no-store' // Всегда получаем свежие данные
     })
-    .then(response => {
-      console.log('ИМПОРТ: Fetch статус:', response.status);
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.text();
-    })
-    .then(text => {
-      console.log('ИМПОРТ: Fetch ответ получен, длина:', text.length);
-      // Обработка будет выполнена через XHR, здесь только запасной вариант
-    })
-    .catch(error => {
-      console.error('ИМПОРТ: Fetch ошибка:', error);
-      // Ошибка будет обработана через XHR
-    });
-  }
-  
-  /**
-   * Обработка импортированных данных
-   */
-  processImportedData(text) {
-    let data;
-    
-    // Пытаемся определить, что за данные мы получили
-    console.log(`ИМПОРТ: Получены данные (${text.length} символов)`);
-    
-    // Пробуем распарсить JSON
-    try {
-      data = JSON.parse(text);
-      console.log('ИМПОРТ: Данные успешно распарсены как JSON');
-    } catch (e) {
-      console.error('ИМПОРТ: Не удалось распарсить как JSON:', e.message);
-      
-      // Если это не JSON, возможно, это plain text представление JSON
-      // Пытаемся распарсить данные из вида, где JSON содержится в поле "data"
-      if (text.includes('"data"')) {
+      .then(response => {
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Получен ответ с кодом: ${response.status} ${response.statusText}`);
+          console.log(`🔧 [DevMode] Заголовки ответа:`, Object.fromEntries(response.headers.entries()));
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        // Получаем Content-Type заголовок
+        const contentType = response.headers.get('content-type') || '';
+        
+        // Сначала пробуем получить текст, а потом уже решаем, как его обрабатывать
+        return response.text().then(text => {
+          return { text, contentType };
+        });
+      })
+      .then(({ text, contentType }) => {
+        let data;
+        
+        // Пытаемся определить, что за данные мы получили
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Получены данные (${text.length} символов) с Content-Type: ${contentType}`);
+          console.log(`🔧 [DevMode] Первые 100 символов:`, text.substring(0, 100));
+        }
+        
+        // Пробуем распарсить JSON
         try {
-          const regex = /"data"\s*:\s*"(.*?)"/s;
-          const match = text.match(regex);
+          data = JSON.parse(text);
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Данные успешно распарсены как JSON`);
+            console.log(`🔧 [DevMode] Структура данных:`, Object.keys(data));
+          }
+        } catch (e) {
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Не удалось распарсить как JSON: ${e.message}`);
+          }
           
-          if (match && match[1]) {
-            let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
-            
-            // Иногда кавычки могут быть экранированы несколько раз
-            while (jsonString.includes('\\')) {
-              jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+          // Если это не JSON, возможно, это plain text представление JSON
+          // Пытаемся распарсить данные из вида, где JSON содержится в поле "data"
+          if (text.includes('"data"')) {
+            try {
+              const regex = /"data"\s*:\s*"(.*?)"/s;
+              const match = text.match(regex);
+              
+              if (match && match[1]) {
+                let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                
+                // Иногда кавычки могут быть экранированы несколько раз
+                while (jsonString.includes('\\')) {
+                  jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                }
+                
+                if (window.devMode && window.devMode.enabled) {
+                  console.log(`🔧 [DevMode] Извлечен JSON из поля "data"`, jsonString.substring(0, 100));
+                }
+                
+                data = { courses: JSON.parse(jsonString) };
+              }
+            } catch (innerError) {
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Не удалось распарсить данные из поля data: ${innerError.message}`);
+              }
             }
+          }
+        }
+        
+        // Если данные все еще не определены, пробуем искать JSON в тексте
+        if (!data) {
+          try {
+            // Ищем любую JSON структуру в тексте
+            const jsonRegex = /{[\s\S]*}/;
+            const match = text.match(jsonRegex);
             
-            console.log('ИМПОРТ: Извлечен JSON из поля "data"');
-            data = { courses: JSON.parse(jsonString) };
-          }
-        } catch (innerError) {
-          console.error('ИМПОРТ: Не удалось распарсить данные из поля data:', innerError.message);
-        }
-      }
-    }
-    
-    // Если данные все еще не определены, пробуем искать JSON в тексте
-    if (!data) {
-      try {
-        // Ищем любую JSON структуру в тексте
-        const jsonRegex = /{[\s\S]*}/;
-        const match = text.match(jsonRegex);
-        
-        if (match && match[0]) {
-          const possibleJson = match[0];
-          data = JSON.parse(possibleJson);
-          console.log('ИМПОРТ: Извлечен JSON из текста');
-        }
-      } catch (e) {
-        console.error('ИМПОРТ: Не удалось извлечь JSON из текста:', e.message);
-      }
-    }
-    
-    // Если данные все еще не определены, пробуем обработать как CSV или простой текст
-    if (!data && text.includes(',')) {
-      try {
-        // Проверяем, может ли это быть CSV-формат
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length > 1) {
-          // Вероятно, это CSV, пробуем обработать
-          console.log('ИМПОРТ: Обработка как CSV, строк:', lines.length);
-          
-          // Здесь можно было бы добавить парсинг CSV и преобразование в JSON
-          // Но для простоты просто уведомим пользователя
-          this.showWebhookStatus('Получены данные в формате CSV. Этот формат не поддерживается напрямую.', 'error');
-          return;
-        }
-      } catch (e) {
-        console.error('ИМПОРТ: Ошибка при анализе как CSV:', e.message);
-      }
-    }
-    
-    // Если данные все еще не определены, сдаемся
-    if (!data) {
-      console.error('ИМПОРТ: Не удалось распарсить данные из ответа');
-      this.showWebhookStatus('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.', 'error');
-      return;
-    }
-    
-    // УЛУЧШЕННАЯ ПРОВЕРКА СТРУКТУРЫ КУРСОВ
-    let coursesData = null;
-    
-    // Вариант 1: Данные уже содержат поле courses
-    if (data.courses) {
-      coursesData = data.courses;
-      console.log('ИМПОРТ: Найдены данные курсов в поле "courses"');
-    } 
-    // Вариант 2: Данные уже содержат ImportSettingsWebhookGet/ExportSettingsWebhookPost
-    else if (data.ImportSettingsWebhookGet || data.ExportSettingsWebhookPost) {
-      // Это данные настроек вебхуков, сохраняем их
-      console.log('ИМПОРТ: Получены настройки вебхуков');
-      this.saveWebhookSettingsFromData(data);
-      return;
-    }
-    // Вариант 3: Данные сами являются courses 
-    else if (typeof data === 'object' && Object.keys(data).length > 0) {
-      // Проверяем наличие структуры курсов (первый уровень должен содержать объекты с days/specialLessons)
-      const hasCoursesStructure = Object.values(data).some(item => 
-        item && typeof item === 'object' && 
-        (item.days || item.specialLessons || item.title || item.redirectUrl)
-      );
-      
-      if (hasCoursesStructure) {
-        coursesData = data;
-        console.log('ИМПОРТ: Используем полученный объект как courses');
-      } else {
-        console.error('ИМПОРТ: Структура данных не соответствует формату курсов');
-        
-        // Если в данных есть URL, пробуем их определить как настройки вебхуков
-        const foundUrls = this.findUrlsInObject(data);
-        if (foundUrls.length > 0) {
-          console.log('ИМПОРТ: Найдены URL, обрабатываем как настройки вебхуков');
-          
-          // Создаем объект настроек вебхуков
-          const webhookSettings = {
-            exportUrl: foundUrls.find(u => u.type === 'export')?.url || '',
-            importUrl: foundUrls.find(u => u.type === 'import')?.url || '',
-            getWebhooksUrl: foundUrls.find(u => u.type === 'get')?.url || '',
-            lastUpdated: new Date().toISOString()
-          };
-          
-          // Проверяем, что хотя бы один URL найден
-          if (webhookSettings.exportUrl || webhookSettings.importUrl || webhookSettings.getWebhooksUrl) {
-            this.saveWebhookSettingsFromData(webhookSettings);
-            return;
+            if (match && match[0]) {
+              const possibleJson = match[0];
+              data = JSON.parse(possibleJson);
+              
+              if (window.devMode && window.devMode.enabled) {
+                console.log(`🔧 [DevMode] Извлечен JSON из текста`);
+              }
+            }
+          } catch (e) {
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Не удалось извлечь JSON из текста: ${e.message}`);
+            }
           }
         }
-      }
-    }
-    
-    // Финальная проверка
-    if (!coursesData) {
-      this.showWebhookStatus('Полученные данные не содержат информацию о курсах в ожидаемом формате', 'error');
-      return;
-    }
-    
-    // Создаем объект с курсами для обновления
-    data = { courses: coursesData };
-    
-    // Определяем количество курсов
-    const courseCount = Object.keys(data.courses).length;
-    console.log(`ИМПОРТ: Получены данные курсов (${courseCount} курсов)`);
-    
-    // Сохраняем копию текущих курсов для возможности отката
-    const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
-    
-    try {
-      // Применяем полученные данные
-      window.courseManager.courses = data.courses;
-      
-      // Сохраняем в localStorage
-      window.courseManager.saveCourses();
-      
-      // Обновляем интерфейс
-      this.loadCoursesList();
-      
-      this.showWebhookStatus(`Данные успешно импортированы (${courseCount} курсов)`, 'success');
-      
-      // Сохраняем резервную копию в localStorage
-      localStorage.setItem('coursesBackup', JSON.stringify(backupCourses));
-      localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-    } catch (e) {
-      // В случае ошибки при применении данных, восстанавливаем бэкап
-      window.courseManager.courses = backupCourses;
-      console.error('ИМПОРТ: Ошибка при применении импортированных данных:', e.message);
-      
-      this.showWebhookStatus(`Ошибка при применении данных: ${e.message}`, 'error');
-    }
-  }
-  
-  /**
-   * Сохранение настроек вебхуков из полученных данных
-   */
-  saveWebhookSettingsFromData(data) {
-    console.log('Сохранение настроек вебхуков из полученных данных:', data);
-    
-    // Создаем объект настроек
-    const settings = {
-      exportUrl: data.ExportSettingsWebhookPost || data.exportUrl || '',
-      importUrl: data.ImportSettingsWebhookGet || data.importUrl || '',
-      getWebhooksUrl: data.getWebhooksUrl || '',
-      lastUpdated: new Date().toISOString()
-    };
-    
-    // Проверяем, что хотя бы один URL настроен
-    if (!settings.exportUrl && !settings.importUrl && !settings.getWebhooksUrl) {
-      this.showWebhookStatus('В полученных данных не найдены URL вебхуков', 'error');
-      return;
-    }
-    
-    // Заполняем поля формы
-    if (settings.exportUrl) {
-      document.getElementById('admin-export-webhook-url').value = settings.exportUrl;
-    }
-    
-    if (settings.importUrl) {
-      document.getElementById('admin-import-webhook-url').value = settings.importUrl;
-    }
-    
-    if (settings.getWebhooksUrl) {
-      document.getElementById('admin-get-webhooks-url').value = settings.getWebhooksUrl;
-    }
-    
-    // Сохраняем настройки в localStorage
-    localStorage.setItem('webhookSettings', JSON.stringify(settings));
-    
-    this.showWebhookStatus('Настройки вебхуков успешно обновлены', 'success');
-  }
-  
-  /**
-   * Поиск URL в объекте данных
-   */
-  findUrlsInObject(obj, path = '', results = []) {
-    if (!obj || typeof obj !== 'object') return results;
-    
-    // Обрабатываем все свойства объекта
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const value = obj[key];
-        const currentPath = path ? `${path}.${key}` : key;
         
-        // Если значение - строка, проверяем, является ли оно URL
-        if (typeof value === 'string' && this.isValidUrl(value)) {
-          // Определяем тип URL на основе ключа и содержимого
-          let type = 'unknown';
-          
-          if (key.toLowerCase().includes('export') || value.toLowerCase().includes('export') ||
-              key.toLowerCase().includes('post') || value.toLowerCase().includes('post')) {
-            type = 'export';
-          } else if (key.toLowerCase().includes('import') || value.toLowerCase().includes('import') ||
-                    key.toLowerCase().includes('get') || value.toLowerCase().includes('get')) {
-            type = 'import';
-          } else if (key.toLowerCase().includes('webhook') || value.toLowerCase().includes('webhook')) {
-            type = 'get';
+        // Если данные все еще не определены, сдаемся
+        if (!data) {
+          throw new Error('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.');
+        }
+        
+        // УЛУЧШЕННАЯ ПРОВЕРКА СТРУКТУРЫ КУРСОВ
+        let coursesData = null;
+        
+        // Вариант 1: Данные уже содержат поле courses
+        if (data.courses) {
+          coursesData = data.courses;
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Найдены данные курсов в поле 'courses'`);
           }
-          
-          results.push({
-            url: value,
-            path: currentPath,
-            type: type
-          });
         } 
-        // Если значение - объект или массив, рекурсивно ищем URL в нем
-        else if (typeof value === 'object' && value !== null) {
-          this.findUrlsInObject(value, currentPath, results);
+        // Вариант 2: Данные сами являются courses 
+        else if (typeof data === 'object' && Object.keys(data).length > 0) {
+          // Проверяем наличие структуры курсов (первый уровень должен содержать объекты с days/specialLessons)
+          const hasCoursesStructure = Object.values(data).some(item => 
+            item && typeof item === 'object' && 
+            (item.days || item.specialLessons || item.title || item.redirectUrl)
+          );
+          
+          if (hasCoursesStructure) {
+            coursesData = data;
+            if (window.devMode && window.devMode.enabled) {
+              console.log(`🔧 [DevMode] Используем полученный объект как courses`);
+            }
+          } else if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Структура данных не соответствует формату курсов:`, 
+              Object.keys(data).map(key => ({
+                key, 
+                type: typeof data[key], 
+                hasValidProps: data[key] && typeof data[key] === 'object' ? 
+                  Object.keys(data[key]) : 'not-object'
+              }))
+            );
+          }
         }
-      }
-    }
-    
-    return results;
+        
+        // Финальная проверка
+        if (!coursesData) {
+          throw new Error('Полученные данные не содержат информацию о курсах в ожидаемом формате');
+        }
+        
+        // Создаем объект с курсами для обновления
+        data = { courses: coursesData };
+        
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          const courseCount = Object.keys(data.courses).length;
+          console.log(`🔧 [DevMode] Получены данные курсов (${courseCount} курсов)`);
+          console.log(`🔧 [DevMode] Идентификаторы курсов: ${Object.keys(data.courses).join(', ')}`);
+        }
+        
+        // Сохраняем копию текущих курсов для возможности отката
+        const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
+        
+        try {
+          // Применяем полученные данные
+          window.courseManager.courses = data.courses;
+          
+          // Обновляем интерфейс
+          this.loadCoursesList();
+          
+          this.showWebhookStatus('Данные успешно импортированы', 'success');
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Данные успешно импортированы и применены`);
+          }
+          
+          // Сохраняем резервную копию в localStorage
+          localStorage.setItem('coursesBackup', JSON.stringify(backupCourses));
+          localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+        } catch (e) {
+          // В случае ошибки при применении данных, восстанавливаем бэкап
+          window.courseManager.courses = backupCourses;
+          
+          // Добавляем информацию для режима разработчика
+          if (window.devMode && window.devMode.enabled) {
+            console.log(`🔧 [DevMode] Ошибка при применении импортированных данных: ${e.message}`);
+            console.log(`🔧 [DevMode] Восстановлена предыдущая версия курсов`);
+          }
+          
+          throw new Error(`Ошибка при применении данных: ${e.message}`);
+        }
+      })
+      .catch(error => {
+        console.error('Import error:', error);
+        this.showWebhookStatus(`Ошибка при импорте данных: ${error.message}`, 'error');
+        
+        // Добавляем информацию для режима разработчика
+        if (window.devMode && window.devMode.enabled) {
+          console.log(`🔧 [DevMode] Ошибка импорта данных с ${webhookUrl}: ${error.message}`);
+          if (error.stack) {
+            console.log(`🔧 [DevMode] Стек ошибки: ${error.stack}`);
+          }
+        }
+      });
   }
   
   /**

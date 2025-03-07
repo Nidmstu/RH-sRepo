@@ -839,7 +839,7 @@
       -webkit-tap-highlight-color: rgba(0,0,0,0.2) !important;
       touch-action: manipulation !important;
     }
-
+    
     .admin-list-item-actions {
       z-index: 1000;
       position: relative;
@@ -848,30 +848,30 @@
       flex-wrap: nowrap !important;
       gap: 8px !important;
     }
-
+    
     .admin-list-item {
       position: relative;
       z-index: 1;
       padding: 15px 10px !important;
     }
-
+    
     /* Улучшения для мобильных устройств */
     @media (max-width: 768px) {
       .admin-list-item {
         padding: 18px 12px !important;
       }
-
+      
       .edit-course, .delete-course {
         padding: 12px 18px !important;
         font-size: 16px !important;
         min-width: 80px !important;
       }
-
+      
       .admin-list-item-actions {
         margin-top: 10px !important;
         width: 100% !important;
       }
-
+      
       /* Улучшение для планшетов */
       .admin-sidebar, .admin-content {
         padding: 10px !important;
@@ -1632,55 +1632,16 @@
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Страница администратора загружена, инициализация...");
 
+      // Инициализируем менеджер курсов
+      await courseManager.initialize();
+
+      // Инициализируем и показываем административный интерфейс
+      await adminInterface.initialize();
+      adminInterface.show();
+
       // Глобальный доступ к менеджеру курсов и административному интерфейсу
       window.courseManager = courseManager;
       window.adminInterface = adminInterface;
-
-      try {
-        // Инициализируем менеджер курсов
-        console.log("Инициализация courseManager...");
-        await courseManager.initialize();
-        console.log("CourseManager инициализирован успешно");
-
-        // Проверяем наличие курсов
-        if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
-          console.log("Курсы не найдены, инициализация пустого объекта");
-          courseManager.courses = {};
-
-          // Загружаем тестовый курс, если нет ни одного курса
-          courseManager.courses['test-course'] = {
-            title: "Тестовый курс",
-            days: [
-              {
-                id: 1,
-                title: "День 1",
-                lessons: [
-                  {
-                    id: "lesson-1",
-                    title: "Урок 1",
-                    contentSource: {
-                      type: "markdown",
-                      content: "# Тестовый урок\nЭто контент для тестового урока."
-                    }
-                  }
-                ]
-              }
-            ]
-          };
-          console.log("Создан тестовый курс для проверки отображения");
-        }
-
-        console.log("Доступные курсы:", Object.keys(courseManager.courses));
-
-        // Инициализируем и показываем административный интерфейс
-        console.log("Инициализация административного интерфейса...");
-        await adminInterface.initialize();
-        adminInterface.show();
-        console.log("Административный интерфейс загружен");
-      } catch (error) {
-        console.error("Ошибка при инициализации приложения:", error);
-        alert("Произошла ошибка при инициализации приложения: " + error.message);
-      }
 
 
       // Обработчики для кнопок справки
@@ -1746,34 +1707,6 @@
         modal.style.display = 'none';
       }
     };
-  </script>
-  <script>
-    // Дополнительный скрипт для исправления проблем с загрузкой курсов
-    document.addEventListener('DOMContentLoaded', function() {
-      // Функция для проверки загрузки курсов
-      function checkCoursesLoaded() {
-        if (window.courseManager && window.courseManager.courses) {
-          const courseCount = Object.keys(window.courseManager.courses).length;
-          console.log(`Проверка загрузки курсов: найдено ${courseCount} курсов`);
-
-          if (courseCount === 0) {
-            console.warn('Курсы не загружены, пробуем повторно загрузить из файла');
-            window.courseManager.loadCoursesFromFile().then(() => {
-              console.log('Повторная попытка загрузки курсов завершена');
-              if (window.adminInterface) {
-                window.adminInterface.loadCoursesList();
-              }
-            });
-          }
-        }
-      }
-
-      // Проверяем загрузку курсов через 2 секунды после загрузки страницы
-      setTimeout(checkCoursesLoaded, 2000);
-
-      // И еще раз через 5 секунд
-      setTimeout(checkCoursesLoaded, 5000);
-    });
   </script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+
 /**
  * Модуль режима разработчика
  * Позволяет отслеживать и отображать информацию о запросах и ответах в приложении
@@ -7,328 +8,346 @@ class DevMode {
   constructor() {
     this.enabled = true; // По умолчанию включен
     this.logs = [];
-    this.maxLogs = 100;
+    this.maxLogs = 100; // Максимальное количество логов для хранения
     this.requestCounter = 0;
-    this.networkRequests = {};
-    this.localStorageData = {};
+    this._initialized = false;
   }
 
   /**
    * Инициализация режима разработчика
    */
   initialize() {
+    if (this._initialized) return;
+    
     console.log('🔧 Инициализация режима разработчика...');
-    this.addStyles();
-    this.addDevModePanel();
-    this.addDevModeToggle();
+    
+    // Создаем панель для логов
+    this.createDevPanel();
+    
+    // Перехватываем нативный метод fetch
     this.overrideFetch();
-    this.overrideXMLHttpRequest();
-    this.refreshLocalStorageViewer();
+    
+    // Перехватываем XMLHttpRequest
+    this.overrideXHR();
+    
+    // Добавляем переключатель в интерфейс
+    this.addDevModeToggle();
+    
+    this._initialized = true;
     console.log('🔧 Режим разработчика инициализирован');
   }
-
+  
   /**
-   * Добавление стилей для режима разработчика
+   * Создание панели разработчика
    */
-  addStyles() {
+  createDevPanel() {
+    // Создаем контейнер для панели
+    const devPanel = document.createElement('div');
+    devPanel.id = 'dev-mode-panel';
+    devPanel.className = 'dev-panel';
+    devPanel.innerHTML = `
+      <div class="dev-panel-header">
+        <h3>Режим разработчика</h3>
+        <div class="dev-panel-actions">
+          <button id="dev-panel-analyze" title="Анализировать данные курсов"><i class="fas fa-chart-bar"></i></button>
+          <button id="dev-panel-debug" title="Показать отладочную информацию"><i class="fas fa-bug"></i></button>
+          <button id="dev-panel-storage" title="LocalStorage менеджер"><i class="fas fa-database"></i></button>
+          <button id="dev-panel-sync" title="Синхронизировать с облаком"><i class="fas fa-sync-alt"></i></button>
+          <button id="dev-panel-clear" title="Очистить логи"><i class="fas fa-trash"></i></button>
+          <button id="dev-panel-minimize" title="Свернуть панель"><i class="fas fa-minus"></i></button>
+        </div>
+      </div>
+      <div class="dev-panel-body">
+        <div id="dev-panel-logs"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(devPanel);
+    
+    // Добавляем стили для панели
+    this.addDevPanelStyles();
+    
+    // Настраиваем обработчики событий
+    document.getElementById('dev-panel-clear').addEventListener('click', () => {
+      this.clearLogs();
+    });
+    
+    document.getElementById('dev-panel-minimize').addEventListener('click', () => {
+      devPanel.classList.toggle('minimized');
+      if (devPanel.classList.contains('minimized')) {
+        document.getElementById('dev-panel-minimize').innerHTML = '<i class="fas fa-plus"></i>';
+      } else {
+        document.getElementById('dev-panel-minimize').innerHTML = '<i class="fas fa-minus"></i>';
+      }
+    });
+    
+    // Добавляем обработчик для кнопки анализа данных
+    document.getElementById('dev-panel-analyze').addEventListener('click', () => {
+      this.analyzeAndDisplayCourses();
+    });
+    
+    // Добавляем обработчик для кнопки синхронизации
+    document.getElementById('dev-panel-sync').addEventListener('click', () => {
+      this.syncWithCloud();
+    });
+    
+    // Добавляем обработчик для кнопки отладки
+    document.getElementById('dev-panel-debug').addEventListener('click', () => {
+      this.showDebugInfo();
+    });
+    
+    // Добавляем обработчик для кнопки LocalStorage
+    document.getElementById('dev-panel-storage').addEventListener('click', () => {
+      this.showLocalStorageManager();
+    });
+  }
+  
+  /**
+   * Добавление стилей для панели разработчика
+   */
+  addDevPanelStyles() {
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-      /* Переключатель режима разработчика */
-      .dev-mode-toggle {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: #333;
-        color: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        z-index: 9999;
-        font-size: 20px;
-        transition: all 0.3s ease;
-      }
-
-      .dev-mode-toggle span {
-        display: none;
-      }
-
-      .dev-mode-toggle:hover {
-        width: auto;
-        border-radius: 25px;
-        padding: 0 20px;
-      }
-
-      .dev-mode-toggle:hover span {
-        display: inline;
-        margin-left: 10px;
-        font-size: 14px;
-      }
-
-      .dev-mode-toggle.enabled {
-        background-color: #2ecc71;
-      }
-
-      /* Панель разработчика */
       .dev-panel {
         position: fixed;
         bottom: 0;
-        left: 0;
-        width: 100%;
+        right: 0;
+        width: 500px;
+        max-width: 100%;
         height: 300px;
-        background-color: #282c34;
-        color: #abb2bf;
-        z-index: 9998;
-        display: none;
-        flex-direction: column;
+        background-color: rgba(40, 44, 52, 0.95);
+        color: #eee;
+        border-top-left-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 13px;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        font-size: 12px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+      }
+      
+      .dev-panel.minimized {
+        height: 36px;
         overflow: hidden;
       }
-
+      
       .dev-panel-header {
-        background-color: #21252b;
-        padding: 8px 15px;
+        background-color: #1e2127;
+        padding: 8px 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #181a1f;
+        border-top-left-radius: 8px;
+        user-select: none;
       }
-
-      .dev-panel-tabs {
-        display: flex;
+      
+      .dev-panel-header h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: normal;
       }
-
-      .dev-panel-tab {
-        padding: 5px 15px;
-        cursor: pointer;
-        background-color: transparent;
-        border: none;
-        color: #abb2bf;
-        border-bottom: 2px solid transparent;
-      }
-
-      .dev-panel-tab.active {
-        border-bottom-color: #61afef;
-        color: #fff;
-      }
-
-      .dev-panel-content {
-        flex: 1;
-        overflow: auto;
-        padding: 10px;
-      }
-
+      
       .dev-panel-actions {
         display: flex;
-        gap: 10px;
+        gap: 5px;
       }
-
-      .dev-panel-btn {
-        background-color: #3d424d;
+      
+      .dev-panel-actions button {
+        background: none;
         border: none;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 3px;
+        color: #aaa;
         cursor: pointer;
         font-size: 12px;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 3px;
       }
-
-      .dev-panel-btn:hover {
-        background-color: #4b5363;
+      
+      .dev-panel-actions button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
       }
-
-      .dev-panel-content-pane {
-        display: none;
-        height: 100%;
-        overflow: auto;
+      
+      .dev-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
       }
-
-      .dev-panel-content-pane.active {
-        display: block;
+      
+      #dev-panel-logs {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        line-height: 1.4;
       }
-
-      /* Стили для логов сетевых запросов */
-      .network-log-item {
-        border-bottom: 1px solid #3d424d;
-        padding: 8px 0;
+      
+      .dev-log-entry {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .dev-log-entry-header {
         display: flex;
         justify-content: space-between;
+        margin-bottom: 3px;
       }
-
-      .network-log-status {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 8px;
+      
+      .dev-log-timestamp {
+        color: #aaa;
+        font-size: 10px;
       }
-
-      .network-log-status.success {
-        background-color: #98c379;
+      
+      .dev-log-url {
+        color: #61afef;
+        word-break: break-all;
       }
-
-      .network-log-status.error {
-        background-color: #e06c75;
+      
+      .dev-log-method {
+        color: #98c379;
+        font-weight: bold;
+        margin-right: 5px;
       }
-
-      .network-log-status.pending {
-        background-color: #e5c07b;
-      }
-
-      .network-log-method {
-        display: inline-block;
-        width: 60px;
-        color: #c678dd;
+      
+      .dev-log-status {
         font-weight: bold;
       }
-
-      .network-log-url {
-        flex: 1;
-        margin: 0 10px;
-        word-break: break-all;
-        color: #61afef;
+      
+      .dev-log-status.success {
+        color: #98c379;
       }
-
-      .network-log-time {
-        color: #e5c07b;
+      
+      .dev-log-status.error {
+        color: #e06c75;
       }
-
-      .network-log-details {
+      
+      .dev-log-button {
+        padding: 2px 5px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 3px;
+        color: #ddd;
+        cursor: pointer;
+        font-size: 11px;
         margin-top: 5px;
-        padding: 10px;
-        background-color: #2c313a;
+      }
+      
+      .dev-log-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      
+      .dev-log-details {
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 5px;
+        margin-top: 5px;
         border-radius: 3px;
         display: none;
       }
-
-      .network-log-details.visible {
+      
+      .dev-log-details.visible {
         display: block;
       }
-
-      .network-log-details h4 {
-        margin: 0 0 10px 0;
-        color: #abb2bf;
-        font-size: 14px;
+      
+      .dev-log-label {
+        color: #d19a66;
+        margin-right: 5px;
       }
-
-      .network-log-details pre {
-        margin: 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        max-height: 200px;
-        overflow: auto;
-        font-size: 12px;
+      
+      .dev-log-message {
+        word-break: break-word;
+      }
+      
+      .dev-log-message.success {
+        color: #98c379;
+      }
+      
+      .dev-log-message.error {
+        color: #e06c75;
+      }
+      
+      .dev-log-message.warning {
         color: #e5c07b;
       }
-
-      /* Стили для localStorage viewer */
-      .localstorage-viewer {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .localstorage-controls {
-        margin-bottom: 10px;
-        display: flex;
-        gap: 10px;
-      }
-
-      .localstorage-items {
-        display: flex;
-        gap: 10px;
-        flex: 1;
-        overflow: hidden;
-      }
-
-      .localstorage-keys {
-        width: 250px;
-        overflow-y: auto;
-        border: 1px solid #3d424d;
-        border-radius: 3px;
-      }
-
-      .localstorage-key {
-        padding: 8px 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #3d424d;
-        word-break: break-all;
-        transition: background-color 0.2s;
-      }
-
-      .localstorage-key:hover {
-        background-color: #2c313a;
-      }
-
-      .localstorage-key.active {
-        background-color: #3d424d;
-        color: #fff;
-      }
-
-      .localstorage-value {
-        flex: 1;
-        overflow: auto;
-        border: 1px solid #3d424d;
-        border-radius: 3px;
-        padding: 10px;
-      }
-
-      .localstorage-value-edit {
-        width: 100%;
-        height: 100%;
-        background-color: #282c34;
-        color: #abb2bf;
-        border: none;
-        font-family: monospace;
-        resize: none;
-        outline: none;
-      }
-
-      .localstorage-value pre {
-        margin: 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-
-      /* Стили для курса анализа */
-      .course-analysis {
-        font-family: monospace;
-        line-height: 1.5;
-        padding: 10px;
-      }
-
-      .course-analysis h3 {
-        margin-top: 15px;
-        margin-bottom: 5px;
+      
+      .dev-log-message.info {
         color: #61afef;
       }
-
-      .course-analysis pre {
-        margin: 10px 0;
-        padding: 10px;
-        background-color: #2c313a;
-        border-radius: 3px;
-        overflow-x: auto;
-        color: rgba(171, 178, 191, 0.8);
+      
+      .dev-info-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: rgba(97, 175, 239, 0.8);
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        margin-left: 5px;
+        vertical-align: middle;
       }
-
+      
+      .dev-info-tooltip {
+        position: absolute;
+        background-color: #282c34;
+        color: #eee;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        z-index: 10001;
+        max-width: 400px;
+        font-size: 12px;
+        display: none;
+      }
+      
+      .dev-info-tooltip.visible {
+        display: block;
+      }
+      
+      .dev-info-badge:hover + .dev-info-tooltip {
+        display: block;
+      }
+      
+      .dev-mode-toggle {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(40, 44, 52, 0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .dev-mode-toggle i {
+        font-size: 14px;
+      }
+      
+      .dev-mode-toggle.enabled {
+        background-color: rgba(152, 195, 121, 0.8);
+      }
+      
       /* Стили для информационных значков в административном интерфейсе */
       .admin-form-group {
         position: relative;
       }
-
+      
       .admin-webhook-info {
         position: relative;
         display: inline-block;
       }
-
+      
       /* Адаптивность для мобильных устройств */
       @media (max-width: 768px) {
         .dev-panel {
@@ -339,7 +358,7 @@ class DevMode {
     `;
     document.head.appendChild(styleElement);
   }
-
+  
   /**
    * Добавление переключателя режима разработчика
    */
@@ -351,23 +370,23 @@ class DevMode {
       <i class="fas fa-code"></i>
       <span>Режим разработчика</span>
     `;
-
+    
     toggle.addEventListener('click', () => {
       this.toggleDevMode();
     });
-
+    
     document.body.appendChild(toggle);
   }
-
+  
   /**
    * Переключение режима разработчика
    */
   toggleDevMode() {
     this.enabled = !this.enabled;
-
+    
     const toggle = document.getElementById('dev-mode-toggle');
     const devPanel = document.getElementById('dev-mode-panel');
-
+    
     if (this.enabled) {
       toggle.classList.add('enabled');
       devPanel.style.display = 'flex';
@@ -377,143 +396,29 @@ class DevMode {
       devPanel.style.display = 'none';
       this.removeInfoBadgesFromAdminForms();
     }
-
+    
     console.log(`🔧 Режим разработчика ${this.enabled ? 'включен' : 'выключен'}`);
   }
-
-  /**
-   * Добавление панели разработчика
-   */
-  addDevModePanel() {
-    const panel = document.createElement('div');
-    panel.id = 'dev-mode-panel';
-    panel.className = 'dev-panel';
-
-    panel.innerHTML = `
-      <div class="dev-panel-header">
-        <div class="dev-panel-tabs">
-          <button class="dev-panel-tab active" data-tab="network">Сетевые запросы</button>
-          <button class="dev-panel-tab" data-tab="localstorage">LocalStorage</button>
-          <button class="dev-panel-tab" data-tab="analyze">Анализ курсов</button>
-        </div>
-        <div class="dev-panel-actions">
-          <button class="dev-panel-btn" id="dev-panel-clear">Очистить</button>
-          <button class="dev-panel-btn" id="dev-panel-close">Закрыть</button>
-        </div>
-      </div>
-      <div class="dev-panel-content">
-        <div class="dev-panel-content-pane active" id="dev-panel-network">
-          <div id="network-logs"></div>
-        </div>
-        <div class="dev-panel-content-pane" id="dev-panel-localstorage">
-          <div class="localstorage-viewer">
-            <div class="localstorage-controls">
-              <button class="dev-panel-btn" id="refresh-localstorage">Обновить</button>
-              <button class="dev-panel-btn" id="add-localstorage-item">Добавить</button>
-              <button class="dev-panel-btn" id="edit-localstorage-item">Редактировать</button>
-              <button class="dev-panel-btn" id="delete-localstorage-item">Удалить</button>
-              <button class="dev-panel-btn" id="clear-localstorage">Очистить всё</button>
-            </div>
-            <div class="localstorage-items">
-              <div class="localstorage-keys" id="localstorage-keys"></div>
-              <div class="localstorage-value" id="localstorage-value">
-                <pre id="localstorage-value-display"></pre>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="dev-panel-content-pane" id="dev-panel-analyze">
-          <div class="course-analysis" id="course-analysis"></div>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(panel);
-
-    // Обработчики вкладок
-    const tabs = panel.querySelectorAll('.dev-panel-tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        const tabId = tab.getAttribute('data-tab');
-        const panes = panel.querySelectorAll('.dev-panel-content-pane');
-        panes.forEach(pane => pane.classList.remove('active'));
-        document.getElementById(`dev-panel-${tabId}`).classList.add('active');
-
-        // Если выбрана вкладка анализа, выполняем анализ курсов
-        if (tabId === 'analyze') {
-          this.analyzeCoursesData();
-        } else if (tabId === 'localstorage') {
-          this.refreshLocalStorageViewer();
-        }
-      });
-    });
-
-    // Обработчик для кнопки очистки
-    document.getElementById('dev-panel-clear').addEventListener('click', () => {
-      const activeTab = panel.querySelector('.dev-panel-tab.active').getAttribute('data-tab');
-
-      if (activeTab === 'network') {
-        document.getElementById('network-logs').innerHTML = '';
-        this.networkRequests = {};
-      } else if (activeTab === 'analyze') {
-        document.getElementById('course-analysis').innerHTML = '';
-      }
-    });
-
-    // Обработчик для кнопки закрытия
-    document.getElementById('dev-panel-close').addEventListener('click', () => {
-      panel.style.display = 'none';
-      document.getElementById('dev-mode-toggle').classList.remove('enabled');
-      this.enabled = false;
-    });
-
-    // Обработчики для LocalStorage
-    document.getElementById('refresh-localstorage').addEventListener('click', () => {
-      this.refreshLocalStorageViewer();
-    });
-
-    document.getElementById('add-localstorage-item').addEventListener('click', () => {
-      this.addLocalStorageItem();
-    });
-
-    document.getElementById('edit-localstorage-item').addEventListener('click', () => {
-      this.editLocalStorageItem();
-    });
-
-    document.getElementById('delete-localstorage-item').addEventListener('click', () => {
-      this.deleteLocalStorageItem();
-    });
-
-    document.getElementById('clear-localstorage').addEventListener('click', () => {
-      if (confirm('Вы уверены, что хотите очистить все данные LocalStorage?')) {
-        localStorage.clear();
-        this.refreshLocalStorageViewer();
-      }
-    });
-  }
-
+  
   /**
    * Перехват нативного метода fetch
    */
   overrideFetch() {
     const originalFetch = window.fetch;
     const self = this;
-
+    
     window.fetch = function(resource, init) {
       const startTime = performance.now();
       const requestId = ++self.requestCounter;
-
+      
       let method = 'GET';
       let requestBody = null;
-
+      
       if (init) {
         method = init.method || 'GET';
         requestBody = init.body || null;
       }
-
+      
       // Записываем информацию о запросе
       const requestInfo = {
         id: requestId,
@@ -524,21 +429,21 @@ class DevMode {
         timestamp: new Date(),
         startTime: startTime
       };
-
+      
       // Если режим разработчика включен, логируем запрос
       if (self.enabled) {
         self.logRequest(requestInfo);
       }
-
+      
       // Вызываем оригинальный fetch
       return originalFetch.apply(this, arguments)
         .then(response => {
           const endTime = performance.now();
           const duration = endTime - startTime;
-
+          
           // Клонируем ответ для возможности прочитать тело
           const clonedResponse = response.clone();
-
+          
           clonedResponse.text().then(responseText => {
             const responseInfo = {
               status: response.status,
@@ -547,7 +452,7 @@ class DevMode {
               body: responseText,
               duration: duration.toFixed(2)
             };
-
+            
             // Если режим разработчика включен, логируем ответ
             if (self.enabled) {
               self.logResponse(requestId, responseInfo);
@@ -555,31 +460,31 @@ class DevMode {
           }).catch(err => {
             console.error('Ошибка при чтении тела ответа:', err);
           });
-
+          
           return response;
         })
         .catch(error => {
           const endTime = performance.now();
           const duration = endTime - startTime;
-
+          
           // Если режим разработчика включен, логируем ошибку
           if (self.enabled) {
             self.logError(requestId, error, duration.toFixed(2));
           }
-
+          
           throw error;
         });
     };
   }
-
+  
   /**
    * Перехват XMLHttpRequest
    */
-  overrideXMLHttpRequest() {
+  overrideXHR() {
     const self = this;
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
-
+    
     XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
       this._devModeInfo = {
         id: ++self.requestCounter,
@@ -588,23 +493,23 @@ class DevMode {
         timestamp: new Date(),
         startTime: performance.now()
       };
-
+      
       return originalOpen.apply(this, arguments);
     };
-
+    
     XMLHttpRequest.prototype.send = function(body) {
       if (this._devModeInfo) {
         this._devModeInfo.body = body;
-
+        
         // Если режим разработчика включен, логируем запрос
         if (self.enabled) {
           self.logRequest(this._devModeInfo);
         }
-
+        
         this.addEventListener('load', function() {
           const endTime = performance.now();
           const duration = endTime - this._devModeInfo.startTime;
-
+          
           const responseInfo = {
             status: this.status,
             statusText: this.statusText,
@@ -618,455 +523,1243 @@ class DevMode {
             body: this.responseText,
             duration: duration.toFixed(2)
           };
-
+          
           // Если режим разработчика включен, логируем ответ
           if (self.enabled) {
             self.logResponse(this._devModeInfo.id, responseInfo);
           }
         });
-
-        this.addEventListener('error', function(event) {
+        
+        this.addEventListener('error', function(error) {
           const endTime = performance.now();
           const duration = endTime - this._devModeInfo.startTime;
-
+          
           // Если режим разработчика включен, логируем ошибку
           if (self.enabled) {
-            self.logError(this._devModeInfo.id, new Error('Network error'), duration.toFixed(2));
+            self.logError(this._devModeInfo.id, new Error('Network Error'), duration.toFixed(2));
           }
         });
-
+        
         this.addEventListener('timeout', function() {
           const endTime = performance.now();
           const duration = endTime - this._devModeInfo.startTime;
-
-          // Если режим разработчика включен, логируем ошибку таймаута
+          
+          // Если режим разработчика включен, логируем ошибку
           if (self.enabled) {
-            self.logError(this._devModeInfo.id, new Error('Request timeout'), duration.toFixed(2));
+            self.logError(this._devModeInfo.id, new Error('Request Timeout'), duration.toFixed(2));
           }
         });
       }
-
+      
       return originalSend.apply(this, arguments);
     };
   }
-
+  
   /**
-   * Запись информации о запросе
+   * Логирование запроса
    */
   logRequest(requestInfo) {
-    this.networkRequests[requestInfo.id] = {
-      request: requestInfo,
-      status: 'pending'
+    // Добавляем запрос в массив логов
+    const requestLog = {
+      id: requestInfo.id,
+      type: 'request',
+      method: requestInfo.method,
+      url: requestInfo.url,
+      headers: requestInfo.headers,
+      body: requestInfo.body,
+      timestamp: requestInfo.timestamp,
+      startTime: requestInfo.startTime
     };
-
-    this.updateNetworkLogs();
+    
+    this.logs.push(requestLog);
+    this.trimLogs();
+    
+    // Отображаем запрос в панели разработчика
+    this.renderLogEntry(requestLog);
   }
-
+  
   /**
-   * Запись информации об ответе
+   * Логирование ответа
    */
   logResponse(requestId, responseInfo) {
-    if (!this.networkRequests[requestId]) return;
-
-    this.networkRequests[requestId].response = responseInfo;
-    this.networkRequests[requestId].status = 'success';
-
-    this.updateNetworkLogs();
+    // Находим запрос по ID
+    const requestLog = this.logs.find(log => log.id === requestId && log.type === 'request');
+    
+    if (requestLog) {
+      // Добавляем информацию об ответе
+      const responseLog = {
+        id: requestId,
+        type: 'response',
+        status: responseInfo.status,
+        statusText: responseInfo.statusText,
+        headers: responseInfo.headers,
+        body: responseInfo.body,
+        duration: responseInfo.duration,
+        timestamp: new Date()
+      };
+      
+      this.logs.push(responseLog);
+      this.trimLogs();
+      
+      // Обновляем отображение в панели разработчика
+      this.updateLogEntry(requestId, responseLog);
+    }
   }
-
+  
   /**
-   * Запись информации об ошибке
+   * Логирование ошибки
    */
   logError(requestId, error, duration) {
-    if (!this.networkRequests[requestId]) return;
-
-    this.networkRequests[requestId].error = {
-      message: error.message,
-      stack: error.stack,
-      duration: duration
-    };
-    this.networkRequests[requestId].status = 'error';
-
-    this.updateNetworkLogs();
+    // Находим запрос по ID
+    const requestLog = this.logs.find(log => log.id === requestId && log.type === 'request');
+    
+    if (requestLog) {
+      // Добавляем информацию об ошибке
+      const errorLog = {
+        id: requestId,
+        type: 'error',
+        error: error.message || 'Unknown error',
+        stack: error.stack,
+        duration: duration,
+        timestamp: new Date()
+      };
+      
+      this.logs.push(errorLog);
+      this.trimLogs();
+      
+      // Обновляем отображение в панели разработчика
+      this.updateLogEntry(requestId, errorLog);
+    }
   }
-
+  
   /**
-   * Обновление списка сетевых запросов в панели
+   * Ограничение количества логов
    */
-  updateNetworkLogs() {
-    const logsContainer = document.getElementById('network-logs');
+  trimLogs() {
+    if (this.logs.length > this.maxLogs) {
+      const logsToRemove = this.logs.length - this.maxLogs;
+      this.logs.splice(0, logsToRemove);
+    }
+  }
+  
+  /**
+   * Отображение лога в панели разработчика
+   */
+  renderLogEntry(log) {
+    const logsContainer = document.getElementById('dev-panel-logs');
+    
     if (!logsContainer) return;
-
-    logsContainer.innerHTML = '';
-
-    // Получаем запросы и сортируем их по времени (новые сверху)
-    const requests = Object.values(this.networkRequests).sort((a, b) => {
-      return b.request.timestamp - a.request.timestamp;
-    });
-
-    requests.forEach(item => {
-      const logItem = document.createElement('div');
-      logItem.className = 'network-log-item';
-      logItem.setAttribute('data-id', item.request.id);
-
-      // Определяем цвет статуса
-      let statusClass = 'pending';
-      if (item.status === 'success') statusClass = 'success';
-      if (item.status === 'error') statusClass = 'error';
-
-      // Форматируем URL для отображения
-      let url = item.request.url;
-      if (url.length > 60) {
-        url = url.substring(0, 60) + '...';
-      }
-
-      // Форматируем время запроса
-      const time = item.request.timestamp.toLocaleTimeString();
-
-      // Создаем основную информацию о запросе
-      logItem.innerHTML = `
-        <div class="network-log-info">
-          <span class="network-log-status ${statusClass}"></span>
-          <span class="network-log-method">${item.request.method}</span>
-          <span class="network-log-url">${url}</span>
-          <span class="network-log-time">${time}</span>
+    
+    const logEntry = document.createElement('div');
+    logEntry.id = `dev-log-${log.id}`;
+    logEntry.className = 'dev-log-entry';
+    
+    const timestamp = new Date(log.timestamp).toLocaleTimeString();
+    
+    if (log.type === 'request') {
+      logEntry.innerHTML = `
+        <div class="dev-log-entry-header">
+          <span>
+            <span class="dev-log-method">${log.method}</span>
+            <span class="dev-log-url">${this.truncateString(log.url, 60)}</span>
+          </span>
+          <span class="dev-log-timestamp">${timestamp}</span>
+        </div>
+        <div>
+          <button class="dev-log-button" onclick="window.devMode.toggleLogDetails(${log.id})">Детали</button>
+        </div>
+        <div id="dev-log-details-${log.id}" class="dev-log-details">
+          <div><span class="dev-log-label">URL:</span> ${log.url}</div>
+          <div><span class="dev-log-label">Метод:</span> ${log.method}</div>
+          <div><span class="dev-log-label">Заголовки:</span> ${this.formatJson(log.headers)}</div>
+          ${log.body ? `<div><span class="dev-log-label">Тело запроса:</span> ${this.formatRequestBody(log.body)}</div>` : ''}
         </div>
       `;
-
-      // Добавляем детальную информацию, которая будет показана при клике
-      const detailsDiv = document.createElement('div');
-      detailsDiv.className = 'network-log-details';
-
-      // Информация о запросе
-      let requestDetails = `
-        <h4>Запрос</h4>
-        <p>URL: ${item.request.url}</p>
-        <p>Метод: ${item.request.method}</p>
-      `;
-
-      // Добавляем заголовки, если они есть
-      if (item.request.headers && Object.keys(item.request.headers).length > 0) {
-        requestDetails += `<p>Заголовки:</p><pre>${JSON.stringify(item.request.headers, null, 2)}</pre>`;
+    }
+    
+    logsContainer.prepend(logEntry);
+  }
+  
+  /**
+   * Обновление отображения лога в панели разработчика
+   */
+  updateLogEntry(requestId, log) {
+    const logEntry = document.getElementById(`dev-log-${requestId}`);
+    
+    if (!logEntry) return;
+    
+    const logDetails = document.getElementById(`dev-log-details-${requestId}`);
+    
+    if (log.type === 'response') {
+      const statusClass = log.status >= 200 && log.status < 400 ? 'success' : 'error';
+      
+      const logHeader = logEntry.querySelector('.dev-log-entry-header');
+      if (logHeader) {
+        logHeader.insertAdjacentHTML('beforeend', `
+          <span class="dev-log-status ${statusClass}">${log.status}</span>
+        `);
       }
-
-      // Добавляем тело запроса, если оно есть
-      if (item.request.body) {
-        let bodyContent = item.request.body;
-
-        // Если тело запроса является FormData, преобразуем его в объект
-        if (bodyContent instanceof FormData) {
-          const formDataObj = {};
-          for (let [key, value] of bodyContent.entries()) {
-            formDataObj[key] = value;
-          }
-          bodyContent = JSON.stringify(formDataObj, null, 2);
-        } else if (typeof bodyContent === 'string') {
-          // Пытаемся распарсить JSON
-          try {
-            const jsonBody = JSON.parse(bodyContent);
-            bodyContent = JSON.stringify(jsonBody, null, 2);
-          } catch (e) {
-            // Не JSON, оставляем как есть
-          }
-        }
-
-        requestDetails += `<p>Тело запроса:</p><pre>${bodyContent}</pre>`;
+      
+      // Добавляем длительность запроса
+      const logActions = logEntry.querySelector('.dev-log-button').parentNode;
+      if (logActions) {
+        logActions.insertAdjacentHTML('beforeend', `
+          <span style="margin-left: 10px; color: #aaa;">Длительность: ${log.duration} мс</span>
+        `);
       }
-
-      detailsDiv.innerHTML = requestDetails;
-
-      // Добавляем информацию об ответе, если он есть
-      if (item.response) {
-        let responseDetails = `
-          <h4>Ответ</h4>
-          <p>Статус: ${item.response.status} ${item.response.statusText}</p>
-          <p>Время: ${item.response.duration} мс</p>
-        `;
-
-        // Добавляем заголовки ответа
-        if (item.response.headers && Object.keys(item.response.headers).length > 0) {
-          responseDetails += `<p>Заголовки:</p><pre>${JSON.stringify(item.response.headers, null, 2)}</pre>`;
+      
+      // Добавляем информацию об ответе
+      if (logDetails) {
+        logDetails.insertAdjacentHTML('beforeend', `
+          <div style="margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 5px;">
+            <div><span class="dev-log-label">Статус:</span> ${log.status} ${log.statusText}</div>
+            <div><span class="dev-log-label">Заголовки ответа:</span> ${this.formatJson(log.headers)}</div>
+            <div><span class="dev-log-label">Тело ответа:</span> ${this.formatResponseBody(log.body)}</div>
+          </div>
+        `);
+      }
+    } else if (log.type === 'error') {
+      const logHeader = logEntry.querySelector('.dev-log-entry-header');
+      if (logHeader) {
+        logHeader.insertAdjacentHTML('beforeend', `
+          <span class="dev-log-status error">ERROR</span>
+        `);
+      }
+      
+      // Добавляем длительность запроса
+      const logActions = logEntry.querySelector('.dev-log-button').parentNode;
+      if (logActions) {
+        logActions.insertAdjacentHTML('beforeend', `
+          <span style="margin-left: 10px; color: #aaa;">Длительность: ${log.duration} мс</span>
+        `);
+      }
+      
+      // Добавляем информацию об ошибке
+      if (logDetails) {
+        logDetails.insertAdjacentHTML('beforeend', `
+          <div style="margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 5px;">
+            <div><span class="dev-log-label">Ошибка:</span> <span style="color: #e06c75;">${log.error}</span></div>
+            ${log.stack ? `<div><span class="dev-log-label">Стек:</span> <pre style="margin: 5px 0; white-space: pre-wrap;">${log.stack}</pre></div>` : ''}
+          </div>
+        `);
+      }
+    }
+  }
+  
+  /**
+   * Переключение отображения деталей лога
+   */
+  toggleLogDetails(logId) {
+    const logDetails = document.getElementById(`dev-log-details-${logId}`);
+    
+    if (logDetails) {
+      logDetails.classList.toggle('visible');
+    }
+  }
+  
+  /**
+   * Форматирование JSON для отображения
+   */
+  formatJson(obj) {
+    try {
+      if (!obj) return 'null';
+      
+      // Преобразуем объект в строку JSON с отступами
+      const jsonString = JSON.stringify(obj, null, 2);
+      
+      // Подсветка синтаксиса JSON (простая реализация)
+      return `<pre style="margin: 5px 0;">${this.highlightJson(jsonString)}</pre>`;
+    } catch (error) {
+      return String(obj);
+    }
+  }
+  
+  /**
+   * Подсветка синтаксиса JSON
+   */
+  highlightJson(jsonString) {
+    // Простая подсветка синтаксиса
+    return jsonString
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+        let cls = 'number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'key';
+            match = match.replace(/"/, '<span style="color: #d19a66;">').replace(/":\s*$/, '</span>:');
+            return match;
+          } else {
+            cls = 'string';
+            return `<span style="color: #98c379;">${match}</span>`;
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'boolean';
+          return `<span style="color: #56b6c2;">${match}</span>`;
+        } else if (/null/.test(match)) {
+          cls = 'null';
+          return `<span style="color: #56b6c2;">${match}</span>`;
+        } else {
+          return `<span style="color: #d19a66;">${match}</span>`;
         }
-
-        // Добавляем тело ответа
-        if (item.response.body) {
-          let bodyContent = item.response.body;
-
-          // Пытаемся распарсить JSON
-          try {
-            const jsonBody = JSON.parse(bodyContent);
-            bodyContent = JSON.stringify(jsonBody, null, 2);
-          } catch (e) {
-            // Не JSON, проверяем, не HTML ли это
-            if (bodyContent.trim().startsWith('<!DOCTYPE') || bodyContent.trim().startsWith('<html')) {
-              bodyContent = 'HTML-контент (слишком длинный для отображения)';
-              if (bodyContent.length < 1000) {
-                bodyContent = bodyContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      });
+  }
+  
+  /**
+   * Форматирование тела запроса
+   */
+  formatRequestBody(body) {
+    if (!body) return 'null';
+    
+    if (typeof body === 'string') {
+      try {
+        // Пробуем распарсить как JSON
+        const json = JSON.parse(body);
+        return this.formatJson(json);
+      } catch (e) {
+        // Если не JSON, возвращаем как строку
+        return `<pre style="margin: 5px 0; white-space: pre-wrap;">${body}</pre>`;
+      }
+    } else if (body instanceof FormData) {
+      const entries = Array.from(body.entries());
+      if (entries.length === 0) return 'FormData (пусто)';
+      
+      const formDataObj = {};
+      entries.forEach(([key, value]) => {
+        formDataObj[key] = value instanceof File ? `File: ${value.name} (${value.type}, ${value.size} bytes)` : value;
+      });
+      
+      return this.formatJson(formDataObj);
+    } else if (body instanceof Blob) {
+      return `Blob (${body.type}, ${body.size} bytes)`;
+    } else {
+      // Для других типов данных
+      return this.formatJson(body);
+    }
+  }
+  
+  /**
+   * Форматирование тела ответа
+   */
+  formatResponseBody(body) {
+    if (!body) return 'null';
+    
+    try {
+      // Пробуем распарсить как JSON
+      const json = JSON.parse(body);
+      return this.formatJson(json);
+    } catch (e) {
+      // Если тело ответа большое, обрезаем его
+      if (body.length > 5000) {
+        return `<pre style="margin: 5px 0; white-space: pre-wrap;">${body.substring(0, 5000)}...</pre>
+                <button class="dev-log-button" onclick="navigator.clipboard.writeText(\`${body.replace(/`/g, '\\`')}\`).then(() => alert('Скопировано в буфер обмена!'))">Скопировать полностью</button>`;
+      }
+      
+      // Если не JSON, возвращаем как строку
+      return `<pre style="margin: 5px 0; white-space: pre-wrap;">${body}</pre>`;
+    }
+  }
+  
+  /**
+   * Добавление значков информации в административные формы
+   */
+  addInfoBadgesToAdminForms() {
+    // Добавляем значки к полям вебхуков
+    const webhookFields = [
+      { 
+        id: 'admin-export-webhook-url', 
+        description: 'URL для экспорта данных. При сохранении курса данные будут отправлены на этот URL в формате JSON.'
+      },
+      { 
+        id: 'admin-import-webhook-url', 
+        description: 'URL для импорта данных. При импорте данные будут запрошены с этого URL.'
+      },
+      { 
+        id: 'admin-get-webhooks-url', 
+        description: 'URL для получения списка доступных вебхуков. Используется для автоматического заполнения полей экспорта и импорта.'
+      },
+      { 
+        id: 'admin-content-webhook-url', 
+        description: 'URL для получения контента урока. Система отправит GET-запрос на этот URL и отобразит полученный Markdown или HTML.'
+      },
+      { 
+        id: 'admin-test-webhook-url', 
+        description: 'URL для получения теста. Система отправит GET-запрос на этот URL и отобразит полученный тест.'
+      }
+    ];
+    
+    webhookFields.forEach(field => {
+      const input = document.getElementById(field.id);
+      if (input) {
+        const label = input.previousElementSibling;
+        if (label) {
+          const infoBadge = document.createElement('span');
+          infoBadge.className = 'dev-info-badge';
+          infoBadge.textContent = 'i';
+          infoBadge.setAttribute('data-tooltip', field.description);
+          
+          // Добавляем обработчик для отображения подсказки
+          infoBadge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showInfoTooltip(e.target, field.description);
+          });
+          
+          label.appendChild(infoBadge);
+        }
+      }
+    });
+  }
+  
+  /**
+   * Удаление значков информации из административных форм
+   */
+  removeInfoBadgesFromAdminForms() {
+    document.querySelectorAll('.dev-info-badge').forEach(badge => {
+      badge.remove();
+    });
+    
+    document.querySelectorAll('.dev-info-tooltip').forEach(tooltip => {
+      tooltip.remove();
+    });
+  }
+  
+  /**
+   * Отображение всплывающей подсказки
+   */
+  showInfoTooltip(element, text) {
+    // Удаляем существующие подсказки
+    document.querySelectorAll('.dev-info-tooltip').forEach(tooltip => {
+      tooltip.remove();
+    });
+    
+    // Создаем новую подсказку
+    const tooltip = document.createElement('div');
+    tooltip.className = 'dev-info-tooltip';
+    tooltip.textContent = text;
+    tooltip.style.left = `${element.offsetLeft + element.offsetWidth + 5}px`;
+    tooltip.style.top = `${element.offsetTop - 5}px`;
+    
+    // Добавляем подсказку в DOM
+    document.body.appendChild(tooltip);
+    
+    // Настраиваем закрытие подсказки по клику за ее пределами
+    document.addEventListener('click', function closeTooltip(e) {
+      if (e.target !== tooltip && e.target !== element) {
+        tooltip.remove();
+        document.removeEventListener('click', closeTooltip);
+      }
+    });
+    
+    // Отображаем подсказку
+    setTimeout(() => {
+      tooltip.classList.add('visible');
+    }, 10);
+  }
+  
+  /**
+   * Очистка логов
+   */
+  clearLogs() {
+    this.logs = [];
+    document.getElementById('dev-panel-logs').innerHTML = '';
+  }
+  
+  /**
+   * Обрезка строки до указанной длины
+   */
+  truncateString(str, maxLength) {
+    if (str.length <= maxLength) return str;
+    return str.substring(0, maxLength) + '...';
+  }
+  
+  /**
+   * Синхронизация данных с облаком
+   */
+  async syncWithCloud() {
+    // Получаем настройки вебхуков
+    const webhookSettingsStr = localStorage.getItem('webhookSettings');
+    if (!webhookSettingsStr) {
+      this.logMessage('Ошибка синхронизации: настройки вебхуков не найдены в localStorage', 'error');
+      return;
+    }
+    
+    try {
+      const webhookSettings = JSON.parse(webhookSettingsStr);
+      
+      // Проверяем URL для импорта
+      if (webhookSettings.importUrl) {
+        this.logMessage(`Выполняется синхронизация с облаком. URL импорта: ${webhookSettings.importUrl}`, 'info');
+        
+        try {
+          // Получаем данные с вебхука
+          const response = await fetch(webhookSettings.importUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            // Получаем Content-Type заголовок
+            const contentType = response.headers.get('content-type') || '';
+            this.logMessage(`Получен ответ с Content-Type: ${contentType}`, 'info');
+            
+            // Сначала пробуем получить текст, а потом уже решаем, как его обрабатывать
+            const text = await response.text();
+            this.logMessage(`Получены данные (${text.length} символов)`, 'info');
+            
+            let data;
+            
+            // Пробуем распарсить JSON
+            try {
+              data = JSON.parse(text);
+              this.logMessage('Данные успешно распарсены как JSON', 'success');
+            } catch (e) {
+              this.logMessage(`Не удалось распарсить как JSON: ${e.message}`, 'warning');
+              
+              // Если это не JSON, возможно, это plain text представление JSON
+              // Пытаемся распарсить данные из вида, где JSON содержится в поле "data"
+              if (text.includes('"data"')) {
+                try {
+                  const regex = /"data"\s*:\s*"(.*?)"/s;
+                  const match = text.match(regex);
+                  
+                  if (match && match[1]) {
+                    let jsonString = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                    
+                    // Иногда кавычки могут быть экранированы несколько раз
+                    while (jsonString.includes('\\')) {
+                      jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+                    }
+                    
+                    this.logMessage('Извлечен JSON из поля "data"', 'info');
+                    data = { courses: JSON.parse(jsonString) };
+                  }
+                } catch (innerError) {
+                  this.logMessage(`Не удалось распарсить данные из поля data: ${innerError.message}`, 'error');
+                }
               }
             }
+            
+            // Если данные все еще не определены, пробуем искать JSON в тексте
+            if (!data) {
+              try {
+                // Ищем любую JSON структуру в тексте
+                const jsonRegex = /{[\s\S]*}/;
+                const match = text.match(jsonRegex);
+                
+                if (match && match[0]) {
+                  const possibleJson = match[0];
+                  data = JSON.parse(possibleJson);
+                  this.logMessage('Извлечен JSON из текста', 'info');
+                }
+              } catch (e) {
+                this.logMessage(`Не удалось извлечь JSON из текста: ${e.message}`, 'error');
+              }
+            }
+            
+            // Если данные все еще не определены, сдаемся
+            if (!data) {
+              this.logMessage('Не удалось распарсить данные из ответа. Проверьте формат ответа сервера.', 'error');
+              return;
+            }
+            
+            // Проверяем наличие поля courses
+            if (!data.courses) {
+              // Может быть, сам data и есть courses
+              if (typeof data === 'object' && Object.keys(data).length > 0) {
+                // Проверяем, есть ли в объекте хотя бы один ключ с объектом, содержащим days/specialLessons
+                const courseCandidate = Object.values(data).find(item => 
+                  item && typeof item === 'object' && 
+                  (item.days || item.specialLessons || item.title)
+                );
+                
+                if (courseCandidate) {
+                  this.logMessage('Используем полученный объект как courses', 'info');
+                  data = { courses: data };
+                }
+              }
+              
+              // Если все еще нет courses, выбрасываем ошибку
+              if (!data.courses) {
+                this.logMessage('Полученные данные не содержат информацию о курсах', 'error');
+                return;
+              }
+            }
+            
+            const courseCount = Object.keys(data.courses).length;
+            this.logMessage(`Получены данные курсов (${courseCount} курсов)`, 'success');
+            this.logMessage(`Идентификаторы курсов: ${Object.keys(data.courses).join(', ')}`, 'info');
+            
+            // Сохраняем копию текущих курсов для возможности отката
+            const backupCourses = JSON.parse(JSON.stringify(window.courseManager.courses));
+            
+            try {
+              // Применяем полученные данные
+              window.courseManager.courses = data.courses;
+              
+              this.logMessage('Данные успешно импортированы и применены', 'success');
+              
+              // Обновляем интерфейс, если открыт список курсов
+              if (window.adminInterface && window.adminInterface.loadCoursesList) {
+                window.adminInterface.loadCoursesList();
+              }
+              
+              // Сохраняем резервную копию в localStorage
+              localStorage.setItem('coursesBackup', JSON.stringify(backupCourses));
+              localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+              
+              // Если настроен URL для экспорта, отправляем данные обратно
+              if (webhookSettings.exportUrl) {
+                this.logMessage(`Экспорт обновленных данных на ${webhookSettings.exportUrl}`, 'info');
+                
+                if (window.adminInterface && window.adminInterface.exportDataToWebhook) {
+                  window.adminInterface.exportDataToWebhook(webhookSettings.exportUrl);
+                }
+              }
+            } catch (e) {
+              // В случае ошибки при применении данных, восстанавливаем бэкап
+              window.courseManager.courses = backupCourses;
+              this.logMessage(`Ошибка при применении импортированных данных: ${e.message}`, 'error');
+              this.logMessage('Восстановлена предыдущая версия курсов', 'warning');
+            }
+          } else {
+            this.logMessage(`Ошибка HTTP! Статус: ${response.status}`, 'error');
           }
-
-          responseDetails += `<p>Тело ответа:</p><pre>${bodyContent}</pre>`;
+        } catch (error) {
+          this.logMessage(`Ошибка при синхронизации с облаком: ${error.message}`, 'error');
         }
-
-        detailsDiv.innerHTML += responseDetails;
+      } else {
+        this.logMessage('URL для импорта не найден в настройках вебхуков', 'error');
       }
-
-      // Добавляем информацию об ошибке, если она есть
-      if (item.error) {
-        detailsDiv.innerHTML += `
-          <h4>Ошибка</h4>
-          <p>${item.error.message}</p>
-          <p>Время: ${item.error.duration} мс</p>
-          ${item.error.stack ? `<pre>${item.error.stack}</pre>` : ''}
-        `;
-      }
-
-      logItem.appendChild(detailsDiv);
-
-      // Добавляем обработчик клика для показа/скрытия деталей
-      logItem.addEventListener('click', function() {
-        const details = this.querySelector('.network-log-details');
-        details.classList.toggle('visible');
-      });
-
-      logsContainer.appendChild(logItem);
-    });
-  }
-
-  /**
-   * Обновление просмотрщика localStorage
-   */
-  refreshLocalStorageViewer() {
-    const keysContainer = document.getElementById('localstorage-keys');
-    const valueDisplay = document.getElementById('localstorage-value-display');
-
-    if (!keysContainer || !valueDisplay) return;
-
-    keysContainer.innerHTML = '';
-    valueDisplay.textContent = 'Выберите элемент из списка слева';
-
-    // Собираем все ключи из localStorage
-    this.localStorageData = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      const value = localStorage.getItem(key);
-      this.localStorageData[key] = value;
-
-      const keyElement = document.createElement('div');
-      keyElement.className = 'localstorage-key';
-      keyElement.textContent = key;
-      keyElement.dataset.key = key;
-
-      keyElement.addEventListener('click', () => {
-        const allKeys = document.querySelectorAll('.localstorage-key');
-        allKeys.forEach(k => k.classList.remove('active'));
-        keyElement.classList.add('active');
-
-        // Пытаемся форматировать JSON
-        try {
-          const parsedValue = JSON.parse(value);
-          valueDisplay.textContent = JSON.stringify(parsedValue, null, 2);
-        } catch (e) {
-          valueDisplay.textContent = value;
-        }
-      });
-
-      keysContainer.appendChild(keyElement);
+    } catch (e) {
+      this.logMessage(`Ошибка при обработке настроек вебхуков: ${e.message}`, 'error');
     }
   }
-
+  
   /**
-   * Добавление нового элемента в localStorage
+   * Логирование сообщения в панель разработчика
    */
-  addLocalStorageItem() {
-    const key = prompt('Введите ключ:');
-    if (!key) return;
-
-    // Проверяем, существует ли уже такой ключ
-    if (localStorage.getItem(key) !== null) {
-      alert(`Ключ '${key}' уже существует. Используйте редактирование для изменения.`);
-      return;
+  logMessage(message, type = 'info') {
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (!logsContainer) return;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    let typeClass;
+    switch (type) {
+      case 'success': typeClass = 'success'; break;
+      case 'error': typeClass = 'error'; break;
+      case 'warning': typeClass = 'warning'; break;
+      default: typeClass = 'info';
     }
-
-    const value = prompt('Введите значение:');
-    if (value === null) return; // Пользователь отменил ввод
-
-    // Сохраняем в localStorage
-    localStorage.setItem(key, value);
-
-    // Обновляем просмотрщик
-    this.refreshLocalStorageViewer();
-
-    // Выбираем новый элемент
-    setTimeout(() => {
-      const newKeyElement = document.querySelector(`.localstorage-key[data-key="${key}"]`);
-      if (newKeyElement) {
-        newKeyElement.click();
-      }
-    }, 100);
-  }
-
-  /**
-   * Редактирование элемента в localStorage
-   */
-  editLocalStorageItem() {
-    const activeKey = document.querySelector('.localstorage-key.active');
-    if (!activeKey) {
-      alert('Сначала выберите элемент для редактирования');
-      return;
-    }
-
-    const key = activeKey.dataset.key;
-    const currentValue = localStorage.getItem(key);
-
-    // Создаем текстовое поле для редактирования
-    const valueDisplay = document.getElementById('localstorage-value-display');
-    const valueContainer = document.getElementById('localstorage-value');
-
-    // Скрываем текущее отображение
-    valueDisplay.style.display = 'none';
-
-    // Создаем текстовую область для редактирования
-    const textarea = document.createElement('textarea');
-    textarea.className = 'localstorage-value-edit';
-    textarea.value = valueDisplay.textContent;
-    valueContainer.appendChild(textarea);
-
-    // Фокусируемся на текстовой области
-    textarea.focus();
-
-    // Создаем кнопки управления
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.style.marginTop = '10px';
-    buttonsContainer.innerHTML = `
-      <button class="dev-panel-btn" id="save-localstorage-edit">Сохранить</button>
-      <button class="dev-panel-btn" id="cancel-localstorage-edit">Отмена</button>
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message ${typeClass}">${message}</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
     `;
-    valueContainer.appendChild(buttonsContainer);
+    
+    logsContainer.prepend(logEntry);
+    console.log(`🔧 [DevMode] ${message}`);
+  }
+  
+  /**
+   * Показать подробную информацию о текущем состоянии приложения
+   */
+  showDebugInfo() {
+    if (!window.courseManager) {
+      this.logMessage('CourseManager не инициализирован', 'error');
+      return;
+    }
+    
+    // Выводим текущее состояние
+    this.logMessage(`Текущая профессия: ${window.courseManager.currentProfession || 'не выбрана'}`, 'info');
+    this.logMessage(`Текущий день: ${window.courseManager.currentDay ? window.courseManager.currentDay.id : 'не выбран'}`, 'info');
+    this.logMessage(`Текущий урок: ${window.courseManager.currentLesson ? window.courseManager.currentLesson.id : 'не выбран'}`, 'info');
+    
+    // Проверяем состояние DOM-элементов
+    const daySelectionContainer = document.getElementById('day-selection');
+    const taskSelectionContainer = document.getElementById('task-selection');
+    const homeContainer = document.getElementById('home');
+    const guideContainer = document.getElementById('guide');
+    
+    this.logMessage(`Состояние контейнеров в DOM:`, 'info');
+    this.logMessage(`- home: ${homeContainer ? (homeContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- day-selection: ${daySelectionContainer ? (daySelectionContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- task-selection: ${taskSelectionContainer ? (taskSelectionContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    this.logMessage(`- guide: ${guideContainer ? (guideContainer.classList.contains('hidden') ? 'скрыт' : 'виден') : 'не найден'}`, 'info');
+    
+    // Проверяем наличие дней
+    const days = window.courseManager.getDays();
+    this.logMessage(`Доступно дней: ${days ? days.length : 0}`, 'info');
+    
+    if (days && days.length > 0) {
+      days.forEach((day, index) => {
+        this.logMessage(`День ${index+1}: ID=${day.id}, title=${day.title}, уроков: ${day.lessons ? day.lessons.length : 0}`, 'info');
+      });
+    }
+  }
 
-    // Обработчик для сохранения
-    document.getElementById('save-localstorage-edit').addEventListener('click', () => {
-      const newValue = textarea.value;
-
-      // Проверяем, что это валидный JSON, если похоже на объект или массив
-      if (newValue.trim().startsWith('{') || newValue.trim().startsWith('[')) {
-        try {
-          JSON.parse(newValue);
-        } catch (e) {
-          if (!confirm('Введенное значение не является валидным JSON. Всё равно сохранить?')) {
-            return;
-          }
-        }
+  /**
+   * Отображение менеджера LocalStorage
+   */
+  showLocalStorageManager() {
+    // Создаем контейнер для отчета
+    const storageReport = document.createElement('div');
+    storageReport.className = 'dev-storage-report';
+    
+    // Получаем все ключи из localStorage
+    const keys = Object.keys(localStorage);
+    const totalSize = this.calculateLocalStorageSize();
+    
+    // Создаем сводную информацию
+    const summaryInfo = document.createElement('div');
+    summaryInfo.className = 'dev-summary-info';
+    summaryInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    summaryInfo.style.padding = '10px';
+    summaryInfo.style.borderRadius = '4px';
+    summaryInfo.style.marginBottom = '15px';
+    
+    // Добавляем кнопки управления
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.marginBottom = '10px';
+    buttonsContainer.style.display = 'flex';
+    buttonsContainer.style.gap = '10px';
+    
+    // Кнопка очистки всего localStorage
+    const clearAllButton = document.createElement('button');
+    clearAllButton.innerText = 'Очистить весь LocalStorage';
+    clearAllButton.style.backgroundColor = '#e06c75';
+    clearAllButton.style.color = 'white';
+    clearAllButton.style.border = 'none';
+    clearAllButton.style.padding = '8px 15px';
+    clearAllButton.style.borderRadius = '4px';
+    clearAllButton.style.cursor = 'pointer';
+    
+    clearAllButton.onclick = () => {
+      if (confirm('Вы уверены, что хотите очистить весь LocalStorage? Это действие нельзя отменить.')) {
+        localStorage.clear();
+        this.logMessage('LocalStorage полностью очищен', 'success');
+        this.showLocalStorageManager(); // Обновляем отображение
       }
-
-      // Сохраняем новое значение
-      localStorage.setItem(key, newValue);
-
-      // Обновляем просмотрщик
-      this.refreshLocalStorageViewer();
-
-      // Выбираем отредактированный элемент
-      setTimeout(() => {
-        const editedKeyElement = document.querySelector(`.localstorage-key[data-key="${key}"]`);
-        if (editedKeyElement) {
-          editedKeyElement.click();
+    };
+    
+    // Кнопка обновления отображения
+    const refreshButton = document.createElement('button');
+    refreshButton.innerText = 'Обновить';
+    refreshButton.style.backgroundColor = '#61afef';
+    refreshButton.style.color = 'white';
+    refreshButton.style.border = 'none';
+    refreshButton.style.padding = '8px 15px';
+    refreshButton.style.borderRadius = '4px';
+    refreshButton.style.cursor = 'pointer';
+    
+    refreshButton.onclick = () => {
+      this.showLocalStorageManager();
+    };
+    
+    // Добавляем кнопки в контейнер
+    buttonsContainer.appendChild(refreshButton);
+    buttonsContainer.appendChild(clearAllButton);
+    summaryInfo.appendChild(buttonsContainer);
+    
+    // Добавляем сводную информацию
+    summaryInfo.innerHTML += `
+      <div style="font-weight: bold; color: #56b6c2; margin-bottom: 5px;">Информация о LocalStorage:</div>
+      <div><span style="color: #d19a66;">Количество элементов:</span> ${keys.length}</div>
+      <div><span style="color: #d19a66;">Общий размер:</span> ${totalSize} KB</div>
+      <div><span style="color: #d19a66;">Использовано:</span> ${((totalSize / 5120) * 100).toFixed(2)}% (приблизительно)</div>
+    `;
+    
+    // Добавляем сводную информацию в отчет
+    storageReport.appendChild(summaryInfo);
+    
+    // Создаем таблицу для отображения данных
+    const table = document.createElement('table');
+    table.className = 'dev-storage-table';
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.marginBottom = '15px';
+    table.style.fontSize = '12px';
+    
+    // Создаем заголовок таблицы
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr style="background-color: #1e2127; color: #ddd;">
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #444;">Ключ</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #444;">Тип</th>
+        <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">Размер</th>
+        <th style="padding: 8px; text-align: center; border-bottom: 1px solid #444;">Действия</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    
+    // Создаем тело таблицы
+    const tbody = document.createElement('tbody');
+    
+    // Сортируем ключи по размеру (по убыванию)
+    keys.sort((a, b) => {
+      const sizeA = localStorage.getItem(a).length;
+      const sizeB = localStorage.getItem(b).length;
+      return sizeB - sizeA;
+    });
+    
+    // Добавляем строки для каждого элемента localStorage
+    keys.forEach(key => {
+      const value = localStorage.getItem(key);
+      const size = value.length;
+      const sizeKB = (size / 1024).toFixed(2);
+      
+      // Определяем тип данных
+      let type = 'Текст';
+      let isJSON = false;
+      try {
+        const parsed = JSON.parse(value);
+        type = typeof parsed === 'object' ? 'JSON' : typeof parsed;
+        isJSON = typeof parsed === 'object';
+      } catch (e) {
+        // Это не JSON, оставляем тип "Текст"
+      }
+      
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+      
+      tr.innerHTML = `
+        <td style="padding: 8px;">${key}</td>
+        <td style="padding: 8px; color: ${type === 'JSON' ? '#98c379' : '#e5c07b'};">${type}</td>
+        <td style="padding: 8px; text-align: right;">${sizeKB} KB</td>
+        <td style="padding: 8px; text-align: center;">
+          <button class="dev-storage-view-btn" data-key="${key}" style="background-color: #56b6c2; color: white; border: none; border-radius: 3px; padding: 3px 8px; margin-right: 5px; cursor: pointer;">Просмотр</button>
+          <button class="dev-storage-edit-btn" data-key="${key}" data-is-json="${isJSON}" style="background-color: #98c379; color: white; border: none; border-radius: 3px; padding: 3px 8px; margin-right: 5px; cursor: pointer;">Редактировать</button>
+          <button class="dev-storage-delete-btn" data-key="${key}" style="background-color: #e06c75; color: white; border: none; border-radius: 3px; padding: 3px 8px; cursor: pointer;">Удалить</button>
+        </td>
+      `;
+      
+      tbody.appendChild(tr);
+    });
+    
+    table.appendChild(tbody);
+    storageReport.appendChild(table);
+    
+    // Создаем лог-запись для отчета
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Менеджер LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;">
+        ${storageReport.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем наш отчет
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчики для кнопок
+      this.setupStorageEventHandlers();
+      
+      // Автоматически прокручиваем до отчета
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    this.logMessage('Менеджер LocalStorage открыт', 'info');
+  }
+  
+  /**
+   * Настройка обработчиков событий для кнопок в менеджере LocalStorage
+   */
+  setupStorageEventHandlers() {
+    // Обработчики для кнопки "Просмотр"
+    document.querySelectorAll('.dev-storage-view-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        const value = localStorage.getItem(key);
+        
+        this.showStorageItemDetails(key, value);
+      });
+    });
+    
+    // Обработчики для кнопки "Редактировать"
+    document.querySelectorAll('.dev-storage-edit-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        const isJSON = e.target.getAttribute('data-is-json') === 'true';
+        const value = localStorage.getItem(key);
+        
+        this.editStorageItem(key, value, isJSON);
+      });
+    });
+    
+    // Обработчики для кнопки "Удалить"
+    document.querySelectorAll('.dev-storage-delete-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        
+        if (confirm(`Вы уверены, что хотите удалить элемент "${key}" из LocalStorage?`)) {
+          localStorage.removeItem(key);
+          this.logMessage(`Элемент "${key}" удален из LocalStorage`, 'success');
+          this.showLocalStorageManager(); // Обновляем отображение
         }
-      }, 100);
-    });
-
-    // Обработчик для отмены
-    document.getElementById('cancel-localstorage-edit').addEventListener('click', () => {
-      // Восстанавливаем обычное отображение
-      valueContainer.removeChild(textarea);
-      valueContainer.removeChild(buttonsContainer);
-      valueDisplay.style.display = '';
+      });
     });
   }
-
+  
   /**
-   * Удаление элемента из localStorage
+   * Отображение детальной информации об элементе LocalStorage
    */
-  deleteLocalStorageItem() {
-    const activeKey = document.querySelector('.localstorage-key.active');
-    if (!activeKey) {
-      alert('Сначала выберите элемент для удаления');
-      return;
+  showStorageItemDetails(key, value) {
+    // Создаем контейнер для просмотра
+    const viewContainer = document.createElement('div');
+    viewContainer.className = 'dev-storage-view-container';
+    viewContainer.style.padding = '10px';
+    viewContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    viewContainer.style.borderRadius = '4px';
+    viewContainer.style.marginTop = '10px';
+    
+    // Добавляем заголовок
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '10px';
+    
+    header.innerHTML = `
+      <h3 style="margin: 0; color: #56b6c2;">Просмотр элемента: ${key}</h3>
+      <button id="close-storage-view" style="background: none; border: none; color: #aaa; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    viewContainer.appendChild(header);
+    
+    // Определяем, является ли значение JSON
+    let formattedValue = value;
+    try {
+      const parsedValue = JSON.parse(value);
+      formattedValue = this.formatJson(parsedValue);
+    } catch (e) {
+      formattedValue = `<pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${this.escapeHtml(value)}</pre>`;
     }
-
-    const key = activeKey.dataset.key;
-
-    if (!confirm(`Вы уверены, что хотите удалить элемент '${key}'?`)) {
-      return;
+    
+    // Добавляем содержимое
+    const content = document.createElement('div');
+    content.style.maxHeight = '400px';
+    content.style.overflow = 'auto';
+    content.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    content.style.padding = '10px';
+    content.style.borderRadius = '3px';
+    content.innerHTML = formattedValue;
+    
+    viewContainer.appendChild(content);
+    
+    // Добавляем кнопки действий
+    const actions = document.createElement('div');
+    actions.style.marginTop = '10px';
+    actions.style.display = 'flex';
+    actions.style.gap = '10px';
+    
+    const copyButton = document.createElement('button');
+    copyButton.innerText = 'Копировать';
+    copyButton.style.backgroundColor = '#61afef';
+    copyButton.style.color = 'white';
+    copyButton.style.border = 'none';
+    copyButton.style.padding = '5px 10px';
+    copyButton.style.borderRadius = '3px';
+    copyButton.style.cursor = 'pointer';
+    
+    copyButton.addEventListener('click', () => {
+      navigator.clipboard.writeText(value).then(() => {
+        this.logMessage(`Значение ключа "${key}" скопировано в буфер обмена`, 'success');
+      }).catch(err => {
+        this.logMessage(`Ошибка при копировании: ${err}`, 'error');
+      });
+    });
+    
+    actions.appendChild(copyButton);
+    viewContainer.appendChild(actions);
+    
+    // Создаем лог-запись для просмотра
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Просмотр элемента LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;" id="storage-view-container">
+        ${viewContainer.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем просмотр
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчик для кнопки закрытия
+      document.getElementById('close-storage-view').addEventListener('click', () => {
+        logEntry.remove();
+      });
+      
+      // Автоматически прокручиваем до просмотра
+      logEntry.scrollIntoView({ behavior: 'smooth' });
     }
-
-    // Удаляем из localStorage
-    localStorage.removeItem(key);
-
-    // Обновляем просмотрщик
-    this.refreshLocalStorageViewer();
   }
-
+  
   /**
-   * Анализ данных курсов
+   * Редактирование элемента LocalStorage
    */
-  analyzeCoursesData() {
-    const analysisContainer = document.getElementById('course-analysis');
-    if (!analysisContainer) return;
-
-    // Проверяем, инициализирован ли менеджер курсов
+  editStorageItem(key, value, isJSON) {
+    // Создаем контейнер для редактирования
+    const editContainer = document.createElement('div');
+    editContainer.className = 'dev-storage-edit-container';
+    editContainer.style.padding = '10px';
+    editContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    editContainer.style.borderRadius = '4px';
+    editContainer.style.marginTop = '10px';
+    
+    // Добавляем заголовок
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '10px';
+    
+    header.innerHTML = `
+      <h3 style="margin: 0; color: #98c379;">Редактирование элемента: ${key}</h3>
+      <button id="close-storage-edit" style="background: none; border: none; color: #aaa; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    editContainer.appendChild(header);
+    
+    // Если это JSON, попытаемся отформатировать его красиво
+    let formattedValue = value;
+    if (isJSON) {
+      try {
+        const parsedValue = JSON.parse(value);
+        formattedValue = JSON.stringify(parsedValue, null, 2);
+      } catch (e) {
+        // В случае ошибки оставляем как есть
+      }
+    }
+    
+    // Добавляем текстовое поле для редактирования
+    const textarea = document.createElement('textarea');
+    textarea.id = 'storage-edit-textarea';
+    textarea.style.width = '100%';
+    textarea.style.height = '300px';
+    textarea.style.backgroundColor = 'rgba(30, 33, 39, 0.9)';
+    textarea.style.color = '#eee';
+    textarea.style.border = '1px solid #444';
+    textarea.style.borderRadius = '3px';
+    textarea.style.padding = '10px';
+    textarea.style.fontFamily = 'Consolas, Monaco, monospace';
+    textarea.style.fontSize = '12px';
+    textarea.value = formattedValue;
+    
+    editContainer.appendChild(textarea);
+    
+    // Добавляем кнопки действий
+    const actions = document.createElement('div');
+    actions.style.marginTop = '10px';
+    actions.style.display = 'flex';
+    actions.style.gap = '10px';
+    
+    const saveButton = document.createElement('button');
+    saveButton.innerText = 'Сохранить';
+    saveButton.style.backgroundColor = '#98c379';
+    saveButton.style.color = 'white';
+    saveButton.style.border = 'none';
+    saveButton.style.padding = '5px 10px';
+    saveButton.style.borderRadius = '3px';
+    saveButton.style.cursor = 'pointer';
+    
+    const formatButton = document.createElement('button');
+    formatButton.innerText = 'Форматировать JSON';
+    formatButton.style.backgroundColor = '#61afef';
+    formatButton.style.color = 'white';
+    formatButton.style.border = 'none';
+    formatButton.style.padding = '5px 10px';
+    formatButton.style.borderRadius = '3px';
+    formatButton.style.cursor = 'pointer';
+    
+    // Добавляем обработчик для кнопки форматирования
+    formatButton.addEventListener('click', () => {
+      try {
+        const parsedValue = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(parsedValue, null, 2);
+        this.logMessage('JSON успешно отформатирован', 'success');
+      } catch (e) {
+        this.logMessage(`Ошибка форматирования: ${e.message}`, 'error');
+      }
+    });
+    
+    // Добавляем обработчик для кнопки сохранения
+    saveButton.addEventListener('click', () => {
+      try {
+        // Если это JSON, проверяем валидность
+        if (isJSON) {
+          JSON.parse(textarea.value);
+        }
+        
+        // Сохраняем значение
+        localStorage.setItem(key, textarea.value);
+        this.logMessage(`Элемент "${key}" успешно обновлен`, 'success');
+        
+        // Обновляем отображение
+        document.getElementById('storage-edit-entry')?.remove();
+        this.showLocalStorageManager();
+      } catch (e) {
+        this.logMessage(`Ошибка сохранения: ${e.message}`, 'error');
+      }
+    });
+    
+    // Добавляем кнопки в зависимости от типа данных
+    if (isJSON) {
+      actions.appendChild(formatButton);
+    }
+    actions.appendChild(saveButton);
+    
+    editContainer.appendChild(actions);
+    
+    // Создаем лог-запись для редактирования
+    const logEntry = document.createElement('div');
+    logEntry.id = 'storage-edit-entry';
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Редактирование элемента LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;" id="storage-edit-container">
+        ${editContainer.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем редактор
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчик для кнопки закрытия
+      document.getElementById('close-storage-edit').addEventListener('click', () => {
+        logEntry.remove();
+      });
+      
+      // Автоматически прокручиваем до редактора
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+  
+  /**
+   * Рассчитывает общий размер данных в localStorage в килобайтах
+   */
+  calculateLocalStorageSize() {
+    let total = 0;
+    
+    Object.keys(localStorage).forEach(key => {
+      const value = localStorage.getItem(key);
+      total += (key.length + value.length) * 2; // UTF-16 = 2 байта на символ
+    });
+    
+    return (total / 1024).toFixed(2); // Конвертируем в килобайты
+  }
+  
+  /**
+   * Экранирует HTML символы
+   */
+  escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  
+  /**
+   * Анализ и вывод подробной информации о курсах, уроках и вебхуках
+   */
+  analyzeAndDisplayCourses() {
+    // Получаем данные курсов из курс-менеджера
     if (!window.courseManager || !window.courseManager.courses) {
-      analysisContainer.innerHTML = '<p>Менеджер курсов не инициализирован или данные курсов отсутствуют.</p>';
+      this.logMessage('Данные курсов не загружены или недоступны', 'error');
       return;
     }
-
+    
+    // Показать текущее состояние приложения
+    this.showDebugInfo();
+    
     const courses = window.courseManager.courses;
     const courseIds = Object.keys(courses);
-
-    if (courseIds.length === 0) {
-      analysisContainer.innerHTML = '<p>Данные курсов отсутствуют.</p>';
-      return;
-    }
-
-    let analysisHtml = `<h3>Анализ данных курсов</h3>`;
-
-    // Общая статистика
-    let totalDays = 0;
+    
+    this.logMessage(`Анализ данных: загружено ${courseIds.length} курсов`, 'info');
+    
+    // Создаем контейнер для детального отчета
+    const detailedReport = document.createElement('div');
+    detailedReport.className = 'dev-detailed-report';
+    
     let totalLessons = 0;
     let totalWebhooks = 0;
-    let totalSpecialLessons = 0;
-    let totalNoDayLessons = 0;
-    const webhookUrls = [];
-
+    let webhookUrls = [];
+    
     // Анализируем каждый курс
     courseIds.forEach(courseId => {
       const course = courses[courseId];
-      let courseHtml = `<h3>Курс: ${course.title || courseId}</h3>`;
-
-      // Счетчики для этого курса
-      let daysCount = course.days ? course.days.length : 0;
+      
+      // Создаем секцию для курса
+      const courseSection = document.createElement('div');
+      courseSection.className = 'dev-course-section';
+      
+      // Информация о курсе
+      let courseInfo = `<h3 style="color: #56b6c2; margin: 10px 0;">Курс: ${course.title || courseId}</h3>`;
+      
+      // Если есть редирект, отображаем его
+      if (course.redirectUrl) {
+        courseInfo += `<div><span style="color: #d19a66;">Редирект URL:</span> ${course.redirectUrl}</div>`;
+      }
+      
+      // Информация о днях
+      let daysList = '';
       let lessonCount = 0;
       let courseWebhooks = 0;
-      let specialLessonsCount = course.specialLessons ? course.specialLessons.length : 0;
-      let noDayLessonsCount = course.noDayLessons ? course.noDayLessons.length : 0;
-
-      // Анализ дней и уроков
-      let daysList = '';
-      if (course.days && course.days.length > 0) {
-        course.days.forEach(day => {
+      
+      if (course.days && Array.isArray(course.days)) {
+        course.days.forEach((day, dayIndex) => {
           daysList += `<div style="margin-top: 8px;"><span style="color: #e5c07b;">День ${day.id}:</span> ${day.title || 'Без названия'}</div>`;
-
+          
           // Анализ уроков для этого дня
           if (day.lessons && Array.isArray(day.lessons)) {
             daysList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
-
+            
             day.lessons.forEach((lesson, lessonIndex) => {
               lessonCount++;
               totalLessons++;
-
+              
               // Базовая информация о уроке
               let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
-
+              
               // Информация об источнике контента
               if (lesson.contentSource) {
                 if (lesson.contentSource.type === 'webhook') {
@@ -1079,53 +1772,47 @@ class DevMode {
                 } else if (lesson.contentSource.type === 'markdown') {
                   lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
                 }
+              } else {
+                lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
               }
-
-              // Информация о тесте
-              if (lesson.testSource && lesson.testSource.type !== 'none') {
-                lessonInfo += ` <span style="color: #d19a66;">[тест]</span>`;
-
-                if (lesson.testSource.type === 'webhook') {
-                  courseWebhooks++;
-                  totalWebhooks++;
-                  webhookUrls.push(lesson.testSource.url);
-                }
+              
+              // Есть ли тест
+              if (lesson.testSource) {
+                lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
               }
-
-              // Информация о задании
-              if (lesson.taskSource && lesson.taskSource.type !== 'none') {
-                lessonInfo += ` <span style="color: #e06c75;">[задание]</span>`;
+              
+              // Есть ли аудио
+              if (lesson.audioSource) {
+                lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
               }
-
-              // Информация об аудио
-              if (lesson.audioSource && lesson.audioSource.type !== 'none') {
-                lessonInfo += ` <span style="color: #56b6c2;">[аудио]</span>`;
-              }
-
+              
               lessonInfo += `</li>`;
               daysList += lessonInfo;
             });
-
+            
             daysList += `</ul>`;
           } else {
-            daysList += `<div style="padding-left: 20px; color: #e06c75;">Нет уроков</div>`;
+            daysList += `<div style="color: #e06c75; padding-left: 15px;">Уроки не найдены</div>`;
           }
         });
       } else {
-        daysList = `<div style="color: #e06c75;">Дни не найдены</div>`;
+        daysList = `<div style="color: #e06c75;">Дни обучения не найдены</div>`;
       }
-
-      // Анализ специальных уроков
+      
+      // Информация о специальных уроках
       let specialLessonsList = '';
-      if (course.specialLessons && course.specialLessons.length > 0) {
-        specialLessonsList += `<div style="margin-top: 8px;"><span style="color: #c678dd;">Специальные уроки:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
-
-        course.specialLessons.forEach(lesson => {
-          totalSpecialLessons++;
-
+      
+      if (course.specialLessons && Array.isArray(course.specialLessons)) {
+        specialLessonsList += `<div style="margin-top: 10px;"><span style="color: #c678dd;">Специальные уроки:</span></div>`;
+        specialLessonsList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        course.specialLessons.forEach((lesson, lessonIndex) => {
+          lessonCount++;
+          totalLessons++;
+          
           // Базовая информация о уроке
           let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
-
+          
           // Информация об источнике контента
           if (lesson.contentSource) {
             if (lesson.contentSource.type === 'webhook') {
@@ -1138,28 +1825,41 @@ class DevMode {
             } else if (lesson.contentSource.type === 'markdown') {
               lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
             }
+          } else {
+            lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
           }
-
+          
+          // Есть ли тест
+          if (lesson.testSource) {
+            lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
+          }
+          
+          // Есть ли аудио
+          if (lesson.audioSource) {
+            lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
+          }
+          
           lessonInfo += `</li>`;
           specialLessonsList += lessonInfo;
         });
-
+        
         specialLessonsList += `</ul>`;
-      } else {
-        specialLessonsList = `<div style="color: #e06c75;">Специальные уроки не найдены</div>`;
       }
-
-      // Анализ уроков без дня
+      
+      // Информация о уроках без дней
       let noDayLessonsList = '';
-      if (course.noDayLessons && course.noDayLessons.length > 0) {
-        noDayLessonsList += `<div style="margin-top: 8px;"><span style="color: #56b6c2;">Уроки без дня:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
-
-        course.noDayLessons.forEach(lesson => {
-          totalNoDayLessons++;
-
+      
+      if (course.noDayLessons && Array.isArray(course.noDayLessons)) {
+        noDayLessonsList += `<div style="margin-top: 10px;"><span style="color: #c678dd;">Уроки без дней:</span></div>`;
+        noDayLessonsList += `<ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        course.noDayLessons.forEach((lesson, lessonIndex) => {
+          lessonCount++;
+          totalLessons++;
+          
           // Базовая информация о уроке
           let lessonInfo = `<li><span style="color: #98c379;">Урок ${lesson.id}:</span> ${lesson.title || 'Без названия'}`;
-
+          
           // Информация об источнике контента
           if (lesson.contentSource) {
             if (lesson.contentSource.type === 'webhook') {
@@ -1172,367 +1872,226 @@ class DevMode {
             } else if (lesson.contentSource.type === 'markdown') {
               lessonInfo += ` <span style="color: #56b6c2;">[встроенный]</span>`;
             }
+          } else {
+            lessonInfo += ` <span style="color: #e06c75;">[нет источника]</span>`;
           }
-
+          
+          // Есть ли тест
+          if (lesson.testSource) {
+            lessonInfo += ` <span style="color: #98c379;">[тест]</span>`;
+          }
+          
+          // Есть ли аудио
+          if (lesson.audioSource) {
+            lessonInfo += ` <span style="color: #d19a66;">[аудио]</span>`;
+          }
+          
           lessonInfo += `</li>`;
           noDayLessonsList += lessonInfo;
         });
-
+        
         noDayLessonsList += `</ul>`;
-      } else {
-        noDayLessonsList = `<div style="color: #e06c75;">Уроки без дня не найдены</div>`;
       }
-
-      // Обновляем счетчики
-      totalDays += daysCount;
-
-      // Формируем результат анализа курса
-      courseHtml += `
-        <div style="margin-top: 5px;">
-          <div><span style="color: #61afef;">ID:</span> ${courseId}</div>
-          <div><span style="color: #61afef;">Название:</span> ${course.title || 'Без названия'}</div>
-          <div><span style="color: #61afef;">Дней:</span> ${daysCount}</div>
-          <div><span style="color: #61afef;">Уроков:</span> ${lessonCount}</div>
-          <div><span style="color: #61afef;">Специальных уроков:</span> ${specialLessonsCount}</div>
-          <div><span style="color: #61afef;">Уроков без дня:</span> ${noDayLessonCount}</div>
-          <div><span style="color: #61afef;">Вебхуков:</span> ${courseWebhooks}</div>
-          <div><span style="color: #61afef;">Скрытый:</span> ${course.hidden ? 'Да' : 'Нет'}</div>
-          ${course.redirectUrl ? `<div><span style="color: #61afef;">URL перенаправления:</span> ${course.redirectUrl}</div>` : ''}
-        </div>
-      `;
-
-      // Добавляем списки дней и уроков
-      courseHtml += `
-        <div style="margin-top: 10px;">
-          <div style="color: #61afef; font-weight: bold;">Дни и уроки:</div>
-          ${daysList}
-        </div>
-
-        <div style="margin-top: 10px;">
-          <div style="color: #61afef; font-weight: bold;">Специальные уроки:</div>
-          ${specialLessonsList}
-        </div>
-
-        <div style="margin-top: 10px;">
-          <div style="color: #61afef; font-weight: bold;">Уроки без дня:</div>
-          ${noDayLessonsList}
-        </div>
-      `;
-
-      analysisHtml += courseHtml;
-    });
-
-    // Добавляем общую статистику
-    analysisHtml = `
-      <div>
-        <h3>Общая статистика</h3>
-        <div><span style="color: #61afef;">Всего курсов:</span> ${courseIds.length}</div>
-        <div><span style="color: #61afef;">Всего дней:</span> ${totalDays}</div>
-        <div><span style="color: #61afef;">Всего уроков:</span> ${totalLessons}</div>
-        <div><span style="color: #61afef;">Всего специальных уроков:</span> ${totalSpecialLessons}</div>
-        <div><span style="color: #61afef;">Всего уроков без дня:</span> ${totalNoDayLessons}</div>
-        <div><span style="color: #61afef;">Всего вебхуков:</span> ${totalWebhooks}</div>
-      </div>
-      ${analysisHtml}
-    `;
-
-    // Добавляем анализ URL вебхуков
-    if (webhookUrls.length > 0) {
-      // Считаем уникальные URL
-      const uniqueUrls = [...new Set(webhookUrls)];
-
-      analysisHtml += `
-        <div style="margin-top: 20px;">
-          <h3>Анализ URL вебхуков</h3>
-          <div><span style="color: #61afef;">Всего вебхуков:</span> ${webhookUrls.length}</div>
-          <div><span style="color: #61afef;">Уникальных URL:</span> ${uniqueUrls.length}</div>
-          <div style="margin-top: 10px;">
-            <div style="color: #61afef; font-weight: bold;">Список URL:</div>
-            <ul style="margin-top: 5px; padding-left: 20px;">
-              ${uniqueUrls.map(url => `<li>${url}</li>`).join('')}
-            </ul>
-          </div>
-        </div>
-      `;
-    }
-
-    // Устанавливаем HTML
-    analysisContainer.innerHTML = analysisHtml;
-  }
-
-  /**
-   * Добавление информационных значков к формам администратора
-   */
-  addInfoBadgesToAdminForms() {
-    // Проверяем, находимся ли мы на странице администратора
-    if (!window.location.pathname.includes('admin.html')) return;
-
-    // Добавляем индикаторы статуса к полям вебхуков
-    const webhookFields = document.querySelectorAll('input[id*="webhook"]:not([data-dev-mode-badged])');
-
-    webhookFields.forEach(field => {
-      // Добавляем атрибут, чтобы не добавлять значок повторно
-      field.setAttribute('data-dev-mode-badged', 'true');
-
-      // Создаем контейнер для поля и значка
-      const container = document.createElement('div');
-      container.className = 'admin-webhook-info';
-      container.style.width = '100%';
-      container.style.display = 'flex';
-      container.style.alignItems = 'center';
-
-      // Клонируем поле ввода
-      const clonedField = field.cloneNode(true);
-      clonedField.style.flex = '1';
-
-      // Создаем значок информации
-      const infoIcon = document.createElement('span');
-      infoIcon.innerHTML = `<i class="fas fa-info-circle"></i>`;
-      infoIcon.style.marginLeft = '5px';
-      infoIcon.style.color = '#3498db';
-      infoIcon.style.cursor = 'pointer';
-
-      // Добавляем подсказку при наведении
-      infoIcon.title = 'Проверить URL';
-
-      // Обработчик для проверки URL
-      infoIcon.addEventListener('click', () => {
-        this.testWebhookUrl(clonedField.value);
-      });
-
-      // Создаем значок статуса
-      const statusIcon = document.createElement('span');
-      statusIcon.innerHTML = `<i class="fas fa-question-circle"></i>`;
-      statusIcon.style.marginLeft = '5px';
-      statusIcon.style.color = '#e5c07b';
-      statusIcon.style.cursor = 'pointer';
-      statusIcon.title = 'Статус URL не проверен';
-
-      // Добавляем поле и значки в контейнер
-      container.appendChild(clonedField);
-      container.appendChild(infoIcon);
-      container.appendChild(statusIcon);
-
-      // Заменяем оригинальное поле на контейнер
-      field.parentNode.insertBefore(container, field);
-      field.parentNode.removeChild(field);
-
-      // Копируем ID и другие атрибуты
-      clonedField.id = field.id;
-      clonedField.name = field.name;
-
-      // Добавляем обработчик изменения поля
-      clonedField.addEventListener('input', () => {
-        // Сбрасываем статус при изменении URL
-        statusIcon.innerHTML = `<i class="fas fa-question-circle"></i>`;
-        statusIcon.style.color = '#e5c07b';
-        statusIcon.title = 'Статус URL не проверен';
-      });
-
-      // Проверяем URL при загрузке, если он не пустой
-      if (clonedField.value) {
-        this.checkWebhookUrl(clonedField.value, statusIcon);
+      
+      // Собираем всю информацию по курсу
+      courseInfo += `<div><span style="color: #d19a66;">Всего уроков:</span> ${lessonCount}</div>`;
+      courseInfo += `<div><span style="color: #d19a66;">Уроков с вебхуками:</span> ${courseWebhooks}</div>`;
+      courseInfo += daysList;
+      courseInfo += specialLessonsList;
+      courseInfo += noDayLessonsList;
+      
+      courseSection.innerHTML = courseInfo;
+      detailedReport.appendChild(courseSection);
+      
+      // Добавляем разделитель между курсами
+      if (courseIds.indexOf(courseId) < courseIds.length - 1) {
+        const divider = document.createElement('div');
+        divider.style.height = '1px';
+        divider.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        divider.style.margin = '15px 0';
+        detailedReport.appendChild(divider);
       }
     });
-  }
-
-  /**
-   * Удаление информационных значков из форм администратора
-   */
-  removeInfoBadgesFromAdminForms() {
-    // Сбрасываем атрибут data-dev-mode-badged у всех полей
-    const webhookFields = document.querySelectorAll('input[data-dev-mode-badged="true"]');
-
-    webhookFields.forEach(field => {
-      field.removeAttribute('data-dev-mode-badged');
-    });
-  }
-
-  /**
-   * Проверка URL вебхука
-   */
-  checkWebhookUrl(url, statusIcon) {
-    if (!url) {
-      statusIcon.innerHTML = `<i class="fas fa-times-circle"></i>`;
-      statusIcon.style.color = '#e06c75';
-      statusIcon.title = 'URL не указан';
-      return;
-    }
-
-    // Обновляем значок на "загрузка"
-    statusIcon.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-    statusIcon.style.color = '#e5c07b';
-    statusIcon.title = 'Проверка URL...';
-
-    // Выполняем проверку URL
-    fetch(url, { method: 'GET', mode: 'cors', headers: { 'Accept': 'application/json, text/plain, */*' } })
-      .then(response => {
-        if (response.ok) {
-          statusIcon.innerHTML = `<i class="fas fa-check-circle"></i>`;
-          statusIcon.style.color = '#98c379';
-          statusIcon.title = `URL доступен (${response.status} ${response.statusText})`;
-        } else {
-          statusIcon.innerHTML = `<i class="fas fa-exclamation-circle"></i>`;
-          statusIcon.style.color = '#e06c75';
-          statusIcon.title = `Ошибка: ${response.status} ${response.statusText}`;
-        }
-      })
-      .catch(error => {
-        statusIcon.innerHTML = `<i class="fas fa-times-circle"></i>`;
-        statusIcon.style.color = '#e06c75';
-        statusIcon.title = `Ошибка: ${error.message}`;
-      });
-  }
-
-  /**
-   * Полная проверка URL вебхука с отображением результатов
-   */
-  testWebhookUrl(url) {
-    if (!url) {
-      alert('URL не указан');
-      return;
-    }
-
-    // Создаем модальное окно для отображения результатов
-    const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    modal.style.zIndex = '10000';
-    modal.style.display = 'flex';
-    modal.style.justifyContent = 'center';
-    modal.style.alignItems = 'center';
-
-    const modalContent = document.createElement('div');
-    modalContent.style.backgroundColor = '#282c34';
-    modalContent.style.color = '#abb2bf';
-    modalContent.style.padding = '20px';
-    modalContent.style.borderRadius = '5px';
-    modalContent.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
-    modalContent.style.width = '80%';
-    modalContent.style.maxWidth = '800px';
-    modalContent.style.maxHeight = '80vh';
-    modalContent.style.overflow = 'auto';
-
-    modalContent.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;">Проверка URL вебхука</h3>
-        <button id="close-webhook-test" style="background: none; border: none; color: #e06c75; font-size: 20px; cursor: pointer;">&times;</button>
-      </div>
-      <div>
-        <p>URL: <span style="color: #61afef;">${url}</span></p>
-        <div id="webhook-test-status" style="margin: 15px 0;">
-          <p style="display: flex; align-items: center;">
-            <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>
-            Отправка запроса...
-          </p>
-        </div>
-      </div>
-    `;
-
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-
-    // Обработчик для закрытия модального окна
-    document.getElementById('close-webhook-test').addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-
-    // Выполняем проверку URL
-    const startTime = performance.now();
-
-    fetch(url, { 
-      method: 'GET', 
-      mode: 'cors', 
-      headers: { 'Accept': 'application/json, text/plain, */*' }
-    })
-      .then(response => {
-        const endTime = performance.now();
-        const duration = (endTime - startTime).toFixed(2);
-
-        return response.text().then(text => {
-          return { 
-            status: response.status, 
-            statusText: response.statusText, 
-            headers: Object.fromEntries(response.headers.entries()),
-            body: text,
-            duration: duration
-          };
-        });
-      })
-      .then(result => {
-        const statusDiv = document.getElementById('webhook-test-status');
-
-        let formattedBody = result.body;
-
-        // Пытаемся форматировать JSON
+    
+    // Добавляем функцию тестирования вебхуков
+    const testWebhooksButton = document.createElement('button');
+    testWebhooksButton.innerText = 'Проверить вебхуки';
+    testWebhooksButton.style.backgroundColor = '#007bff';
+    testWebhooksButton.style.color = 'white';
+    testWebhooksButton.style.border = 'none';
+    testWebhooksButton.style.padding = '8px 15px';
+    testWebhooksButton.style.borderRadius = '4px';
+    testWebhooksButton.style.cursor = 'pointer';
+    testWebhooksButton.style.margin = '10px 0';
+    
+    testWebhooksButton.onclick = async () => {
+      if (!webhookUrls || webhookUrls.length === 0) {
+        this.logMessage('Нет доступных вебхуков для проверки', 'warning');
+        return;
+      }
+      
+      // Берем первые 3 вебхука для проверки
+      const webhooksToTest = webhookUrls.slice(0, 3);
+      this.logMessage(`Начинаем проверку ${webhooksToTest.length} вебхуков...`, 'info');
+      
+      for (let i = 0; i < webhooksToTest.length; i++) {
+        const url = webhooksToTest[i];
+        this.logMessage(`Проверка вебхука ${i+1}/${webhooksToTest.length}: ${url}`, 'info');
+        
         try {
-          const parsedBody = JSON.parse(result.body);
-          formattedBody = JSON.stringify(parsedBody, null, 2);
-        } catch (e) {
-          // Не JSON, пробуем обработать как HTML
-          if (result.body.trim().startsWith('<!DOCTYPE') || result.body.trim().startsWith('<html')) {
-            formattedBody = 'HTML-контент (слишком длинный для отображения)';
-            if (result.body.length < 5000) {
-              formattedBody = result.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            }
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/plain, text/markdown, text/html, application/json, */*',
+              'Cache-Control': 'no-cache'
+            },
+            mode: 'cors',
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            
+            this.logMessage(`Вебхук ${i+1} ответил успешно! Статус: ${response.status}, Content-Type: ${contentType}, Размер: ${text.length} байт`, 'success');
+          } else {
+            this.logMessage(`Вебхук ${i+1} вернул ошибку: HTTP ${response.status}`, 'error');
           }
+        } catch (error) {
+          this.logMessage(`Вебхук ${i+1} недоступен: ${error.message}`, 'error');
         }
-
-        let statusColor = '#e06c75'; // Красный для ошибок
-        let statusIcon = 'fa-times-circle';
-
-        if (result.status >= 200 && result.status < 300) {
-          statusColor = '#98c379'; // Зеленый для успеха
-          statusIcon = 'fa-check-circle';
-        } else if (result.status >= 300 && result.status < 400) {
-          statusColor = '#61afef'; // Синий для перенаправлений
-          statusIcon = 'fa-info-circle';
-        } else if (result.status >= 400 && result.status < 500) {
-          statusColor = '#e5c07b'; // Желтый для клиентских ошибок
-          statusIcon = 'fa-exclamation-circle';
-        }
-
-        statusDiv.innerHTML = `
-          <p style="display: flex; align-items: center; color: ${statusColor};">
-            <i class="fas ${statusIcon}" style="margin-right: 10px;"></i>
-            Статус: ${result.status} ${result.statusText} (${result.duration} мс)
-          </p>
-          <div style="margin-top: 15px;">
-            <h4 style="margin: 0 0 10px 0;">Заголовки ответа:</h4>
-            <pre style="margin: 0; background-color: #2c313a; padding: 10px; border-radius: 3px; overflow-x: auto;">${JSON.stringify(result.headers, null, 2)}</pre>
-          </div>
-          <div style="margin-top: 15px;">
-            <h4 style="margin: 0 0 10px 0;">Тело ответа:</h4>
-            <pre style="margin: 0; background-color: #2c313a; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 300px;">${formattedBody}</pre>
-          </div>
-        `;
-      })
-      .catch(error => {
-        const statusDiv = document.getElementById('webhook-test-status');
-
-        statusDiv.innerHTML = `
-          <p style="display: flex; align-items: center; color: #e06c75;">
-            <i class="fas fa-times-circle" style="margin-right: 10px;"></i>
-            Ошибка: ${error.message}
-          </p>
-          <div style="margin-top: 15px;">
-            <p>Возможные причины ошибки:</p>
-            <ul style="padding-left: 20px;">
-              <li>Неправильный URL или сервер недоступен</li>
-              <li>Проблемы с CORS (Cross-Origin Resource Sharing)</li>
-              <li>Сетевая ошибка или таймаут</li>
-              <li>Сервер не отвечает или вернул некорректный ответ</li>
-            </ul>
-          </div>
-        `;
+      }
+    };
+    
+    // Создаем сводную информацию
+    const summaryInfo = document.createElement('div');
+    summaryInfo.className = 'dev-summary-info';
+    summaryInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    summaryInfo.style.padding = '10px';
+    summaryInfo.style.borderRadius = '4px';
+    summaryInfo.style.marginBottom = '15px';
+    
+    // Добавляем кнопку тестирования вебхуков
+    summaryInfo.appendChild(testWebhooksButton);
+    
+    summaryInfo.innerHTML = `
+      <div style="font-weight: bold; color: #56b6c2; margin-bottom: 5px;">Сводная информация:</div>
+      <div><span style="color: #d19a66;">Всего курсов:</span> ${courseIds.length}</div>
+      <div><span style="color: #d19a66;">Всего уроков:</span> ${totalLessons}</div>
+      <div><span style="color: #d19a66;">Уроков с вебхуками:</span> ${totalWebhooks}</div>
+    `;
+    
+    // Добавляем список вебхуков, если они есть
+    if (webhookUrls.length > 0) {
+      let webhookList = `<div style="margin-top: 5px;"><span style="color: #d19a66;">Используемые URL вебхуков:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
+      
+      // Показываем только уникальные URL
+      const uniqueWebhooks = [...new Set(webhookUrls)];
+      
+      uniqueWebhooks.forEach(url => {
+        // Показываем, сколько раз используется каждый URL
+        const count = webhookUrls.filter(u => u === url).length;
+        webhookList += `<li style="color: #61afef; word-break: break-all;">${url} <span style="color: #98c379;">(используется ${count} раз)</span></li>`;
       });
+      
+      webhookList += `</ul>`;
+      summaryInfo.innerHTML += webhookList;
+    }
+    
+    // Получаем информацию о текущей синхронизации
+    const webhookSettingsStr = localStorage.getItem('webhookSettings');
+    if (webhookSettingsStr) {
+      try {
+        const webhookSettings = JSON.parse(webhookSettingsStr);
+        let settingsInfo = `<div style="margin-top: 10px;"><span style="color: #d19a66;">Настройки вебхуков:</span></div><ul style="margin-top: 2px; padding-left: 20px;">`;
+        
+        if (webhookSettings.importUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL импорта:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.importUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.exportUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL экспорта:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.exportUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.contentWebhookUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL контента:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.contentWebhookUrl}</span></li>`;
+        }
+        
+        if (webhookSettings.testWebhookUrl) {
+          settingsInfo += `<li><span style="color: #98c379;">URL тестов:</span> <span style="color: #61afef; word-break: break-all;">${webhookSettings.testWebhookUrl}</span></li>`;
+        }
+        
+        settingsInfo += `</ul>`;
+        summaryInfo.innerHTML += settingsInfo;
+      } catch (e) {
+        this.logMessage(`Ошибка при парсинге настроек вебхуков: ${e.message}`, 'error');
+      }
+    }
+    
+    // Показываем информацию о последнем бэкапе
+    const backupTimestamp = localStorage.getItem('coursesBackupTimestamp');
+    if (backupTimestamp) {
+      const date = new Date(backupTimestamp);
+      const formattedDate = date.toLocaleString();
+      summaryInfo.innerHTML += `<div style="margin-top: 5px;"><span style="color: #d19a66;">Последний бэкап:</span> ${formattedDate}</div>`;
+    }
+    
+    // Добавляем сводную информацию перед детальным отчетом
+    detailedReport.insertBefore(summaryInfo, detailedReport.firstChild);
+    
+    // Создаем лог-запись для этого отчета
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Подробный анализ данных курсов и вебхуков</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;">
+        ${detailedReport.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем наш отчет
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Автоматически прокручиваем до отчета
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Логируем в консоль, что отчет создан
+    console.log(`🔧 [DevMode] Подробный анализ данных курсов создан (${totalLessons} уроков, ${totalWebhooks} вебхуков)`);
   }
 }
 
-// Создаем и экспортируем экземпляр DevMode
+// Создаем глобальный экземпляр
 const devMode = new DevMode();
+
+// Инициализируем после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+  // Проверяем наличие Font Awesome
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const fontAwesome = document.createElement('link');
+    fontAwesome.rel = 'stylesheet';
+    fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css';
+    document.head.appendChild(fontAwesome);
+  }
+  
+  devMode.initialize();
+});
+
+// Экспортируем для использования в других модулях
+window.devMode = devMode;
 export default devMode;
