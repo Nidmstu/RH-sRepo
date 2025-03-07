@@ -3,50 +3,74 @@
  * Вспомогательная функция для создания кнопки управления интерфейсом
  */
 function createUIToggleButton() {
+  // Создаем контейнер для кнопки и подписи
+  const toggleContainer = document.createElement('div');
+  toggleContainer.id = 'ui-controls-container';
+  toggleContainer.className = 'ui-controls-container';
+  
+  // Создаем кнопку
   const toggleButton = document.createElement('button');
   toggleButton.id = 'ui-controls-toggle';
   toggleButton.className = 'ui-controls-toggle';
-  toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+  toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i> <span>Управление интерфейсом</span>';
   toggleButton.title = 'Скрыть/показать кнопки управления';
   
-  // Добавляем стили для кнопки
+  // Добавляем кнопку в контейнер
+  toggleContainer.appendChild(toggleButton);
+  
+  // Добавляем стили для кнопки и контейнера
   const style = document.createElement('style');
   style.textContent = `
+    .ui-controls-container {
+      display: inline-block;
+      margin-left: 10px;
+    }
+    
     .ui-controls-toggle {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: rgba(52, 152, 219, 0.7);
+      background-color: rgba(52, 152, 219, 0.8);
       color: white;
       border: none;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 9998;
-      font-size: 18px;
       transition: all 0.3s ease;
     }
     
+    .ui-controls-toggle i {
+      margin-right: 5px;
+    }
+    
     .ui-controls-toggle:hover {
-      background-color: rgba(52, 152, 219, 0.9);
-      transform: scale(1.05);
+      background-color: rgba(52, 152, 219, 1);
     }
     
     .ui-controls-toggle.controls-hidden {
-      background-color: rgba(231, 76, 60, 0.7);
+      background-color: rgba(231, 76, 60, 0.8);
     }
     
     .ui-controls-toggle.controls-hidden:hover {
-      background-color: rgba(231, 76, 60, 0.9);
+      background-color: rgba(231, 76, 60, 1);
     }
     
     .admin-toggle-hidden, .dev-mode-toggle-hidden {
       display: none !important;
+    }
+    
+    @media (max-width: 768px) {
+      .ui-controls-toggle span {
+        display: none;
+      }
+      
+      .ui-controls-toggle i {
+        margin-right: 0;
+      }
+      
+      .ui-controls-toggle {
+        padding: 8px;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -66,31 +90,44 @@ function createUIToggleButton() {
       devModeToggle.classList.toggle('dev-mode-toggle-hidden');
     }
     
-    // Меняем иконку на кнопке в зависимости от состояния
+    // Меняем иконку и текст на кнопке в зависимости от состояния
     if ((adminToggle && adminToggle.classList.contains('admin-toggle-hidden')) || 
         (devModeToggle && devModeToggle.classList.contains('dev-mode-toggle-hidden'))) {
-      toggleButton.innerHTML = '<i class="fas fa-eye"></i>';
+      toggleButton.innerHTML = '<i class="fas fa-eye"></i> <span>Показать управление</span>';
       toggleButton.classList.add('controls-hidden');
       toggleButton.title = 'Показать кнопки управления';
     } else {
-      toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+      toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i> <span>Скрыть управление</span>';
       toggleButton.classList.remove('controls-hidden');
       toggleButton.title = 'Скрыть кнопки управления';
     }
   });
   
-  return toggleButton;
+  return toggleContainer;
 }
 
 // Функция инициализации кнопки переключения после загрузки страницы
 function initUIToggleButton() {
+  // Добавляем кнопку в верхнюю панель рядом с кнопкой "К обучению"
+  const addButtonToHeader = () => {
+    // Ищем контейнер admin-access в верхней части страницы
+    const adminAccess = document.getElementById('admin-access');
+    if (adminAccess) {
+      // Вставляем нашу кнопку после кнопки "К обучению"
+      adminAccess.appendChild(createUIToggleButton());
+      console.log('Кнопка управления интерфейсом добавлена в верхнюю панель');
+    } else {
+      // Если не нашли нужный контейнер, добавляем в body как раньше
+      console.log('Не найден контейнер admin-access, добавляем кнопку в body');
+      document.body.appendChild(createUIToggleButton());
+    }
+  };
+  
   // Добавляем кнопку после полной загрузки документа
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    document.body.appendChild(createUIToggleButton());
+    addButtonToHeader();
   } else {
-    window.addEventListener('DOMContentLoaded', function() {
-      document.body.appendChild(createUIToggleButton());
-    });
+    window.addEventListener('DOMContentLoaded', addButtonToHeader);
   }
 }
 
