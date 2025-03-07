@@ -2019,7 +2019,15 @@ function showAudioForLesson(lesson) {
       
       // SoundCloud
       if (audioType === 'soundcloud') {
-        if (lesson.audioSource.trackUrl) {
+        if (lesson.audioSource.embedCode) {
+          // Если есть готовый код для вставки, используем его напрямую
+          embedContent = lesson.audioSource.embedCode;
+          console.log('Используется готовый embed-код для SoundCloud');
+        } else if (lesson.audioSource.embed) {
+          embedContent = lesson.audioSource.embed;
+          console.log('Используется код embed для SoundCloud');
+        } else if (lesson.audioSource.trackUrl) {
+          // Если есть только URL трека, формируем iframe
           embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" 
             src="${lesson.audioSource.trackUrl}"></iframe>
             <div style="font-size: 10px; color: #cccccc; margin-top: 5px; text-align: center;">
@@ -2027,10 +2035,7 @@ function showAudioForLesson(lesson) {
                 ${lesson.title || 'Prompt Engineering Audio'}
               </a>
             </div>`;
-        } else if (lesson.audioSource.embedCode) {
-          embedContent = lesson.audioSource.embedCode;
-        } else if (lesson.audioSource.embed) {
-          embedContent = lesson.audioSource.embed;
+          console.log('Сформирован iframe для SoundCloud по trackUrl');
         }
       }
       // Первый урок (специальный случай)
@@ -2042,15 +2047,33 @@ function showAudioForLesson(lesson) {
           <a href="https://soundcloud.com/content-remote-helpers" title="Content Remote Helpers" target="_blank" style="color: #cccccc; text-decoration: none;">Content Remote Helpers</a> · 
           <a href="https://soundcloud.com/content-remote-helpers/screen-recording-audio" title="First Lesson Audio" target="_blank" style="color: #cccccc; text-decoration: none;">First Lesson Audio</a>
         </div>`;
+        console.log('Используется предопределенный код для first-lesson');
       }
-      // Для Audiomack или другого произвольного embed-кода
-      else if (audioType === 'embed' || audioType === 'audiomack' || lesson.audioSource.embedCode || lesson.audioSource.embed) {
-        embedContent = lesson.audioSource.embedCode || lesson.audioSource.embed || '';
+      // Для любого типа с embed-кодом (Audiomack, Spotify и др.)
+      else if (lesson.audioSource.embedCode) {
+        embedContent = lesson.audioSource.embedCode;
+        console.log('Используется embedCode из источника аудио');
       }
-      // Для любого другого типа с URL трека
+      else if (lesson.audioSource.embed) {
+        embedContent = lesson.audioSource.embed;
+        console.log('Используется embed из источника аудио');
+      }
+      // Для любого URL типа с возможностью встраивания
       else if (lesson.audioSource.trackUrl) {
         embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" 
           src="${lesson.audioSource.trackUrl}"></iframe>`;
+        console.log('Создан универсальный iframe для trackUrl');
+      }
+      // Если есть только обычный URL (не для встраивания)
+      else if (lesson.audioSource.url) {
+        embedContent = `<audio controls style="width:100%; max-width:600px;">
+          <source src="${lesson.audioSource.url}" type="audio/mpeg">
+          Ваш браузер не поддерживает аудио элемент.
+        </audio>
+        <div style="font-size: 12px; margin-top: 5px;">
+          <a href="${lesson.audioSource.url}" target="_blank">Открыть аудио в новой вкладке</a>
+        </div>`;
+        console.log('Создан HTML5 audio элемент для URL');
       }
       
       // Проверяем, есть ли контент для отображения
@@ -2060,7 +2083,28 @@ function showAudioForLesson(lesson) {
         audioEmbed.classList.remove('hidden');
         console.log('Отображено аудио через универсальный контейнер для типа:', audioType);
       } else {
-        console.log('Нет данных для отображения аудио для типа:', audioType);
+        // Последняя попытка - просто вывести все данные audioSource как HTML, если там есть код для вставки
+        if (typeof lesson.audioSource === 'object') {
+          // Ищем любое свойство, которое может содержать HTML-код
+          const possibleEmbedProperties = ['html', 'code', 'player', 'iframe'];
+          for (const prop of possibleEmbedProperties) {
+            if (lesson.audioSource[prop] && typeof lesson.audioSource[prop] === 'string') {
+              embedContent = lesson.audioSource[prop];
+              audioEmbed.innerHTML = embedContent;
+              audioEmbed.classList.remove('hidden');
+              console.log(`Найден и использован HTML-код из свойства audioSource.${prop}`);
+              break;
+            }
+          }
+          
+          // Если всё ещё нет контента, но есть какие-то данные в audioSource,
+          // выводим отладочную информацию в консоль
+          if (!embedContent) {
+            console.log('Не удалось определить формат аудио для отображения. Данные audioSource:', lesson.audioSource);
+          }
+        } else {
+          console.log('Нет данных для отображения аудио для типа:', audioType);
+        }
       }
     } else {
       console.log('Не найден элемент audio-embed для отображения аудио');

@@ -363,13 +363,21 @@
     </div>
 
     <!-- Универсальный аудио-контейнер для всех типов аудио -->
-    <div id="audio-embed" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%;">
+    <div id="audio-embed" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%; display: flex; flex-direction: column; align-items: center;">
       <!-- Динамически заполняется из JS -->
     </div>
     
     <!-- Скрытые аудио-контейнеры для обратной совместимости -->
     <div id="audio-first-lesson" class="hidden"></div>
     <div id="audio-vocabulary" class="hidden"></div>
+    
+    <!-- Резервный аудио-контейнер для прямых URL -->
+    <div id="audio-fallback" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%;">
+      <audio controls style="width:100%; max-width:600px;">
+        <source src="" type="audio/mpeg" id="audio-fallback-source">
+        Ваш браузер не поддерживает аудио элемент.
+      </audio>
+    </div>
 
     <!-- Контейнер для Markdown контента -->
     <div id="markdown-content" class="markdown-content hidden"></div>
