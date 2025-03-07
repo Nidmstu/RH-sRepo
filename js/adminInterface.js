@@ -1084,6 +1084,14 @@ class AdminInterface {
         this.exportCourse();
       });
     }
+    
+    // Переключение видимости курса
+    const toggleVisibilityBtn = document.getElementById('admin-toggle-visibility');
+    if (toggleVisibilityBtn) {
+      toggleVisibilityBtn.addEventListener('click', () => {
+        this.toggleCourseVisibility();
+      });
+    }
 
     // Импорт курса
     const importCourseBtn = document.getElementById('admin-import-course');
@@ -1867,6 +1875,9 @@ class AdminInterface {
       // Устанавливаем статус скрытия курса
       const hiddenCheckbox = document.getElementById('admin-course-hidden');
       if (hiddenCheckbox) hiddenCheckbox.checked = course.hidden || false;
+      
+      // Обновляем состояние кнопки видимости курса
+      this.updateVisibilityButtonState();
 
       // Загружаем дни и специальные уроки
       this.loadDaysList();
@@ -2016,6 +2027,49 @@ class AdminInterface {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Переключить видимость курса
+   */
+  toggleCourseVisibility() {
+    if (!this.currentEditing.course) return;
+    
+    // Переключаем флаг hidden
+    this.currentEditing.course.hidden = !this.currentEditing.course.hidden;
+    
+    // Обновляем внешний вид кнопки
+    this.updateVisibilityButtonState();
+    
+    // Сохраняем изменения
+    this.saveCoursesToJSON();
+    
+    // Обновляем список курсов для отражения изменений
+    this.loadCoursesList();
+    
+    // Показываем сообщение пользователю
+    const status = this.currentEditing.course.hidden ? 'скрыт' : 'виден';
+    alert(`Курс теперь ${status} в списке курсов`);
+  }
+  
+  /**
+   * Обновить внешний вид кнопки видимости в зависимости от статуса курса
+   */
+  updateVisibilityButtonState() {
+    const toggleBtn = document.getElementById('admin-toggle-visibility');
+    if (!toggleBtn || !this.currentEditing.course) return;
+    
+    if (this.currentEditing.course.hidden) {
+      // Курс скрыт - показываем зеленую кнопку "Показать"
+      toggleBtn.textContent = 'Показать курс';
+      toggleBtn.classList.remove('admin-btn-danger');
+      toggleBtn.classList.add('admin-btn-success');
+    } else {
+      // Курс виден - показываем красную кнопку "Скрыть"
+      toggleBtn.textContent = 'Скрыть курс';
+      toggleBtn.classList.remove('admin-btn-success');
+      toggleBtn.classList.add('admin-btn-danger');
+    }
   }
 
   /**
