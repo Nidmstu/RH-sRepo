@@ -51,6 +51,7 @@ class DevMode {
         <div class="dev-panel-actions">
           <button id="dev-panel-analyze" title="Анализировать данные курсов"><i class="fas fa-chart-bar"></i></button>
           <button id="dev-panel-debug" title="Показать отладочную информацию"><i class="fas fa-bug"></i></button>
+          <button id="dev-panel-storage" title="LocalStorage менеджер"><i class="fas fa-database"></i></button>
           <button id="dev-panel-sync" title="Синхронизировать с облаком"><i class="fas fa-sync-alt"></i></button>
           <button id="dev-panel-clear" title="Очистить логи"><i class="fas fa-trash"></i></button>
           <button id="dev-panel-minimize" title="Свернуть панель"><i class="fas fa-minus"></i></button>
@@ -93,6 +94,11 @@ class DevMode {
     // Добавляем обработчик для кнопки отладки
     document.getElementById('dev-panel-debug').addEventListener('click', () => {
       this.showDebugInfo();
+    });
+    
+    // Добавляем обработчик для кнопки LocalStorage
+    document.getElementById('dev-panel-storage').addEventListener('click', () => {
+      this.showLocalStorageManager();
     });
   }
   
@@ -1197,6 +1203,501 @@ class DevMode {
     }
   }
 
+  /**
+   * Отображение менеджера LocalStorage
+   */
+  showLocalStorageManager() {
+    // Создаем контейнер для отчета
+    const storageReport = document.createElement('div');
+    storageReport.className = 'dev-storage-report';
+    
+    // Получаем все ключи из localStorage
+    const keys = Object.keys(localStorage);
+    const totalSize = this.calculateLocalStorageSize();
+    
+    // Создаем сводную информацию
+    const summaryInfo = document.createElement('div');
+    summaryInfo.className = 'dev-summary-info';
+    summaryInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    summaryInfo.style.padding = '10px';
+    summaryInfo.style.borderRadius = '4px';
+    summaryInfo.style.marginBottom = '15px';
+    
+    // Добавляем кнопки управления
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.marginBottom = '10px';
+    buttonsContainer.style.display = 'flex';
+    buttonsContainer.style.gap = '10px';
+    
+    // Кнопка очистки всего localStorage
+    const clearAllButton = document.createElement('button');
+    clearAllButton.innerText = 'Очистить весь LocalStorage';
+    clearAllButton.style.backgroundColor = '#e06c75';
+    clearAllButton.style.color = 'white';
+    clearAllButton.style.border = 'none';
+    clearAllButton.style.padding = '8px 15px';
+    clearAllButton.style.borderRadius = '4px';
+    clearAllButton.style.cursor = 'pointer';
+    
+    clearAllButton.onclick = () => {
+      if (confirm('Вы уверены, что хотите очистить весь LocalStorage? Это действие нельзя отменить.')) {
+        localStorage.clear();
+        this.logMessage('LocalStorage полностью очищен', 'success');
+        this.showLocalStorageManager(); // Обновляем отображение
+      }
+    };
+    
+    // Кнопка обновления отображения
+    const refreshButton = document.createElement('button');
+    refreshButton.innerText = 'Обновить';
+    refreshButton.style.backgroundColor = '#61afef';
+    refreshButton.style.color = 'white';
+    refreshButton.style.border = 'none';
+    refreshButton.style.padding = '8px 15px';
+    refreshButton.style.borderRadius = '4px';
+    refreshButton.style.cursor = 'pointer';
+    
+    refreshButton.onclick = () => {
+      this.showLocalStorageManager();
+    };
+    
+    // Добавляем кнопки в контейнер
+    buttonsContainer.appendChild(refreshButton);
+    buttonsContainer.appendChild(clearAllButton);
+    summaryInfo.appendChild(buttonsContainer);
+    
+    // Добавляем сводную информацию
+    summaryInfo.innerHTML += `
+      <div style="font-weight: bold; color: #56b6c2; margin-bottom: 5px;">Информация о LocalStorage:</div>
+      <div><span style="color: #d19a66;">Количество элементов:</span> ${keys.length}</div>
+      <div><span style="color: #d19a66;">Общий размер:</span> ${totalSize} KB</div>
+      <div><span style="color: #d19a66;">Использовано:</span> ${((totalSize / 5120) * 100).toFixed(2)}% (приблизительно)</div>
+    `;
+    
+    // Добавляем сводную информацию в отчет
+    storageReport.appendChild(summaryInfo);
+    
+    // Создаем таблицу для отображения данных
+    const table = document.createElement('table');
+    table.className = 'dev-storage-table';
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.marginBottom = '15px';
+    table.style.fontSize = '12px';
+    
+    // Создаем заголовок таблицы
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr style="background-color: #1e2127; color: #ddd;">
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #444;">Ключ</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #444;">Тип</th>
+        <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">Размер</th>
+        <th style="padding: 8px; text-align: center; border-bottom: 1px solid #444;">Действия</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    
+    // Создаем тело таблицы
+    const tbody = document.createElement('tbody');
+    
+    // Сортируем ключи по размеру (по убыванию)
+    keys.sort((a, b) => {
+      const sizeA = localStorage.getItem(a).length;
+      const sizeB = localStorage.getItem(b).length;
+      return sizeB - sizeA;
+    });
+    
+    // Добавляем строки для каждого элемента localStorage
+    keys.forEach(key => {
+      const value = localStorage.getItem(key);
+      const size = value.length;
+      const sizeKB = (size / 1024).toFixed(2);
+      
+      // Определяем тип данных
+      let type = 'Текст';
+      let isJSON = false;
+      try {
+        const parsed = JSON.parse(value);
+        type = typeof parsed === 'object' ? 'JSON' : typeof parsed;
+        isJSON = typeof parsed === 'object';
+      } catch (e) {
+        // Это не JSON, оставляем тип "Текст"
+      }
+      
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+      
+      tr.innerHTML = `
+        <td style="padding: 8px;">${key}</td>
+        <td style="padding: 8px; color: ${type === 'JSON' ? '#98c379' : '#e5c07b'};">${type}</td>
+        <td style="padding: 8px; text-align: right;">${sizeKB} KB</td>
+        <td style="padding: 8px; text-align: center;">
+          <button class="dev-storage-view-btn" data-key="${key}" style="background-color: #56b6c2; color: white; border: none; border-radius: 3px; padding: 3px 8px; margin-right: 5px; cursor: pointer;">Просмотр</button>
+          <button class="dev-storage-edit-btn" data-key="${key}" data-is-json="${isJSON}" style="background-color: #98c379; color: white; border: none; border-radius: 3px; padding: 3px 8px; margin-right: 5px; cursor: pointer;">Редактировать</button>
+          <button class="dev-storage-delete-btn" data-key="${key}" style="background-color: #e06c75; color: white; border: none; border-radius: 3px; padding: 3px 8px; cursor: pointer;">Удалить</button>
+        </td>
+      `;
+      
+      tbody.appendChild(tr);
+    });
+    
+    table.appendChild(tbody);
+    storageReport.appendChild(table);
+    
+    // Создаем лог-запись для отчета
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Менеджер LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;">
+        ${storageReport.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем наш отчет
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчики для кнопок
+      this.setupStorageEventHandlers();
+      
+      // Автоматически прокручиваем до отчета
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    this.logMessage('Менеджер LocalStorage открыт', 'info');
+  }
+  
+  /**
+   * Настройка обработчиков событий для кнопок в менеджере LocalStorage
+   */
+  setupStorageEventHandlers() {
+    // Обработчики для кнопки "Просмотр"
+    document.querySelectorAll('.dev-storage-view-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        const value = localStorage.getItem(key);
+        
+        this.showStorageItemDetails(key, value);
+      });
+    });
+    
+    // Обработчики для кнопки "Редактировать"
+    document.querySelectorAll('.dev-storage-edit-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        const isJSON = e.target.getAttribute('data-is-json') === 'true';
+        const value = localStorage.getItem(key);
+        
+        this.editStorageItem(key, value, isJSON);
+      });
+    });
+    
+    // Обработчики для кнопки "Удалить"
+    document.querySelectorAll('.dev-storage-delete-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-key');
+        
+        if (confirm(`Вы уверены, что хотите удалить элемент "${key}" из LocalStorage?`)) {
+          localStorage.removeItem(key);
+          this.logMessage(`Элемент "${key}" удален из LocalStorage`, 'success');
+          this.showLocalStorageManager(); // Обновляем отображение
+        }
+      });
+    });
+  }
+  
+  /**
+   * Отображение детальной информации об элементе LocalStorage
+   */
+  showStorageItemDetails(key, value) {
+    // Создаем контейнер для просмотра
+    const viewContainer = document.createElement('div');
+    viewContainer.className = 'dev-storage-view-container';
+    viewContainer.style.padding = '10px';
+    viewContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    viewContainer.style.borderRadius = '4px';
+    viewContainer.style.marginTop = '10px';
+    
+    // Добавляем заголовок
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '10px';
+    
+    header.innerHTML = `
+      <h3 style="margin: 0; color: #56b6c2;">Просмотр элемента: ${key}</h3>
+      <button id="close-storage-view" style="background: none; border: none; color: #aaa; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    viewContainer.appendChild(header);
+    
+    // Определяем, является ли значение JSON
+    let formattedValue = value;
+    try {
+      const parsedValue = JSON.parse(value);
+      formattedValue = this.formatJson(parsedValue);
+    } catch (e) {
+      formattedValue = `<pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${this.escapeHtml(value)}</pre>`;
+    }
+    
+    // Добавляем содержимое
+    const content = document.createElement('div');
+    content.style.maxHeight = '400px';
+    content.style.overflow = 'auto';
+    content.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    content.style.padding = '10px';
+    content.style.borderRadius = '3px';
+    content.innerHTML = formattedValue;
+    
+    viewContainer.appendChild(content);
+    
+    // Добавляем кнопки действий
+    const actions = document.createElement('div');
+    actions.style.marginTop = '10px';
+    actions.style.display = 'flex';
+    actions.style.gap = '10px';
+    
+    const copyButton = document.createElement('button');
+    copyButton.innerText = 'Копировать';
+    copyButton.style.backgroundColor = '#61afef';
+    copyButton.style.color = 'white';
+    copyButton.style.border = 'none';
+    copyButton.style.padding = '5px 10px';
+    copyButton.style.borderRadius = '3px';
+    copyButton.style.cursor = 'pointer';
+    
+    copyButton.addEventListener('click', () => {
+      navigator.clipboard.writeText(value).then(() => {
+        this.logMessage(`Значение ключа "${key}" скопировано в буфер обмена`, 'success');
+      }).catch(err => {
+        this.logMessage(`Ошибка при копировании: ${err}`, 'error');
+      });
+    });
+    
+    actions.appendChild(copyButton);
+    viewContainer.appendChild(actions);
+    
+    // Создаем лог-запись для просмотра
+    const logEntry = document.createElement('div');
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Просмотр элемента LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;" id="storage-view-container">
+        ${viewContainer.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем просмотр
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчик для кнопки закрытия
+      document.getElementById('close-storage-view').addEventListener('click', () => {
+        logEntry.remove();
+      });
+      
+      // Автоматически прокручиваем до просмотра
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+  
+  /**
+   * Редактирование элемента LocalStorage
+   */
+  editStorageItem(key, value, isJSON) {
+    // Создаем контейнер для редактирования
+    const editContainer = document.createElement('div');
+    editContainer.className = 'dev-storage-edit-container';
+    editContainer.style.padding = '10px';
+    editContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    editContainer.style.borderRadius = '4px';
+    editContainer.style.marginTop = '10px';
+    
+    // Добавляем заголовок
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '10px';
+    
+    header.innerHTML = `
+      <h3 style="margin: 0; color: #98c379;">Редактирование элемента: ${key}</h3>
+      <button id="close-storage-edit" style="background: none; border: none; color: #aaa; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    editContainer.appendChild(header);
+    
+    // Если это JSON, попытаемся отформатировать его красиво
+    let formattedValue = value;
+    if (isJSON) {
+      try {
+        const parsedValue = JSON.parse(value);
+        formattedValue = JSON.stringify(parsedValue, null, 2);
+      } catch (e) {
+        // В случае ошибки оставляем как есть
+      }
+    }
+    
+    // Добавляем текстовое поле для редактирования
+    const textarea = document.createElement('textarea');
+    textarea.id = 'storage-edit-textarea';
+    textarea.style.width = '100%';
+    textarea.style.height = '300px';
+    textarea.style.backgroundColor = 'rgba(30, 33, 39, 0.9)';
+    textarea.style.color = '#eee';
+    textarea.style.border = '1px solid #444';
+    textarea.style.borderRadius = '3px';
+    textarea.style.padding = '10px';
+    textarea.style.fontFamily = 'Consolas, Monaco, monospace';
+    textarea.style.fontSize = '12px';
+    textarea.value = formattedValue;
+    
+    editContainer.appendChild(textarea);
+    
+    // Добавляем кнопки действий
+    const actions = document.createElement('div');
+    actions.style.marginTop = '10px';
+    actions.style.display = 'flex';
+    actions.style.gap = '10px';
+    
+    const saveButton = document.createElement('button');
+    saveButton.innerText = 'Сохранить';
+    saveButton.style.backgroundColor = '#98c379';
+    saveButton.style.color = 'white';
+    saveButton.style.border = 'none';
+    saveButton.style.padding = '5px 10px';
+    saveButton.style.borderRadius = '3px';
+    saveButton.style.cursor = 'pointer';
+    
+    const formatButton = document.createElement('button');
+    formatButton.innerText = 'Форматировать JSON';
+    formatButton.style.backgroundColor = '#61afef';
+    formatButton.style.color = 'white';
+    formatButton.style.border = 'none';
+    formatButton.style.padding = '5px 10px';
+    formatButton.style.borderRadius = '3px';
+    formatButton.style.cursor = 'pointer';
+    
+    // Добавляем обработчик для кнопки форматирования
+    formatButton.addEventListener('click', () => {
+      try {
+        const parsedValue = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(parsedValue, null, 2);
+        this.logMessage('JSON успешно отформатирован', 'success');
+      } catch (e) {
+        this.logMessage(`Ошибка форматирования: ${e.message}`, 'error');
+      }
+    });
+    
+    // Добавляем обработчик для кнопки сохранения
+    saveButton.addEventListener('click', () => {
+      try {
+        // Если это JSON, проверяем валидность
+        if (isJSON) {
+          JSON.parse(textarea.value);
+        }
+        
+        // Сохраняем значение
+        localStorage.setItem(key, textarea.value);
+        this.logMessage(`Элемент "${key}" успешно обновлен`, 'success');
+        
+        // Обновляем отображение
+        document.getElementById('storage-edit-entry')?.remove();
+        this.showLocalStorageManager();
+      } catch (e) {
+        this.logMessage(`Ошибка сохранения: ${e.message}`, 'error');
+      }
+    });
+    
+    // Добавляем кнопки в зависимости от типа данных
+    if (isJSON) {
+      actions.appendChild(formatButton);
+    }
+    actions.appendChild(saveButton);
+    
+    editContainer.appendChild(actions);
+    
+    // Создаем лог-запись для редактирования
+    const logEntry = document.createElement('div');
+    logEntry.id = 'storage-edit-entry';
+    logEntry.className = 'dev-log-entry';
+    logEntry.style.padding = '10px';
+    
+    const timestamp = new Date().toLocaleTimeString();
+    
+    logEntry.innerHTML = `
+      <div class="dev-log-entry-header">
+        <span class="dev-log-message info">Редактирование элемента LocalStorage</span>
+        <span class="dev-log-timestamp">${timestamp}</span>
+      </div>
+      <div style="margin-top: 10px;" id="storage-edit-container">
+        ${editContainer.outerHTML}
+      </div>
+    `;
+    
+    // Получаем контейнер логов и добавляем редактор
+    const logsContainer = document.getElementById('dev-panel-logs');
+    if (logsContainer) {
+      logsContainer.prepend(logEntry);
+      
+      // Добавляем обработчик для кнопки закрытия
+      document.getElementById('close-storage-edit').addEventListener('click', () => {
+        logEntry.remove();
+      });
+      
+      // Автоматически прокручиваем до редактора
+      logEntry.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+  
+  /**
+   * Рассчитывает общий размер данных в localStorage в килобайтах
+   */
+  calculateLocalStorageSize() {
+    let total = 0;
+    
+    Object.keys(localStorage).forEach(key => {
+      const value = localStorage.getItem(key);
+      total += (key.length + value.length) * 2; // UTF-16 = 2 байта на символ
+    });
+    
+    return (total / 1024).toFixed(2); // Конвертируем в килобайты
+  }
+  
+  /**
+   * Экранирует HTML символы
+   */
+  escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  
   /**
    * Анализ и вывод подробной информации о курсах, уроках и вебхуках
    */
