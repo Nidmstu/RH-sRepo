@@ -1,0 +1,882 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Trigger-Based AI Automations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --deep-blue: #081E2F;
+      --primary-yellow: #FCB305;
+      --red: #D32F2F;
+      --red-hover: #C62828;
+      --green: #2E7D32;
+      --green-hover: #1B5E20;
+      --blue: #197502;
+      --blue-dark: #1555C0;
+      --blue-light: #4245F5;
+    }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: #F8F9FA;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+    #titlePage {
+      text-align: center;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #titlePage h1 {
+      font-size: 28px;
+      color: var(--deep-blue);
+      margin-bottom: 1rem;
+    }
+    .quiz-info {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(8, 30, 47, 0.1);
+      margin: 1rem auto;
+      max-width: 500px;
+    }
+    .info-item {
+      font-size: 15px;
+      color: #4A4A4A;
+      margin: 0.75rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #timer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--green);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(46, 125, 50, 0.2);
+    }
+    .hidden {
+      display: none !important;
+      visibility: hidden;
+    }
+
+    /* Анимация для титульной страницы */
+    @keyframes fadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(1.05); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .fade-out {
+      animation: fadeOut 0.6s ease forwards;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease forwards;
+    }
+    .question {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+      transition: all 0.3s ease;
+    }
+    .question h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--deep-blue);
+      margin: 0 0 1rem 0;
+    }
+    label {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #4A4A4A;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    label:hover {
+      background: rgba(25, 118, 210, 0.04);
+    }
+    /* Radio buttons (single-answer) */
+    input[type="radio"] {
+      margin-right: 0.75rem;
+      accent-color: var(--green);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+    }
+    /* Checkboxes (multi-answer) */
+    input[type="checkbox"] {
+      margin-right: 0.75rem;
+      accent-color: var(--green);
+    }
+    input[type="text"],
+    input[type="number"] {
+      padding: 0.5rem;
+      border: 1px solid #DEE2E6;
+      border-radius: 4px;
+      font-size: 16px; /* Minimum font size to prevent zoom on iOS */
+      width: 100%;
+      box-sizing: border-box;
+      -webkit-appearance: none; /* Prevents iOS styling */
+      appearance: none;
+    }
+    /* Replace read-only profession input with dropdown */
+    select[name="profession"] {
+      padding: 0.5rem;
+      border: 1px solid #DEE2E6;
+      border-radius: 4px;
+      font-size: 16px; /* Minimum font size to prevent zoom on iOS */
+      width: 100%;
+      box-sizing: border-box;
+      background: #fff;
+      color: #4A4A4A;
+      -webkit-appearance: none; /* Better styling on iOS */
+      appearance: none;
+    }
+    button {
+      background: var(--green);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: block;
+      margin: 1rem auto 0;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: var(--green-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    #result {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 2rem;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+    }
+    .correct {
+      border-left: 4px solid var(--green);
+      background: #F0F9FF;
+    }
+    .incorrect {
+      border-left: 4px solid var(--red);
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      .question {
+        padding: 1rem;
+      }
+      button {
+        width: 100%;
+        padding: 14px 20px;
+      }
+      #timer {
+        top: 10px;
+        right: 10px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Title Page -->
+  <div id="titlePage">
+    <h1>🤖 ✨ Trigger-Based AI Automations</h1>
+    <div class="quiz-info">
+      <div class="info-item">
+        <span>Questions:</span>
+        <strong>15</strong>
+      </div>
+      <div class="info-item">
+        <span>Time Limit:</span>
+        <strong>5 minutes</strong>
+      </div>
+      <div class="info-item">
+        <span>Passing Score:</span>
+        <strong>80%</strong>
+      </div>
+      <div class="info-item" style="color: var(--green); font-weight: bold; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span>Good news: 😁</span>
+        <strong style="text-align: right; max-width: 70%;">You can try this exam multiple times, no need to pass on your first attempt!</strong>
+      </div>
+      <div class="info-item" style="color: var(--red); font-weight: bold; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span>Bad news: 😥</span>
+        <strong style="text-align: right; max-width: 70%;">You must enter your full name (first and last name) before submitting</strong>
+      </div>
+      <button id="startExamBtn" onclick="startQuiz()">Start Exam</button>
+    </div>
+  </div>
+
+  <!-- Quiz Container -->
+  <div id="quizContainer" class="hidden">
+    <div id="timer">00:00</div>
+    <h1>Trigger-Based AI Automations</h1>
+    <form id="examForm">
+      <!-- User Data Block (not scored) -->
+      <div class="question" data-points="0">
+        <h3>Enter Your Information</h3>
+        <label>
+          Your Full Name (First and Last Name): (required)
+          <input type="text" name="fullName" placeholder="e.g., John Doe" required pattern="^\s*[A-Za-zА-Яа-яЁё]+\s+[A-Za-zА-Яа-яЁё]+\s*$" title="Please enter both your first and last name">
+        </label>
+        <label>
+          Your Profession:
+          <select name="profession">
+            <option value="3d designer">3d designer</option>
+            <option value="account manager">account manager</option>
+            <option value="affiliate manager">affiliate manager</option>
+            <option value="analyst">analyst</option>
+            <option value="animator">animator</option>
+            <option value="back end developer">back end developer</option>
+            <option value="chat operator">chat operator</option>
+            <option value="content manager">content manager</option>
+            <option value="copywriter">copywriter</option>
+            <option value="email marketer">email marketer</option>
+            <option value="event manager">event manager</option>
+            <option value="financial manager">financial manager</option>
+            <option value="front end developer">front end developer</option>
+            <option value="full stack developer">full stack developer</option>
+            <option value="graphic designer">graphic designer</option>
+            <option value="hr manager">hr manager</option>
+            <option value="illustrator">illustrator</option>
+            <option value="influencer manager">influencer manager</option>
+            <option value="interior designer">interior designer</option>
+            <option value="investment manager">investment manager</option>
+            <option value="lead generator">lead generator</option>
+            <option value="linkbuilder">linkbuilder</option>
+            <option value="media buyer">media buyer</option>
+            <option value="mobile developer">mobile developer</option>
+            <option value="mobile video editor">mobile video editor</option>
+            <option value="motion designer">motion designer</option>
+            <option value="personal assistant">personal assistant</option>
+            <option value="ppc specialist">ppc specialist</option>
+            <option value="pr manager">pr manager</option>
+            <option value="project manager">project manager</option>
+            <option value="proofreader">proofreader</option>
+            <option value="qa">qa</option>
+            <option value="recruiter">recruiter</option>
+            <option value="sales manager">sales manager</option>
+            <option value="seo manager">seo manager</option>
+            <option value="social media manager">social media manager</option>
+            <option value="system administrator">system administrator</option>
+            <option value="targetologist">targetologist</option>
+            <option value="tourism manager">tourism manager</option>
+            <option value="ui/ux designer">ui/ux designer</option>
+            <option value="video editor">video editor</option>
+            <option value="web designer">web designer</option>
+            <option value="wordpress designer">wordpress designer</option>
+          </select>
+        </label>
+        <label>
+          Your Recruiter:
+          <select name="recruiter" style="padding: 10px; border-radius: 6px; border: 1px solid #DEE2E6; background-color: #fff; color: #4A4A4A; font-size: 15px; width: 100%; box-sizing: border-box;">
+            <option value="Anastasia Fadeeva">Anastasia Fadeeva</option>
+            <option value="Elena Ermakova">Elena Ermakova</option>
+            <option value="Anna Aleksandrova">Anna Aleksandrova</option>
+            <option value="Sabina Gasanova">Sabina Gasanova</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- New Quiz Questions -->
+
+      <!-- Question 1 -->
+      <div class="question" data-points="2">
+        <h3>1. How can AI automation improve sales processes?</h3>
+        <label><input type="radio" name="q1" value="A" data-correct="true"> A) By automatically qualifying leads and sending follow-up emails</label>
+        <label><input type="radio" name="q1" value="B"> B) By replacing all sales representatives</label>
+        <label><input type="radio" name="q1" value="C"> C) By manually tracking customer interactions</label>
+        <label><input type="radio" name="q1" value="D"> D) By making cold calls</label>
+      </div>
+
+      <!-- Question 2 -->
+      <div class="question" data-points="2">
+        <h3>2. Which AI automation is useful for HR departments?</h3>
+        <label><input type="radio" name="q2" value="A" data-correct="true"> A) Automating candidate screening and interview scheduling</label>
+        <label><input type="radio" name="q2" value="B"> B) Manually reviewing every resume</label>
+        <label><input type="radio" name="q2" value="C"> C) Only using AI for payroll processing</label>
+        <label><input type="radio" name="q2" value="D"> D) Eliminating HR professionals from recruitment</label>
+      </div>
+
+      <!-- Question 3 -->
+      <div class="question" data-points="2">
+        <h3>3. How does AI automation support lead generation?</h3>
+        <label><input type="radio" name="q3" value="A"> A) By requiring manual lead scoring</label>
+        <label><input type="radio" name="q3" value="B" data-correct="true"> B) By automatically identifying, scoring, and nurturing leads</label>
+        <label><input type="radio" name="q3" value="C"> C) By relying only on cold outreach</label>
+        <label><input type="radio" name="q3" value="D"> D) By limiting the number of potential leads</label>
+      </div>
+
+      <!-- Question 4 -->
+      <div class="question" data-points="2">
+        <h3>4. What is an AI-powered trigger commonly used in design workflows?</h3>
+        <label><input type="radio" name="q4" value="A"> A) Manually adjusting images in Photoshop</label>
+        <label><input type="radio" name="q4" value="B" data-correct="true"> B) Automatically generating design variations based on user input</label>
+        <label><input type="radio" name="q4" value="C"> C) Manually exporting files</label>
+        <label><input type="radio" name="q4" value="D"> D) Using only static templates</label>
+      </div>
+
+      <!-- Question 5 -->
+      <div class="question" data-points="2">
+        <h3>5. Which AI automation improves marketing campaigns?</h3>
+        <label><input type="radio" name="q5" value="A" data-correct="true"> A) AI-powered ad optimization and personalized content generation</label>
+        <label><input type="radio" name="q5" value="B"> B) Sending the same marketing email to all customers</label>
+        <label><input type="radio" name="q5" value="C"> C) Manually analyzing customer behavior</label>
+        <label><input type="radio" name="q5" value="D"> D) Running ads without tracking performance</label>
+      </div>
+
+      <!-- Question 6 -->
+      <div class="question" data-points="2">
+        <h3>6. Which AI automation is commonly used for social media marketing?</h3>
+        <label><input type="radio" name="q6" value="A"> A) Manually posting content every day</label>
+        <label><input type="radio" name="q6" value="B" data-correct="true"> B) Automatically scheduling posts and generating captions with AI</label>
+        <label><input type="radio" name="q6" value="C"> C) Avoiding social media automation</label>
+        <label><input type="radio" name="q6" value="D"> D) Responding to all comments manually</label>
+      </div>
+
+      <!-- Question 7 -->
+      <div class="question" data-points="2">
+        <h3>7. What is Make.com used for in AI automations?</h3>
+        <label><input type="radio" name="q7" value="A" data-correct="true"> A) Connecting apps and automating workflows with no-code triggers</label>
+        <label><input type="radio" name="q7" value="B"> B) Designing websites manually</label>
+        <label><input type="radio" name="q7" value="C"> C) Running AI models locally</label>
+        <label><input type="radio" name="q7" value="D"> D) Replacing all marketing tools</label>
+      </div>
+
+      <!-- Question 8 -->
+      <div class="question" data-points="2">
+        <h3>8. What is a key feature of n8n in automation?</h3>
+        <label><input type="radio" name="q8" value="A"> A) Only working with pre-built templates</label>
+        <label><input type="radio" name="q8" value="B" data-correct="true"> B) Providing customizable workflow automation with AI integrations</label>
+        <label><input type="radio" name="q8" value="C"> C) Requiring manual execution for every workflow</label>
+        <label><input type="radio" name="q8" value="D"> D) Running only simple automation tasks</label>
+      </div>
+
+      <!-- Question 9 -->
+      <div class="question" data-points="2">
+        <h3>9. How does Relevance AI help businesses?</h3>
+        <label><input type="radio" name="q9" value="A" data-correct="true"> A) By using AI to extract insights and automate decision-making</label>
+        <label><input type="radio" name="q9" value="B"> B) By requiring manual data entry</label>
+        <label><input type="radio" name="q9" value="C"> C) By only offering chatbot services</label>
+        <label><input type="radio" name="q9" value="D"> D) By limiting automation to HR workflows</label>
+      </div>
+
+      <!-- Question 10 -->
+      <div class="question" data-points="2">
+        <h3>10. What is an API integration in AI automation?</h3>
+        <label><input type="radio" name="q10" value="A" data-correct="true"> A) A way to connect AI tools with other applications for seamless workflows</label>
+        <label><input type="radio" name="q10" value="B"> B) A manual method for exporting data</label>
+        <label><input type="radio" name="q10" value="C"> C) A tool for designing images</label>
+        <label><input type="radio" name="q10" value="D"> D) A static software configuration</label>
+      </div>
+
+      <!-- Question 11 -->
+      <div class="question" data-points="2">
+        <h3>11. Which of the following is an example of an API-based automation?</h3>
+        <label><input type="radio" name="q11" value="A"> A) Manually tracking sales performance</label>
+        <label><input type="radio" name="q11" value="B" data-correct="true"> B) Automatically updating CRM records when a new lead is generated</label>
+        <label><input type="radio" name="q11" value="C"> C) Exporting files manually from one system to another</label>
+        <label><input type="radio" name="q11" value="D"> D) Sending individual emails manually</label>
+      </div>
+
+      <!-- Question 12 -->
+      <div class="question" data-points="2">
+        <h3>12. How can AI-driven triggers optimize customer support?</h3>
+        <label><input type="radio" name="q12" value="A"> A) By manually responding to each customer inquiry</label>
+        <label><input type="radio" name="q12" value="B" data-correct="true"> B) By using chatbots that trigger responses based on customer queries</label>
+        <label><input type="radio" name="q12" value="C"> C) By removing live chat support</label>
+        <label><input type="radio" name="q12" value="D"> D) By sending the same response to all customers</label>
+      </div>
+
+      <!-- Question 13 -->
+      <div class="question" data-points="2">
+        <h3>13. Which trigger tool is best for automating e-commerce workflows?</h3>
+        <label><input type="radio" name="q13" value="A"> A) Canva</label>
+        <label><input type="radio" name="q13" value="B" data-correct="true"> B) Make.com</label>
+        <label><input type="radio" name="q13" value="C"> C) Microsoft Paint</label>
+        <label><input type="radio" name="q13" value="D"> D) Google Docs</label>
+      </div>
+
+      <!-- Question 14 -->
+      <div class="question" data-points="2">
+        <h3>14. What type of business processes benefit most from trigger-based AI automations?</h3>
+        <label><input type="radio" name="q14" value="A"> A) Tasks that require constant manual supervision</label>
+        <label><input type="radio" name="q14" value="B" data-correct="true"> B) Repetitive and data-driven workflows</label>
+        <label><input type="radio" name="q14" value="C"> C) Creative brainstorming sessions</label>
+        <label><input type="radio" name="q14" value="D"> D) One-time projects with no automation needs</label>
+      </div>
+
+      <!-- Question 15 -->
+      <div class="question" data-points="2">
+        <h3>15. Why is trigger-based AI automation valuable for businesses?</h3>
+        <label><input type="radio" name="q15" value="A"> A) It replaces human employees entirely</label>
+        <label><input type="radio" name="q15" value="B" data-correct="true"> B) It improves efficiency by automating repetitive tasks</label>
+        <label><input type="radio" name="q15" value="C"> C) It increases the complexity of workflows</label>
+        <label><input type="radio" name="q15" value="D"> D) It only works for large corporations</label>
+      </div>
+
+      <button id="submitBtn" type="button" onclick="calculateScore()">Submit Exam</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // Fisher–Yates shuffle function
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Randomize answer labels (excluding the user data block)
+    function randomizeAnswers() {
+      const questions = document.querySelectorAll('.question[data-points]:not([data-points="0"])');
+      questions.forEach(question => {
+        const labels = Array.from(question.querySelectorAll('label'));
+        const shuffled = shuffle(labels);
+        shuffled.forEach(label => label.parentNode.removeChild(label));
+        const heading = question.querySelector('h3');
+        shuffled.forEach(label => heading.parentNode.appendChild(label));
+      });
+    }
+
+    let timer;
+    let seconds = 0;
+    const timeLimit = 300; // 5 minutes
+    const examName = "Trigger-Based AI Automations";
+
+    function startQuiz() {
+      const titlePage = document.getElementById('titlePage');
+      const quizContainer = document.getElementById('quizContainer');
+
+      if (titlePage && quizContainer) {
+        // Добавляем анимацию исчезновения
+        titlePage.classList.add('fade-out');
+
+        // После завершения анимации скрываем титульную страницу и показываем экзамен
+        setTimeout(() => {
+          titlePage.style.display = 'none'; // Полностью удаляем из потока
+          titlePage.classList.add('hidden');
+          quizContainer.classList.remove('hidden');
+          // Добавляем анимацию появления для экзамена
+          quizContainer.classList.add('fade-in');
+          quizContainer.style.display = 'block'; // Уверены, что контейнер будет отображен
+          window.scrollTo(0, 0);
+          randomizeAnswers();
+          startTimer();
+        }, 500); // Ждем почти до конца анимации (500мс)
+      } else {
+        console.error('Elements not found: titlePage or quizContainer');
+      }
+    }
+
+    function startTimer() {
+      // Очищаем предыдущий таймер, если он существует
+      if (timer) {
+        clearInterval(timer);
+      }
+
+      seconds = timeLimit;
+
+      // Обновляем отображение таймера сразу
+      const initialMinutes = Math.floor(seconds / 60);
+      const initialRem = seconds % 60;
+      const initialTimerElement = document.getElementById('timer');
+      if (initialTimerElement) {
+        initialTimerElement.textContent = String(initialMinutes).padStart(2, '0') + ":" + String(initialRem).padStart(2, '0');
+      }
+
+      // Устанавливаем новый таймер
+      timer = setInterval(function() {
+        seconds--;
+        const minutes = Math.floor(seconds / 60);
+        const rem = seconds % 60;
+        const timerElement = document.getElementById('timer');
+        if (timerElement) {
+          timerElement.textContent = String(minutes).padStart(2, '0') + ":" + String(rem).padStart(2, '0');
+        }
+        if (seconds <= 0) {
+          clearInterval(timer);
+          calculateScore(true);
+        }
+      }, 1000);
+    }
+
+    // Formats date as "dd.mm.yyyy hh:mm"
+    function formatDate(date) {
+      const options = {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      };
+      const formatted = date.toLocaleString("en-GB", options);
+      return formatted.replace(/\//g, ".").replace(", ", " ");
+    }
+
+    function calculateScore(timeout = false) {
+      const fullNameInput = document.querySelector('[name="fullName"]');
+      const fullName = fullNameInput ? fullNameInput.value.trim() : "";
+      const namePattern = /^\s*[A-Za-zА-Яа-яЁё]+\s+[A-Za-zА-Яа-яЁё]+\s*$/;
+
+      if (!fullName && !timeout) {
+        alert("Please enter your name before submitting!");
+        return;
+      }
+
+      if (!timeout && !namePattern.test(fullName)) {
+        alert("Please enter both your first and last name!");
+        return;
+      }
+
+      const submitButton = document.getElementById('submitBtn');
+      if (submitButton) {
+        submitButton.style.display = 'none';
+      }
+
+      if (timer) {
+        clearInterval(timer);
+      }
+
+      let totalPoints = 0;
+      let maxPoints = 0;
+      const questions = document.querySelectorAll('.question');
+
+      questions.forEach(function(question) {
+        const points = parseInt(question.dataset.points) || 1;
+        maxPoints += points;
+        if (points === 0) return; // Skip user info block
+
+        let correct = true;
+        const inputs = question.querySelectorAll('input');
+        let selectedValues = [];
+        let correctValues = [];
+
+        inputs.forEach(function(inp) {
+          if (inp.checked) selectedValues.push(inp.value);
+          if (inp.dataset.correct === "true") correctValues.push(inp.value);
+        });
+
+        if (
+          selectedValues.length !== correctValues.length ||
+          !selectedValues.every(function(val) { return correctValues.includes(val); })
+        ) {
+          correct = false;
+        }
+
+        if (correct) {
+          totalPoints += points;
+          question.classList.add('correct');
+        } else {
+          question.classList.add('incorrect');
+        }
+      });
+
+      const percentage = ((totalPoints / maxPoints) * 100).toFixed(1);
+      const timeUsedValue = timeLimit - seconds;
+      const timeUsed = Math.floor(timeUsedValue / 60) + "m " + (timeUsedValue % 60) + "s";
+      const resultDiv = document.getElementById('result');
+
+      if (resultDiv) {
+        let resultsHTML = `
+          <h3>Exam Results</h3>
+          <p>Your score: ${totalPoints} / ${maxPoints} (${percentage}%)</p>
+          <p>Time used: ${timeUsed}</p>
+          ${percentage >= 80 ? "Congratulations! You passed!" : "Try again! Review your mistakes below."}
+          ${timeout ? "<p class='warning'>Time limit exceeded!</p>" : ""}
+        `;
+
+        resultsHTML += `
+          <button type="button" onclick="location.reload()">Retry</button>
+          <button type="button" onclick="window.location.href='#'">Read Again</button>
+          <button type="button" id="taskButton" onclick="loadTask()">Task</button>
+        `;
+
+        resultDiv.innerHTML = resultsHTML;
+
+        const professionElement = document.querySelector('[name="profession"]');
+        const recruiterElement = document.querySelector('[name="recruiter"]');
+
+        const profession = professionElement ? professionElement.value.trim() : "";
+        const recruiter = recruiterElement ? recruiterElement.value.trim() : "";
+
+        // Include the "day" parameter so it gets sent to the server
+        const postData = {
+          fullName: fullName,
+          profession: profession,
+          recruiter: recruiter,
+          day: "4",  // День 4 для отправки на сервер
+          examName: examName,
+          scoreObtained: totalPoints,
+          scoreTotal: maxPoints,
+          timeUsed: timeLimit - seconds, // Исправлено: отправляем использованное время
+          timeTotal: timeLimit,
+          date: formatDate(new Date())
+        };
+
+        try {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          resultDiv.innerHTML += '<p>Sending results to server...</p>';
+
+          fetch("https://auto.crm-s.com/webhook/Onboarding/Update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json, text/plain, */*"
+            },
+            body: JSON.stringify(postData),
+            mode: "cors"
+          })
+          .then(function(res) {
+            return res.text().then(function(text) {
+              console.log("POST response status:", res.status);
+              console.log("POST response body:", text);
+
+              if (res.status === 200) {
+                resultDiv.innerHTML += '<p style="color: green;">✓ Results successfully sent to server!</p>';
+              } else {
+                resultDiv.innerHTML += '<p style="color: red;">Error sending results to server: ' + res.status + '</p>';
+              }
+            });
+          })
+          .catch(function(err) {
+            console.error("Error in POST:", err);
+            resultDiv.innerHTML += '<p style="color: red;">Error sending results: ' + err.message + '</p>';
+          });
+        } catch (error) {
+          console.error("Error submitting quiz results:", error);
+          resultDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+        }
+      }
+    }
+
+    // loadTask() replaces the quiz view with task instructions.
+    function loadTask() {
+      const taskContent = `
+        <h1>🛠 Practice: Create an AI Automation Workflow for Your Field</h1>
+
+        <div class="question" style="margin-bottom: 1.5rem;">
+          <h3>Task Description</h3>
+          <p>In this task, you'll design an AI automation workflow relevant to your professional field.</p>
+        </div>
+
+        <div class="question">
+          <h3>✅ Assignment Steps</h3>
+
+          <div class="task-step">
+            <span class="step-number">1</span>
+            <p>Design a workflow that uses trigger-based AI automation to solve a common problem in your profession.</p>
+          </div>
+
+          <div class="task-step">
+            <span class="step-number">2</span>
+            <p>Your workflow design should include:</p>
+            <ul>
+              <li>Clear identification of the trigger(s) that start the automation</li>
+              <li>The specific AI tools or integrations you would use</li>
+              <li>The data flow or process steps</li>
+              <li>The expected outcome and benefits of the automation</li>
+            </ul>
+          </div>
+
+          <div class="task-step">
+            <span class="step-number">3</span>
+            <p>Include a brief explanation of how this automation would save time or improve results compared to manual processes.</p>
+          </div>
+
+          <div class="tools-section">
+            <p><strong>Tools you can use:</strong> Draw.io, Lucidchart, Miro, Make.com, or even a hand-drawn diagram that you can upload as an image.</p>
+          </div>
+        </div>
+      `;
+
+      document.body.innerHTML = `
+        <div style="font-family: 'Open Sans', sans-serif; background: #F8F9FA; padding: 2rem; max-width: 800px; margin: 0 auto; min-height: 100vh;">
+          <div id="timer" style="position: fixed; top: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">Assignment</div>
+
+          ${taskContent}
+
+          <div class="question" style="margin-top: 2rem;">
+            <h3>Submit Your Work</h3>
+            <label style="display: block; margin: 1rem 0;">
+              Your Work Link (optional):
+              <input type="text" id="taskLinkInput" placeholder="https://docs.google.com/..." style="width: 100%; padding: 0.75rem; border: 1px solid #DEE2E6; border-radius: 4px; font-size: 15px; margin-top: 0.5rem;">
+            </label>
+
+            <button id="taskCompletedBtn" style="background: var(--green); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; margin: 1rem 0; width: 100%;">
+              Mark Task as Completed
+            </button>
+
+            <button onclick="location.reload()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; margin: 0.5rem 0; width: 100%;">
+              Back to Exam
+            </button>
+          </div>
+
+          <div id="taskCompletionMessage" style="margin-top: 1rem;"></div>
+        </div>
+
+        <style>
+          .task-step {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+          }
+
+          .step-number {
+            background: var(--green);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+          }
+
+          .task-step p {
+            margin: 0;
+          }
+
+          .task-step ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.5rem;
+          }
+
+          .task-step li {
+            margin-bottom: 0.5rem;
+          }
+
+          .tools-section {
+            background: #f1f8e9;
+            border-left: 4px solid var(--green);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 4px 4px 0;
+          }
+
+          #taskCompletedBtn:hover {
+            background: var(--green-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+          }
+
+          @media (max-width: 600px) {
+            .task-step {
+              flex-direction: column;
+            }
+
+            .step-number {
+              margin-bottom: 0.5rem;
+            }
+          }
+        </style>
+      `;
+
+      const taskCompletedBtn = document.getElementById("taskCompletedBtn");
+      if (taskCompletedBtn) {
+        taskCompletedBtn.addEventListener("click", function() {
+          const taskLinkInput = document.getElementById("taskLinkInput");
+          const taskLink = taskLinkInput ? taskLinkInput.value.trim() : "";
+          taskCompletedBtn.disabled = true;
+          taskCompletedBtn.innerHTML = "Marking as Complete...";
+
+          const messageDiv = document.getElementById("taskCompletionMessage");
+          messageDiv.innerHTML = '<div class="question" style="background: #f5f5f5;"><p>Sending task completion to server...</p></div>';
+
+          try {
+            fetch("https://auto.crm-s.com/webhook/Onboarding/UpdateTaskTable", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*"
+              },
+              body: JSON.stringify({
+                examName: "Trigger-Based AI Automations",
+                day: "4",  // День 4 для отправки на сервер
+                link: taskLink,
+                date: formatDate(new Date())
+              }),
+              mode: "cors"
+            })
+            .then(function(res) {
+              return res.text().then(function(text) {
+                console.log("Task completed webhook status:", res.status);
+                console.log("Task completed webhook body:", text);
+
+                if (res.status === 200) {
+                  messageDiv.innerHTML = '<div class="question correct"><p style="font-weight: bold;">✓ Task completion successfully sent to server!</p></div>';
+                  taskCompletedBtn.innerHTML = "✓ Completed";
+                  taskCompletedBtn.style.background = "var(--green-hover)";
+                } else {
+                  messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Task marked as complete, but server returned status: ' + res.status + '</p></div>';
+                  taskCompletedBtn.innerHTML = "⚠ Completed with Warning";
+                  taskCompletedBtn.style.background = "#FF9800";
+                }
+              });
+            })
+            .catch(function(err) {
+              console.error("Error sending task completed webhook:", err);
+              messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Error sending task completion: ' + err.message + '</p></div>';
+              taskCompletedBtn.innerHTML = "⚠ Error";
+              taskCompletedBtn.style.background = "var(--red)";
+            });
+          } catch (error) {
+            console.error("Error marking task as complete:", error);
+            messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Error: ' + error.message + '</p></div>';
+            taskCompletedBtn.innerHTML = "⚠ Error";
+            taskCompletedBtn.style.background = "var(--red)";
+          }
+        });
+      }
+    }
+
+    // Ensure DOM is loaded before attaching event listeners
+    document.addEventListener("DOMContentLoaded", function() {
+      const startExamBtn = document.getElementById("startExamBtn");
+      if (startExamBtn) {
+        startExamBtn.addEventListener("click", startQuiz);
+      }
+    });
+  </script>
+</body>
+</html>
