@@ -2528,13 +2528,13 @@ const app = {
   openVocabulary
 };
 
-// Make functions available globally
-window.handleProfessionChange = handleProfessionChange;
-window.selectDay = selectDay;
-window.selectLesson = selectLesson;
-window.goBackToDaySelection = goBackToDaySelection;
-window.goBackToTaskSelection = goBackToTaskSelection;
-window.openVocabulary = openVocabulary;
+// Make functions available globally without redeclaring them
+window.handleProfessionChange = app.handleProfessionChange;
+window.selectDay = app.selectDay;
+window.selectLesson = app.selectLesson;
+window.goBackToDaySelection = app.goBackToDaySelection;
+window.goBackToTaskSelection = app.goBackToTaskSelection;
+window.openVocabulary = app.openVocabulary;
 
 // Export for ES modules
 export default app;
