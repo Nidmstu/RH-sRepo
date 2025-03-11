@@ -1,6 +1,6 @@
 
 // Function to fetch tests for available courses
-async function fetchTests() {
+const fetchTests = async function() {
   // Only run if we have the courseManager and its data available
   if (!window.courseManager || !window.courseManager.courses) {
     console.log('CourseManager not initialized yet, tests will be loaded later');
@@ -68,31 +68,73 @@ async function fetchTests() {
     console.error('Error in fetchTests:', error);
     return {};
   }
-}
+};
 
-// Initialize tests when document is ready
-document.addEventListener('DOMContentLoaded', () => {
-  // Periodically check for courseManager to be initialized
-  const checkInterval = setInterval(() => {
-    if (window.courseManager && window.courseManager.courses) {
-      clearInterval(checkInterval);
-      console.log('CourseManager initialized, fetching tests...');
+// Check if courseManager is already initialized
+const checkCourseManagerStatus = function() {
+  if (window.courseManager && window.courseManager.courses) {
+    console.log('CourseManager already initialized, fetching tests...');
+    fetchTests().then(testData => {
+      window.testData = testData;
+      console.log('Test data saved to window.testData');
+    });
+    return true;
+  }
+  return false;
+};
 
-      fetchTests().then(testData => {
-        window.testData = testData;
-        console.log('Test data saved to window.testData');
-      });
-    } else {
-      console.log("Waiting for courseManager to be initialized...");
-    }
-  }, 2000); // Check every 2 seconds
-
-  // Stop checking after 30 seconds to prevent infinite loops
-  setTimeout(() => {
-    clearInterval(checkInterval);
-    console.log('Stopped waiting for courseManager after timeout');
-  }, 30000);
-});
+// Start polling after a short delay to ensure other scripts have loaded
+setTimeout(() => {
+  // First check if courseManager is already available
+  if (!checkCourseManagerStatus()) {
+    console.log('CourseManager not yet initialized, setting up polling...');
+    
+    // Set up polling with decreasing frequency
+    let attempts = 0;
+    const maxAttempts = 30;
+    let checkInterval = 1000; // Start with 1 second
+    
+    const intervalId = setInterval(() => {
+      attempts++;
+      
+      if (checkCourseManagerStatus()) {
+        clearInterval(intervalId);
+        console.log('CourseManager found and tests initialized');
+      } else {
+        console.log(`Waiting for courseManager to be initialized... (attempt ${attempts}/${maxAttempts})`);
+        
+        // Increase the interval time to reduce load
+        if (attempts % 5 === 0) {
+          clearInterval(intervalId);
+          checkInterval = Math.min(checkInterval * 1.5, 5000); // Cap at 5 seconds
+          
+          if (attempts >= maxAttempts) {
+            console.warn('Max attempts reached. Tests may not be available.');
+            return;
+          }
+          
+          setTimeout(() => {
+            const newIntervalId = setInterval(() => {
+              attempts++;
+              
+              if (checkCourseManagerStatus()) {
+                clearInterval(newIntervalId);
+                console.log('CourseManager found and tests initialized');
+              } else {
+                console.log(`Waiting for courseManager to be initialized... (attempt ${attempts}/${maxAttempts})`);
+                
+                if (attempts >= maxAttempts) {
+                  clearInterval(newIntervalId);
+                  console.warn('Max attempts reached. Tests may not be available.');
+                }
+              }
+            }, checkInterval);
+          }, 100);
+        }
+      }
+    }, checkInterval);
+  }
+}, 2000);
 
 // Export for Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
