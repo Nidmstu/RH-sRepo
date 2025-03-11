@@ -499,7 +499,7 @@
       // ВАЖНО: устанавливаем глобальные объекты до их использования
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
-      
+
       // Настраиваем обработчик для кнопки повторной загрузки
       setupRetryHandler();
 
@@ -511,7 +511,7 @@
         console.log("Initializing courseManager...");
         await courseManager.initialize();
         console.log("CourseManager initialized successfully");
-        
+
         // Затем инициализируем приложение
         console.log("Initializing application...");
         if (typeof app === 'object' && app.initialize) {
@@ -1760,7 +1760,9 @@ When a prompt is too long and exceeds the model's context window, causing inform
 </details>`;
     }
   </script>
+  <script src="js/courseManager.js" type="module"></script>
   <script src="js/app.js" type="module"></script>
+  <script src="js/adminInterface.js" type="module"></script>
   <script src="js/fetchTests.js"></script>
 </body>
 </html>

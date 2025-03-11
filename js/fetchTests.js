@@ -1,13 +1,15 @@
 
 // Function to fetch tests for available courses
-const fetchTests = async function() {
-  // Only run if we have the courseManager and its data available
-  if (!window.courseManager || !window.courseManager.courses) {
-    console.log('CourseManager not initialized yet, tests will be loaded later');
-    return {};
-  }
-
+async function fetchTests() {
   try {
+    console.log('Attempting to fetch test data...');
+    
+    // Only proceed if courseManager is fully initialized
+    if (!window.courseManager || !window.courseManager.courses) {
+      console.log('CourseManager not initialized yet, will try again later');
+      return null;
+    }
+
     console.log('Fetching test data for courses...');
     const testData = {};
 
@@ -28,7 +30,7 @@ const fetchTests = async function() {
               if (lesson.testSource && lesson.testSource.url) {
                 try {
                   console.log(`Fetching test for ${profId} - Day ${day.id} - Lesson ${lesson.id}`);
-                  // Store the URL rather than fetching now to avoid too many requests
+                  // Store the URL rather than fetching now
                   testData[profId][lesson.id] = {
                     url: lesson.testSource.url,
                     title: lesson.title,
@@ -63,78 +65,67 @@ const fetchTests = async function() {
     }
 
     console.log('Test data collection complete');
+    window.testData = testData;
     return testData;
   } catch (error) {
     console.error('Error in fetchTests:', error);
-    return {};
+    return null;
   }
-};
+}
 
-// Check if courseManager is already initialized
-const checkCourseManagerStatus = function() {
+// Setup initialization without using recursive interval setup
+let attemptCount = 0;
+const maxAttempts = 30;
+
+function initializeTests() {
+  // Clear any existing intervals to prevent duplicates
+  if (window.testInitInterval) {
+    clearInterval(window.testInitInterval);
+  }
+
+  // Check for courseManager once on page load
   if (window.courseManager && window.courseManager.courses) {
-    console.log('CourseManager already initialized, fetching tests...');
-    fetchTests().then(testData => {
-      window.testData = testData;
-      console.log('Test data saved to window.testData');
-    });
-    return true;
+    console.log('CourseManager already initialized, fetching tests immediately');
+    fetchTests();
+    return;
   }
-  return false;
-};
 
-// Start polling after a short delay to ensure other scripts have loaded
-setTimeout(() => {
-  // First check if courseManager is already available
-  if (!checkCourseManagerStatus()) {
-    console.log('CourseManager not yet initialized, setting up polling...');
+  // Otherwise set up a polling interval
+  console.log('Setting up courseManager polling');
+  window.testInitInterval = setInterval(() => {
+    attemptCount++;
     
-    // Set up polling with decreasing frequency
-    let attempts = 0;
-    const maxAttempts = 30;
-    let checkInterval = 1000; // Start with 1 second
-    
-    const intervalId = setInterval(() => {
-      attempts++;
+    if (window.courseManager && window.courseManager.courses) {
+      console.log('CourseManager found, fetching tests');
+      clearInterval(window.testInitInterval);
+      fetchTests();
       
-      if (checkCourseManagerStatus()) {
-        clearInterval(intervalId);
-        console.log('CourseManager found and tests initialized');
-      } else {
-        console.log(`Waiting for courseManager to be initialized... (attempt ${attempts}/${maxAttempts})`);
-        
-        // Increase the interval time to reduce load
-        if (attempts % 5 === 0) {
-          clearInterval(intervalId);
-          checkInterval = Math.min(checkInterval * 1.5, 5000); // Cap at 5 seconds
-          
-          if (attempts >= maxAttempts) {
-            console.warn('Max attempts reached. Tests may not be available.');
-            return;
-          }
-          
-          setTimeout(() => {
-            const newIntervalId = setInterval(() => {
-              attempts++;
-              
-              if (checkCourseManagerStatus()) {
-                clearInterval(newIntervalId);
-                console.log('CourseManager found and tests initialized');
-              } else {
-                console.log(`Waiting for courseManager to be initialized... (attempt ${attempts}/${maxAttempts})`);
-                
-                if (attempts >= maxAttempts) {
-                  clearInterval(newIntervalId);
-                  console.warn('Max attempts reached. Tests may not be available.');
-                }
-              }
-            }, checkInterval);
-          }, 100);
-        }
+    } else {
+      console.log(`Waiting for courseManager to be initialized... (${attemptCount}/${maxAttempts})`);
+      
+      if (attemptCount >= maxAttempts) {
+        console.log('Max attempts reached, canceling test data initialization');
+        clearInterval(window.testInitInterval);
       }
-    }, checkInterval);
-  }
-}, 2000);
+    }
+  }, 1000);
+  
+  // Set a timeout to cancel polling after 30 seconds
+  setTimeout(() => {
+    if (window.testInitInterval) {
+      clearInterval(window.testInitInterval);
+      console.log('Stopped waiting for courseManager after timeout');
+    }
+  }, 30000);
+}
+
+// Initialize once the DOM is fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeTests);
+} else {
+  // If DOMContentLoaded has already fired, run immediately
+  initializeTests();
+}
 
 // Export for Node.js environment
 if (typeof module !== 'undefined' && module.exports) {

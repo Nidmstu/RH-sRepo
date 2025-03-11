@@ -2543,13 +2543,13 @@ const app = {
 };
 
 // Make functions available globally without redefining them
-// Only assign if they don't already exist
-if (!window.handleProfessionChange) window.handleProfessionChange = handleProfessionChange;
-if (!window.selectDay) window.selectDay = selectDay;
-if (!window.selectLesson) window.selectLesson = selectLesson;
-if (!window.goBackToDaySelection) window.goBackToDaySelection = goBackToDaySelection;
-if (!window.goBackToTaskSelection) window.goBackToTaskSelection = goBackToTaskSelection;
-if (!window.openVocabulary) window.openVocabulary = openVocabulary;
+// Make sure to assign only once, never redefine
+window.handleProfessionChange = window.handleProfessionChange || handleProfessionChange;
+window.selectDay = window.selectDay || selectDay;
+window.selectLesson = window.selectLesson || selectLesson;
+window.goBackToDaySelection = window.goBackToDaySelection || goBackToDaySelection;
+window.goBackToTaskSelection = window.goBackToTaskSelection || goBackToTaskSelection;
+window.openVocabulary = window.openVocabulary || openVocabulary;
 
 // Export for ES modules
 export default app;
