@@ -1042,41 +1042,113 @@ function updateDaysList() {
 
 // Функция для обновления списка уроков
 function updateLessonsList() {
-  if (!courseManager.currentDay) return;
-  const taskButtonsDiv = document.getElementById('task-buttons');
-  if (!taskButtonsDiv) return;
-  taskButtonsDiv.innerHTML = '';
-  const lessons = courseManager.getLessonsForCurrentDay();
-  console.log(`Загружено ${lessons.length} уроков для дня ${courseManager.currentDay.id}`);
-  if (lessons.length === 0) {
-    const emptyMessage = document.createElement('p');
-    emptyMessage.textContent = 'Для этого дня еще не добавлены уроки.';
-    emptyMessage.className = 'empty-message';
-    taskButtonsDiv.appendChild(emptyMessage);
+  if (!courseManager.currentDay) {
+    console.log('Не выбран текущий день, невозможно обновить список уроков');
     return;
   }
-  lessons.forEach(lesson => {
-    const btn = document.createElement('button');
-    btn.innerText = lesson.title || `Урок ${lesson.id}`;
-    btn.onclick = function() { selectLesson(lesson.id); };
-    if (lesson.description) {
-      const description = document.createElement('small');
-      description.textContent = lesson.description;
-      description.style.display = 'block';
-      description.style.marginTop = '5px';
-      description.style.color = '#666';
-      btn.appendChild(description);
+  
+  const taskButtonsDiv = document.getElementById('task-buttons');
+  if (!taskButtonsDiv) {
+    console.error('Не найден контейнер для кнопок уроков (task-buttons)');
+    return;
+  }
+  
+  taskButtonsDiv.innerHTML = '';
+  
+  try {
+    const lessons = courseManager.getLessonsForCurrentDay();
+    
+    if (!lessons || !Array.isArray(lessons)) {
+      console.error('Получен некорректный список уроков:', lessons);
+      const errorMessage = document.createElement('p');
+      errorMessage.textContent = 'Ошибка загрузки уроков. Попробуйте перезагрузить страницу.';
+      errorMessage.className = 'error-message';
+      errorMessage.style.color = '#ff5555';
+      taskButtonsDiv.appendChild(errorMessage);
+      return;
     }
-    taskButtonsDiv.appendChild(btn);
-  });
+    
+    console.log(`Загружено ${lessons.length} уроков для дня ${courseManager.currentDay.id}`);
+    
+    if (lessons.length === 0) {
+      const emptyMessage = document.createElement('p');
+      emptyMessage.textContent = 'Для этого дня еще не добавлены уроки.';
+      emptyMessage.className = 'empty-message';
+      taskButtonsDiv.appendChild(emptyMessage);
+      return;
+    }
+    
+    lessons.forEach(lesson => {
+      const btn = document.createElement('button');
+      btn.innerText = lesson.title || `Урок ${lesson.id}`;
+      btn.onclick = function() { selectLesson(lesson.id); };
+      
+      if (lesson.description) {
+        const description = document.createElement('small');
+        description.textContent = lesson.description;
+        description.style.display = 'block';
+        description.style.marginTop = '5px';
+        description.style.color = '#666';
+        btn.appendChild(description);
+      }
+      
+      taskButtonsDiv.appendChild(btn);
+    });
+  } catch (error) {
+    console.error('Ошибка при обновлении списка уроков:', error);
+    const errorMessage = document.createElement('p');
+    errorMessage.textContent = 'Произошла ошибка при загрузке уроков.';
+    errorMessage.className = 'error-message';
+    errorMessage.style.color = '#ff5555';
+    taskButtonsDiv.appendChild(errorMessage);
+  }
 }
 
 // Настройка обработчиков событий
 function setupEventListeners() {
-  professionSelect.addEventListener('change', handleProfessionChange);
-  document.querySelector('button[onclick="goBackToDaySelection()"]').addEventListener('click', goBackToDaySelection);
-  document.querySelector('button[onclick="goBackToTaskSelection()"]').addEventListener('click', goBackToTaskSelection);
-  document.querySelector('button[onclick="openVocabulary()"]').addEventListener('click', openVocabulary);
+  if (professionSelect) {
+    professionSelect.addEventListener('change', handleProfessionChange);
+  }
+  
+  const backToDayButton = document.querySelector('button[onclick="goBackToDaySelection()"]');
+  if (backToDayButton) {
+    backToDayButton.addEventListener('click', goBackToDaySelection);
+  }
+  
+  const backToTaskButton = document.querySelector('button[onclick="goBackToTaskSelection()"]');
+  if (backToTaskButton) {
+    backToTaskButton.addEventListener('click', goBackToTaskSelection);
+  }
+  
+  const vocabularyButton = document.querySelector('button[onclick="openVocabulary()"]');
+  if (vocabularyButton) {
+    vocabularyButton.addEventListener('click', openVocabulary);
+  } else {
+    console.log('Не найдена кнопка словаря в DOM');
+  }
+}
+
+// Обновление кнопки словаря
+function updateVocabularyButton() {
+  const vocabularyContainer = document.getElementById('vocabulary-container');
+  if (!vocabularyContainer) return;
+  
+  vocabularyContainer.innerHTML = '';
+  
+  // Проверяем наличие специальных уроков
+  const specialLessons = courseManager.getSpecialLessons() || [];
+  specialLessons.forEach(lesson => {
+    const button = document.createElement('button');
+    button.textContent = lesson.title || lesson.id;
+    button.onclick = function() { openVocabulary(); };
+    vocabularyContainer.appendChild(button);
+  });
+  
+  if (specialLessons.length === 0) {
+    const placeholderText = document.createElement('p');
+    placeholderText.textContent = 'Справочные материалы отсутствуют';
+    vocabularyContainer.appendChild(placeholderText);
+  }
 }
 
 // Отображение домашней страницы
@@ -1174,6 +1246,55 @@ window.selectLesson = function(lessonId) {
     showAudioForLesson(lesson);
   } else {
     console.log('Для урока', lesson.id, 'аудио не найдено');
+  }
+
+  // Вспомогательная функция для отображения аудио для урока
+  function showAudioForLesson(lesson) {
+    const audioEmbed = document.getElementById('audio-embed');
+    if (!audioEmbed) {
+      console.error('Не найден контейнер для аудио (audio-embed)');
+      return;
+    }
+
+    if (!lesson.audioSource) {
+      console.log('У урока нет источника аудио');
+      audioEmbed.classList.add('hidden');
+      return;
+    }
+
+    // Очищаем контейнер перед добавлением нового аудио
+    audioEmbed.innerHTML = '';
+    
+    try {
+      if (lesson.audioSource.type === 'soundcloud') {
+        const iframe = document.createElement('iframe');
+        iframe.src = lesson.audioSource.trackUrl || lesson.audioSource.url;
+        iframe.width = '100%';
+        iframe.height = '166';
+        iframe.frameBorder = '0';
+        iframe.allow = 'autoplay';
+        
+        audioEmbed.appendChild(iframe);
+        audioEmbed.classList.remove('hidden');
+        console.log('Добавлен SoundCloud iframe для урока:', lesson.id);
+      } else if (lesson.audioSource.type === 'url' && lesson.audioSource.url) {
+        const audio = document.createElement('audio');
+        audio.src = lesson.audioSource.url;
+        audio.controls = true;
+        audio.style.width = '100%';
+        audio.style.maxWidth = '600px';
+        
+        audioEmbed.appendChild(audio);
+        audioEmbed.classList.remove('hidden');
+        console.log('Добавлен audio элемент для урока:', lesson.id);
+      } else {
+        console.log('Неподдерживаемый тип аудио:', lesson.audioSource.type);
+        audioEmbed.classList.add('hidden');
+      }
+    } catch (error) {
+      console.error('Ошибка при отображении аудио:', error);
+      audioEmbed.classList.add('hidden');
+    }
   }
   showSection('guide');
   const contentSpinner = document.getElementById('content-loading-spinner');
