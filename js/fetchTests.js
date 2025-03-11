@@ -1,66 +1,21 @@
-// Tests data handler for learning platform
-// This module makes test data available globally without initialization loops
 
-// Global variable to store test data
+// Tests data handler for learning platform
+// This file handles test data without initialization loops
+
+// Global object to store test data
 window.testData = {};
 
-// Simple function to get test URL for a specific lesson
-function getTestUrl(professionId, lessonId) {
-  if (!window.testData || !window.testData[professionId] || !window.testData[professionId][lessonId]) {
-    return null;
+// Global flag to track initialization state
+let isInitializing = false;
+
+// Function to check if courseManager is available
+function checkCourseManager() {
+  if (window.courseManager && window.courseManager.courses) {
+    console.log('Tests: courseManager found, extracting test data');
+    extractTestData();
+    return true;
   }
-  return window.testData[professionId][lessonId].url;
-}
-
-// Get all tests for a profession
-function getTestsForProfession(professionId) {
-  if (!window.testData || !window.testData[professionId]) {
-    return {};
-  }
-  return window.testData[professionId];
-}
-
-// Simplified initialization function that runs only once
-function initializeTestData() {
-  // If we've already run initialization, don't do it again
-  if (window.testDataInitialized) return;
-  window.testDataInitialized = true;
-
-  console.log('Tests: Initializing test data');
-
-  // Set up a simple observer that will load test data once courseManager is ready
-  const checkCourseManager = () => {
-    if (window.courseManager && window.courseManager.courses) {
-      console.log('Tests: courseManager found, extracting test data');
-      extractTestData();
-      return true;
-    }
-    return false;
-  };
-
-  // Initial check
-  if (!checkCourseManager()) {
-    console.log('Tests: courseManager not ready, will check again later');
-
-    // Set up a more gentle polling approach
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const intervalId = setInterval(() => {
-      attempts++;
-
-      if (checkCourseManager()) {
-        clearInterval(intervalId);
-      } else {
-        console.log(`Tests: Waiting for courseManager (attempt ${attempts}/${maxAttempts})`);
-
-        if (attempts >= maxAttempts) {
-          clearInterval(intervalId);
-          console.warn('Tests: Max attempts reached for courseManager');
-        }
-      }
-    }, 3000); // Check every 3 seconds
-  }
+  return false;
 }
 
 // Extract test data from courseManager
@@ -120,23 +75,77 @@ function extractTestData() {
   }
 }
 
-// Make functions available globally
-window.testManager = {
-  getTestUrl,
-  getTestsForProfession,
-  initializeTestData
+// Set up a gentle polling mechanism that doesn't cause conflicts
+function setupPolling() {
+  // Avoid multiple initialization attempts
+  if (isInitializing) return;
+  isInitializing = true;
+  
+  console.log('Tests: Setting up course manager check');
+  
+  // First immediate check
+  if (checkCourseManager()) {
+    isInitializing = false;
+    return;
+  }
+  
+  // If not immediately available, set up a simple polling mechanism
+  let attempts = 0;
+  const maxAttempts = 15;
+  
+  const intervalId = setInterval(() => {
+    attempts++;
+    
+    if (checkCourseManager()) {
+      clearInterval(intervalId);
+      isInitializing = false;
+      console.log('Tests: Initialization complete');
+    } else {
+      console.log(`Tests: Waiting for courseManager (attempt ${attempts}/${maxAttempts})`);
+      
+      if (attempts >= maxAttempts) {
+        clearInterval(intervalId);
+        isInitializing = false;
+        console.warn('Tests: Max attempts reached, initialization failed');
+      }
+    }
+  }, 2000); // Check every 2 seconds
+}
+
+// Create the API functions that will be exposed
+const testManager = {
+  // Get test URL for a specific lesson
+  getTestUrl: function(professionId, lessonId) {
+    if (!window.testData || !window.testData[professionId] || !window.testData[professionId][lessonId]) {
+      return null;
+    }
+    return window.testData[professionId][lessonId].url;
+  },
+  
+  // Get all tests for a profession
+  getTestsForProfession: function(professionId) {
+    if (!window.testData || !window.testData[professionId]) {
+      return {};
+    }
+    return window.testData[professionId];
+  },
+  
+  // Manual initialization function
+  initialize: function() {
+    setupPolling();
+  }
 };
 
-// Start the initialization process
+// Expose the API to the global scope
+window.testManager = testManager;
+
+// Start initialization when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   // Wait a moment to let other scripts initialize first
-  setTimeout(initializeTestData, 1000);
+  setTimeout(setupPolling, 2000);
 });
 
-// Export for Node.js environment
+// Export for Node.js environment if needed
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    getTestUrl,
-    getTestsForProfession
-  };
+  module.exports = testManager;
 }

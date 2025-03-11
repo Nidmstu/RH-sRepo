@@ -424,13 +424,17 @@
     }
   </style>
 
-  <script src="js/fetchTests.js"></script>
   <script type="module">
     // Импортируем модули приложения
     import { courseManager } from './js/courseManager.js';
     import devMode from './js/devMode.js';
     import adminPanel from './js/admin.js';
     import app from './js/app.js';
+    
+    // Load fetchTests.js after module imports
+    const fetchTestsScript = document.createElement('script');
+    fetchTestsScript.src = 'js/fetchTests.js';
+    document.head.appendChild(fetchTestsScript);
 
     // Глобальная функция для фильтрации скрытых курсов
     window.filterHiddenCourses = function(courses) {
