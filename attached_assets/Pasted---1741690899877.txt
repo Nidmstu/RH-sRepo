@@ -1,0 +1,125 @@
+Ниже приведён конкретный список изменений, которые необходимо внести в проект, чтобы динамически подставлять данные теста (название, параметры, и т. п.) вместо простого редиректа на Webhook URL:
+
+⸻
+
+	1.	Изменить обработчик клика по кнопке теста в app.js
+Сейчас при нажатии на кнопку теста вызывается функция, которая открывает WebhookURL (через window.open). Нужно заменить её на вызов новой функции, которая будет получать тестовые данные и затем рендерить тестовую страницу.
+Изменение:
+В файле app.js найдите участок, где задаётся обработчик для testButton (обычно в функции selectLesson):
+
+if (lesson.testSource) {
+  testButton.classList.remove('hidden');
+  testButton.onclick = function() {
+    openTest(lesson);
+  };
+} else {
+  testButton.classList.add('hidden');
+}
+
+Нужно заменить на:
+
+if (lesson.testSource) {
+  testButton.classList.remove('hidden');
+  testButton.onclick = function() {
+    loadTestForLesson(lesson);
+  };
+} else {
+  testButton.classList.add('hidden');
+}
+
+
+	2.	Реализовать функцию loadTestForLesson(lesson) в app.js
+Эта функция должна:
+	•	Вызывать метод courseManager.fetchTest(lesson) для загрузки тестового контента.
+	•	Обрабатывать полученные данные (например, через processTestData, если требуется).
+	•	Сохранять результат (например, в глобальную переменную window.quizData)
+	•	Вызывать функцию startQuiz(), которая генерирует интерфейс теста на основе полученных данных.
+Пример кода:
+
+async function loadTestForLesson(lesson) {
+  try {
+    updateGlobalLoadingStatus('Загрузка теста...');
+    const testContent = await courseManager.fetchTest(lesson);
+    if (!testContent) {
+      alert('Тестовые данные не найдены для этого урока');
+      return;
+    }
+    // Если требуется нормализация, можно вызвать processTestData:
+    const processedTestData = processTestData(testContent);
+    window.quizData = processedTestData;
+    // Запускаем интерфейс теста (startQuiz уже должен генерировать вопросы из window.quizData)
+    startQuiz();
+  } catch (error) {
+    console.error('Ошибка загрузки теста:', error);
+    alert('Ошибка загрузки теста: ' + error.message);
+  }
+}
+
+Если функция processTestData уже вызывается внутри fetchTest, этот шаг можно опустить.
+
+	3.	Модифицировать функцию fetchTest(lesson) в courseManager.js
+Сейчас функция fetchTest(lesson) просто пытается загрузить данные по заданному URL. Чтобы тест адаптировался под урок, можно добавить логику добавления параметров (например, day, courseId) к URL, если они есть в объекте lesson.
+Изменение:
+Найдите функцию fetchTest(lesson) и перед вызовом fetch вставьте примерно такой код:
+
+async fetchTest(lesson = this.currentLesson) {
+  if (!lesson || !lesson.testSource) {
+    return null;
+  }
+  try {
+    const testSource = lesson.testSource;
+    let url = testSource.url;
+    // Если объект lesson содержит информацию о дне, добавляем параметр day
+    if (lesson.day) {
+      url += (url.includes('?') ? '&' : '?') + 'day=' + encodeURIComponent(lesson.day);
+    }
+    // Аналогично можно добавить courseId, если требуется:
+    if (lesson.courseId) {
+      url += (url.includes('?') ? '&' : '?') + 'course=' + encodeURIComponent(lesson.courseId);
+    }
+    // Далее используем изменённый URL в fetch:
+    const response = await fetch(url, { … });
+    // Остальная логика без изменений
+  } catch (error) {
+    …
+  }
+}
+
+Это позволит серверу (если он поддерживает такие параметры) возвращать данные, зависящие от дня/курса.
+
+	4.	Изменить логику на странице quiz.html
+Сейчас quiz.html, вероятно, загружает тестовые данные из файла tests.json. Чтобы тест подстраивался динамически, измените функцию startQuiz() так, чтобы она использовала глобальную переменную window.quizData, установленную в loadTestForLesson, вместо вызова loadTestsData().
+Изменение:
+Найдите функцию startQuiz() в quiz.html и замените загрузку данных:
+
+async function startQuiz() {
+  // Вместо:
+  // const data = await loadTestsData();
+  // window.quizData = data;
+  // ...
+  
+  // Используйте:
+  if (!window.quizData) {
+    alert('Тестовые данные не загружены');
+    return;
+  }
+  // Далее генерируйте вопросы на основе window.quizData
+  generateQuestions();
+  randomizeAnswers();
+  startTimer();
+}
+
+Убедитесь, что в generateQuestions() и calculateScore() используются данные из window.quizData.
+
+⸻
+
+Эти изменения позволят:
+	•	При нажатии на кнопку теста вместо редиректа по WebhookURL загружать данные теста динамически;
+	•	Передавать в запрос параметры, зависящие от урока (например, номер дня);
+	•	Отображать адаптивный HTML теста в рамках страницы quiz.html с данными, соответствующими текущему уроку.
+
+Проверьте после внесения изменений, что:
+	•	При выборе урока с тестом вызывается loadTestForLesson и тестовые данные корректно загружаются;
+	•	На странице теста (quiz.html) вопросы, название теста и прочие данные соответствуют выбранному уроку (например, для дня 1 отправляются данные дня 1).
+
+Если возникнут дополнительные баги, сообщите, и мы добавим корректирующие правки.
