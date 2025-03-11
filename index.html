@@ -599,8 +599,14 @@
       testWebhook: "placeholder-test-webhook-vocabulary"
     };
 
-    // Функция для обработки изменения профессии - только если она еще не определена в глобальном объекте
-    if (!window.handleProfessionChange) {
+    // Define a handleProfessionChange function for backward compatibility
+    function updateDaysList() {
+      // Will be implemented if not already defined
+      console.log("Days list update requested");
+    }
+    
+    // Define global function only if it doesn't exist yet
+    if (typeof window.handleProfessionChange !== 'function') {
       window.handleProfessionChange = function() {
         const selectedProfession = document.getElementById("profession-select").value;
         if (selectedProfession === "lead-generator") {
