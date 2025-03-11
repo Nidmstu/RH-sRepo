@@ -1339,11 +1339,82 @@ function getCachedWebhookUrl(key) {
   return null;
 }
 
-// Открытие теста
+// Загрузка и отображение теста
+async function loadTestForLesson(lesson) {
+  try {
+    // Добавляем информацию о текущем дне и курсе к уроку, если не указано
+    if (!lesson.day && courseManager.currentDay) {
+      lesson.day = courseManager.currentDay.id;
+    }
+    if (!lesson.courseId && courseManager.currentProfession) {
+      lesson.courseId = courseManager.currentProfession;
+    }
+
+    const testContent = await courseManager.fetchTest(lesson);
+    if (!testContent) {
+      alert('Тестовые данные отсутствуют');
+      return;
+    }
+    
+    // Сохраняем данные теста в глобальную переменную
+    window.quizData = testContent;
+    
+    // Запускаем отображение теста
+    startQuiz();
+  } catch (error) {
+    console.error('Ошибка загрузки теста:', error);
+    alert('Ошибка загрузки теста: ' + error.message);
+  }
+}
+
+// Открытие теста (для обратной совместимости)
 function openTest(lesson) {
   if (lesson.testSource && lesson.testSource.url) {
-    window.open(lesson.testSource.url, '_blank');
+    loadTestForLesson(lesson);
   }
+}
+
+// Запуск теста, интегрированного с quiz.html
+function startQuiz() {
+  // Создаем iframe для теста, если он не существует
+  let quizFrame = document.getElementById('quiz-frame');
+  if (!quizFrame) {
+    quizFrame = document.createElement('iframe');
+    quizFrame.id = 'quiz-frame';
+    quizFrame.style.border = 'none';
+    quizFrame.style.width = '100%';
+    quizFrame.style.height = '100vh';
+    quizFrame.style.position = 'fixed';
+    quizFrame.style.top = '0';
+    quizFrame.style.left = '0';
+    quizFrame.style.zIndex = '9999';
+    quizFrame.style.backgroundColor = '#f8f9fa';
+    document.body.appendChild(quizFrame);
+    
+    // Добавляем кнопку закрытия
+    const closeButton = document.createElement('button');
+    closeButton.innerText = 'Закрыть тест';
+    closeButton.style.position = 'fixed';
+    closeButton.style.top = '10px';
+    closeButton.style.right = '10px';
+    closeButton.style.zIndex = '10000';
+    closeButton.style.padding = '8px 15px';
+    closeButton.style.border = 'none';
+    closeButton.style.borderRadius = '5px';
+    closeButton.style.backgroundColor = '#e74c3c';
+    closeButton.style.color = 'white';
+    closeButton.style.cursor = 'pointer';
+    closeButton.onclick = function() {
+      document.getElementById('quiz-frame').style.display = 'none';
+      document.body.removeChild(closeButton);
+    };
+    document.body.appendChild(closeButton);
+  } else {
+    quizFrame.style.display = 'block';
+  }
+  
+  // Загружаем страницу quiz.html
+  quizFrame.src = 'quiz.html';
 }
 
 // Загрузка контента урока

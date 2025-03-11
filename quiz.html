@@ -645,6 +645,11 @@
       const titlePage = document.getElementById('titlePage');
       const quizContainer = document.getElementById('quizContainer');
 
+      // Настраиваем данные теста, если были переданы через window.quizData
+      if (window.quizData && !quizData) {
+        startQuizSetup();
+      }
+
       if (!quizData || !quizData.questions || quizData.questions.length === 0) {
         alert('No questions available for this quiz');
         return;
@@ -1088,7 +1093,33 @@
       const selectorPage = document.getElementById('selectorPage');
       
       try {
-        // Load test data
+        // Проверяем наличие данных из родительского окна
+        if (window.quizData) {
+          console.log('Используем данные теста из window.quizData');
+          // Скрываем индикатор загрузки
+          loadingIndicator.classList.add('hidden');
+          
+          // Настраиваем UI для тестирования
+          document.getElementById('titlePage').classList.remove('hidden');
+          
+          // Настраиваем заголовок теста
+          let testTitle = "Тест";
+          if (typeof window.quizData === 'object') {
+            testTitle = window.quizData.title || "Тест";
+            document.getElementById('quizTitle').textContent = testTitle;
+            document.getElementById('quizTitleInExam').textContent = testTitle;
+            
+            // Настраиваем информацию о количестве вопросов
+            const questionCount = window.quizData.questions ? window.quizData.questions.length : 0;
+            document.getElementById('questionCount').textContent = questionCount;
+          }
+          
+          // Сразу показываем титульную страницу
+          startQuizSetup();
+          return;
+        }
+        
+        // Если нет данных из родительского окна, загружаем как обычно
         testsData = await loadTestsData();
         
         if (!testsData) {
@@ -1112,6 +1143,23 @@
             <button onclick="location.reload()">Retry</button>
           </div>
         `;
+      }
+    }
+    
+    // Настройка и запуск теста с данными из window.quizData
+    function startQuizSetup() {
+      if (window.quizData) {
+        // Настраиваем данные для теста
+        examName = typeof window.quizData === 'object' ? (window.quizData.title || "Тест") : "Тест";
+        
+        // Если это объект, настраиваем текущие переменные из него
+        if (typeof window.quizData === 'object') {
+          quizData = window.quizData;
+          // Пытаемся получить текущий день из URL если есть
+          const urlParams = new URLSearchParams(window.location.search);
+          currentDay = urlParams.get('day') || "";
+          currentCourse = urlParams.get('course') || "";
+        }
       }
     }
 
