@@ -5,7 +5,7 @@
   <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Trigger-Based AI Automations</title>
+  <title>Quiz System</title>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -39,6 +39,36 @@
       font-size: 28px;
       color: var(--deep-blue);
       margin-bottom: 1rem;
+    }
+    #quiz-selector {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(8, 30, 47, 0.1);
+      margin: 1rem auto;
+      max-width: 600px;
+    }
+    .quiz-selector-title {
+      font-size: 20px;
+      margin-bottom: 1rem;
+      color: var(--deep-blue);
+    }
+    .selector-group {
+      margin-bottom: 1.5rem;
+    }
+    .selector-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #4A4A4A;
+    }
+    .selector-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #DEE2E6;
+      background-color: #fff;
+      font-size: 15px;
     }
     .quiz-info {
       background: white;
@@ -205,20 +235,112 @@
         font-size: 14px;
       }
     }
+    .task-step {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+    }
+    .step-number {
+      background: var(--green);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    .task-step p {
+      margin: 0;
+    }
+    .task-step ul {
+      margin: 0.5rem 0 0 0;
+      padding-left: 1.5rem;
+    }
+    .task-step li {
+      margin-bottom: 0.5rem;
+    }
+    .tools-section {
+      background: #f1f8e9;
+      border-left: 4px solid var(--green);
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 0 4px 4px 0;
+    }
+    #loadingIndicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--green);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
+  <!-- Loading Indicator -->
+  <div id="loadingIndicator">
+    <div class="spinner"></div>
+    <p>Loading quiz data...</p>
+  </div>
+
+  <!-- Quiz Selector Page -->
+  <div id="selectorPage" class="hidden">
+    <h1 style="text-align: center;">Quiz System</h1>
+    <div id="quiz-selector">
+      <h2 class="quiz-selector-title">Select a Quiz</h2>
+      <div class="selector-group">
+        <label for="courseSelect">Course:</label>
+        <select id="courseSelect">
+          <option value="">Select a course</option>
+        </select>
+      </div>
+      <div class="selector-group">
+        <label for="daySelect">Day:</label>
+        <select id="daySelect" disabled>
+          <option value="">Select a day</option>
+        </select>
+      </div>
+      <div class="selector-group">
+        <label for="lessonSelect">Lesson:</label>
+        <select id="lessonSelect" disabled>
+          <option value="">Select a lesson</option>
+        </select>
+      </div>
+      <button id="loadQuizBtn" disabled>Load Quiz</button>
+    </div>
+  </div>
+
   <!-- Title Page -->
-  <div id="titlePage">
-    <h1>🤖 ✨ Trigger-Based AI Automations</h1>
+  <div id="titlePage" class="hidden">
+    <h1 id="quizTitle">Quiz Title</h1>
     <div class="quiz-info">
       <div class="info-item">
         <span>Questions:</span>
-        <strong>15</strong>
+        <strong id="questionCount">0</strong>
       </div>
       <div class="info-item">
         <span>Time Limit:</span>
-        <strong>5 minutes</strong>
+        <strong id="timeLimit">5 minutes</strong>
       </div>
       <div class="info-item">
         <span>Passing Score:</span>
@@ -232,14 +354,14 @@
         <span>Bad news: 😥</span>
         <strong style="text-align: right; max-width: 70%;">You must enter your full name (first and last name) before submitting</strong>
       </div>
-      <button id="startExamBtn" onclick="startQuiz()">Start Exam</button>
+      <button id="startExamBtn">Start Exam</button>
     </div>
   </div>
 
   <!-- Quiz Container -->
   <div id="quizContainer" class="hidden">
     <div id="timer">00:00</div>
-    <h1>Trigger-Based AI Automations</h1>
+    <h1 id="quizTitleInExam">Quiz Title</h1>
     <form id="examForm">
       <!-- User Data Block (not scored) -->
       <div class="question" data-points="0">
@@ -307,149 +429,25 @@
         </label>
       </div>
 
-      <!-- New Quiz Questions -->
+      <!-- Questions will be dynamically inserted here -->
+      <div id="questionsContainer"></div>
 
-      <!-- Question 1 -->
-      <div class="question" data-points="2">
-        <h3>1. How can AI automation improve sales processes?</h3>
-        <label><input type="radio" name="q1" value="A" data-correct="true"> A) By automatically qualifying leads and sending follow-up emails</label>
-        <label><input type="radio" name="q1" value="B"> B) By replacing all sales representatives</label>
-        <label><input type="radio" name="q1" value="C"> C) By manually tracking customer interactions</label>
-        <label><input type="radio" name="q1" value="D"> D) By making cold calls</label>
-      </div>
-
-      <!-- Question 2 -->
-      <div class="question" data-points="2">
-        <h3>2. Which AI automation is useful for HR departments?</h3>
-        <label><input type="radio" name="q2" value="A" data-correct="true"> A) Automating candidate screening and interview scheduling</label>
-        <label><input type="radio" name="q2" value="B"> B) Manually reviewing every resume</label>
-        <label><input type="radio" name="q2" value="C"> C) Only using AI for payroll processing</label>
-        <label><input type="radio" name="q2" value="D"> D) Eliminating HR professionals from recruitment</label>
-      </div>
-
-      <!-- Question 3 -->
-      <div class="question" data-points="2">
-        <h3>3. How does AI automation support lead generation?</h3>
-        <label><input type="radio" name="q3" value="A"> A) By requiring manual lead scoring</label>
-        <label><input type="radio" name="q3" value="B" data-correct="true"> B) By automatically identifying, scoring, and nurturing leads</label>
-        <label><input type="radio" name="q3" value="C"> C) By relying only on cold outreach</label>
-        <label><input type="radio" name="q3" value="D"> D) By limiting the number of potential leads</label>
-      </div>
-
-      <!-- Question 4 -->
-      <div class="question" data-points="2">
-        <h3>4. What is an AI-powered trigger commonly used in design workflows?</h3>
-        <label><input type="radio" name="q4" value="A"> A) Manually adjusting images in Photoshop</label>
-        <label><input type="radio" name="q4" value="B" data-correct="true"> B) Automatically generating design variations based on user input</label>
-        <label><input type="radio" name="q4" value="C"> C) Manually exporting files</label>
-        <label><input type="radio" name="q4" value="D"> D) Using only static templates</label>
-      </div>
-
-      <!-- Question 5 -->
-      <div class="question" data-points="2">
-        <h3>5. Which AI automation improves marketing campaigns?</h3>
-        <label><input type="radio" name="q5" value="A" data-correct="true"> A) AI-powered ad optimization and personalized content generation</label>
-        <label><input type="radio" name="q5" value="B"> B) Sending the same marketing email to all customers</label>
-        <label><input type="radio" name="q5" value="C"> C) Manually analyzing customer behavior</label>
-        <label><input type="radio" name="q5" value="D"> D) Running ads without tracking performance</label>
-      </div>
-
-      <!-- Question 6 -->
-      <div class="question" data-points="2">
-        <h3>6. Which AI automation is commonly used for social media marketing?</h3>
-        <label><input type="radio" name="q6" value="A"> A) Manually posting content every day</label>
-        <label><input type="radio" name="q6" value="B" data-correct="true"> B) Automatically scheduling posts and generating captions with AI</label>
-        <label><input type="radio" name="q6" value="C"> C) Avoiding social media automation</label>
-        <label><input type="radio" name="q6" value="D"> D) Responding to all comments manually</label>
-      </div>
-
-      <!-- Question 7 -->
-      <div class="question" data-points="2">
-        <h3>7. What is Make.com used for in AI automations?</h3>
-        <label><input type="radio" name="q7" value="A" data-correct="true"> A) Connecting apps and automating workflows with no-code triggers</label>
-        <label><input type="radio" name="q7" value="B"> B) Designing websites manually</label>
-        <label><input type="radio" name="q7" value="C"> C) Running AI models locally</label>
-        <label><input type="radio" name="q7" value="D"> D) Replacing all marketing tools</label>
-      </div>
-
-      <!-- Question 8 -->
-      <div class="question" data-points="2">
-        <h3>8. What is a key feature of n8n in automation?</h3>
-        <label><input type="radio" name="q8" value="A"> A) Only working with pre-built templates</label>
-        <label><input type="radio" name="q8" value="B" data-correct="true"> B) Providing customizable workflow automation with AI integrations</label>
-        <label><input type="radio" name="q8" value="C"> C) Requiring manual execution for every workflow</label>
-        <label><input type="radio" name="q8" value="D"> D) Running only simple automation tasks</label>
-      </div>
-
-      <!-- Question 9 -->
-      <div class="question" data-points="2">
-        <h3>9. How does Relevance AI help businesses?</h3>
-        <label><input type="radio" name="q9" value="A" data-correct="true"> A) By using AI to extract insights and automate decision-making</label>
-        <label><input type="radio" name="q9" value="B"> B) By requiring manual data entry</label>
-        <label><input type="radio" name="q9" value="C"> C) By only offering chatbot services</label>
-        <label><input type="radio" name="q9" value="D"> D) By limiting automation to HR workflows</label>
-      </div>
-
-      <!-- Question 10 -->
-      <div class="question" data-points="2">
-        <h3>10. What is an API integration in AI automation?</h3>
-        <label><input type="radio" name="q10" value="A" data-correct="true"> A) A way to connect AI tools with other applications for seamless workflows</label>
-        <label><input type="radio" name="q10" value="B"> B) A manual method for exporting data</label>
-        <label><input type="radio" name="q10" value="C"> C) A tool for designing images</label>
-        <label><input type="radio" name="q10" value="D"> D) A static software configuration</label>
-      </div>
-
-      <!-- Question 11 -->
-      <div class="question" data-points="2">
-        <h3>11. Which of the following is an example of an API-based automation?</h3>
-        <label><input type="radio" name="q11" value="A"> A) Manually tracking sales performance</label>
-        <label><input type="radio" name="q11" value="B" data-correct="true"> B) Automatically updating CRM records when a new lead is generated</label>
-        <label><input type="radio" name="q11" value="C"> C) Exporting files manually from one system to another</label>
-        <label><input type="radio" name="q11" value="D"> D) Sending individual emails manually</label>
-      </div>
-
-      <!-- Question 12 -->
-      <div class="question" data-points="2">
-        <h3>12. How can AI-driven triggers optimize customer support?</h3>
-        <label><input type="radio" name="q12" value="A"> A) By manually responding to each customer inquiry</label>
-        <label><input type="radio" name="q12" value="B" data-correct="true"> B) By using chatbots that trigger responses based on customer queries</label>
-        <label><input type="radio" name="q12" value="C"> C) By removing live chat support</label>
-        <label><input type="radio" name="q12" value="D"> D) By sending the same response to all customers</label>
-      </div>
-
-      <!-- Question 13 -->
-      <div class="question" data-points="2">
-        <h3>13. Which trigger tool is best for automating e-commerce workflows?</h3>
-        <label><input type="radio" name="q13" value="A"> A) Canva</label>
-        <label><input type="radio" name="q13" value="B" data-correct="true"> B) Make.com</label>
-        <label><input type="radio" name="q13" value="C"> C) Microsoft Paint</label>
-        <label><input type="radio" name="q13" value="D"> D) Google Docs</label>
-      </div>
-
-      <!-- Question 14 -->
-      <div class="question" data-points="2">
-        <h3>14. What type of business processes benefit most from trigger-based AI automations?</h3>
-        <label><input type="radio" name="q14" value="A"> A) Tasks that require constant manual supervision</label>
-        <label><input type="radio" name="q14" value="B" data-correct="true"> B) Repetitive and data-driven workflows</label>
-        <label><input type="radio" name="q14" value="C"> C) Creative brainstorming sessions</label>
-        <label><input type="radio" name="q14" value="D"> D) One-time projects with no automation needs</label>
-      </div>
-
-      <!-- Question 15 -->
-      <div class="question" data-points="2">
-        <h3>15. Why is trigger-based AI automation valuable for businesses?</h3>
-        <label><input type="radio" name="q15" value="A"> A) It replaces human employees entirely</label>
-        <label><input type="radio" name="q15" value="B" data-correct="true"> B) It improves efficiency by automating repetitive tasks</label>
-        <label><input type="radio" name="q15" value="C"> C) It increases the complexity of workflows</label>
-        <label><input type="radio" name="q15" value="D"> D) It only works for large corporations</label>
-      </div>
-
-      <button id="submitBtn" type="button" onclick="calculateScore()">Submit Exam</button>
+      <button id="submitBtn" type="button">Submit Exam</button>
     </form>
     <div id="result"></div>
   </div>
 
   <script>
+    let quizData = null;
+    let timer;
+    let seconds = 0;
+    let timeLimit = 300; // Default: 5 minutes
+    let examName = "Quiz";
+    let currentDay = "";
+    let currentCourse = "";
+    let currentLesson = "";
+    let testsData = null;
+
     // Fisher–Yates shuffle function
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -459,26 +457,202 @@
       return array;
     }
 
-    // Randomize answer labels (excluding the user data block)
-    function randomizeAnswers() {
-      const questions = document.querySelectorAll('.question[data-points]:not([data-points="0"])');
-      questions.forEach(question => {
-        const labels = Array.from(question.querySelectorAll('label'));
-        const shuffled = shuffle(labels);
-        shuffled.forEach(label => label.parentNode.removeChild(label));
-        const heading = question.querySelector('h3');
-        shuffled.forEach(label => heading.parentNode.appendChild(label));
-      });
+    // Load tests data
+    async function loadTestsData() {
+      try {
+        const response = await fetch('tests.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load tests data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Tests data loaded successfully');
+        return data;
+      } catch (error) {
+        console.error('Error loading tests data:', error);
+        alert('Failed to load tests data. Please try again later.');
+        return null;
+      }
     }
 
-    let timer;
-    let seconds = 0;
-    const timeLimit = 300; // 5 minutes
-    const examName = "Trigger-Based AI Automations";
+    // Populate selectors with available quizzes
+    function populateSelectors(data) {
+      const courseSelect = document.getElementById('courseSelect');
+      
+      // Clear existing options
+      courseSelect.innerHTML = '<option value="">Select a course</option>';
+      
+      // Add courses
+      for (const courseId in data) {
+        const course = data[courseId];
+        const option = document.createElement('option');
+        option.value = courseId;
+        option.textContent = course.title || courseId;
+        courseSelect.appendChild(option);
+      }
+      
+      // Add event listeners
+      courseSelect.addEventListener('change', handleCourseChange);
+      document.getElementById('daySelect').addEventListener('change', handleDayChange);
+      document.getElementById('lessonSelect').addEventListener('change', handleLessonChange);
+      document.getElementById('loadQuizBtn').addEventListener('click', loadSelectedQuiz);
+    }
+
+    // Handle course selection change
+    function handleCourseChange() {
+      const courseSelect = document.getElementById('courseSelect');
+      const daySelect = document.getElementById('daySelect');
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentCourse = courseSelect.value;
+      
+      // Reset day and lesson selections
+      daySelect.innerHTML = '<option value="">Select a day</option>';
+      lessonSelect.innerHTML = '<option value="">Select a lesson</option>';
+      lessonSelect.disabled = true;
+      loadQuizBtn.disabled = true;
+      
+      if (!currentCourse) {
+        daySelect.disabled = true;
+        return;
+      }
+      
+      // Populate days
+      const course = testsData[currentCourse];
+      daySelect.disabled = false;
+      
+      // Add days
+      if (course.days && course.days.length > 0) {
+        course.days.forEach(day => {
+          // Only add days that have lessons with test data
+          const hasTests = day.lessons && day.lessons.some(lesson => lesson.testData);
+          if (hasTests) {
+            const option = document.createElement('option');
+            option.value = day.id;
+            option.textContent = day.title || `Day ${day.id}`;
+            daySelect.appendChild(option);
+          }
+        });
+      }
+      
+      // Add special lessons as a day option if there are special lessons with tests
+      if (course.specialLessons && course.specialLessons.some(lesson => lesson.testData)) {
+        const option = document.createElement('option');
+        option.value = "special";
+        option.textContent = "Special Lessons";
+        daySelect.appendChild(option);
+      }
+    }
+
+    // Handle day selection change
+    function handleDayChange() {
+      const daySelect = document.getElementById('daySelect');
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentDay = daySelect.value;
+      
+      // Reset lesson selection
+      lessonSelect.innerHTML = '<option value="">Select a lesson</option>';
+      loadQuizBtn.disabled = true;
+      
+      if (!currentDay || !currentCourse) {
+        lessonSelect.disabled = true;
+        return;
+      }
+      
+      // Populate lessons
+      lessonSelect.disabled = false;
+      const course = testsData[currentCourse];
+      
+      if (currentDay === "special") {
+        // Add special lessons
+        if (course.specialLessons) {
+          course.specialLessons.forEach(lesson => {
+            if (lesson.testData) {
+              const option = document.createElement('option');
+              option.value = lesson.id;
+              option.textContent = lesson.title || lesson.id;
+              lessonSelect.appendChild(option);
+            }
+          });
+        }
+      } else {
+        // Find the day and add its lessons
+        const day = course.days.find(d => d.id == currentDay);
+        if (day && day.lessons) {
+          day.lessons.forEach(lesson => {
+            if (lesson.testData) {
+              const option = document.createElement('option');
+              option.value = lesson.id;
+              option.textContent = lesson.title || lesson.id;
+              lessonSelect.appendChild(option);
+            }
+          });
+        }
+      }
+    }
+
+    // Handle lesson selection change
+    function handleLessonChange() {
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentLesson = lessonSelect.value;
+      loadQuizBtn.disabled = !currentLesson;
+    }
+
+    // Load the selected quiz
+    function loadSelectedQuiz() {
+      if (!currentCourse || !currentDay || !currentLesson) {
+        alert('Please select a course, day, and lesson');
+        return;
+      }
+      
+      const course = testsData[currentCourse];
+      let lesson;
+      
+      if (currentDay === "special") {
+        lesson = course.specialLessons.find(l => l.id === currentLesson);
+      } else {
+        const day = course.days.find(d => d.id == currentDay);
+        lesson = day.lessons.find(l => l.id === currentLesson);
+      }
+      
+      if (!lesson || !lesson.testData) {
+        alert('No test data available for the selected lesson');
+        return;
+      }
+      
+      // Set the quiz data
+      quizData = lesson.testData;
+      examName = lesson.title || currentLesson;
+      
+      // Update quiz title
+      document.getElementById('quizTitle').textContent = examName;
+      document.getElementById('quizTitleInExam').textContent = examName;
+      
+      // Update question count
+      const questionCount = quizData.questions ? quizData.questions.length : 0;
+      document.getElementById('questionCount').textContent = questionCount;
+      
+      // Hide selector page and show title page
+      document.getElementById('selectorPage').classList.add('hidden');
+      document.getElementById('titlePage').classList.remove('hidden');
+    }
 
     function startQuiz() {
       const titlePage = document.getElementById('titlePage');
       const quizContainer = document.getElementById('quizContainer');
+
+      if (!quizData || !quizData.questions || quizData.questions.length === 0) {
+        alert('No questions available for this quiz');
+        return;
+      }
+
+      // Generate questions
+      generateQuestions();
 
       if (titlePage && quizContainer) {
         // Добавляем анимацию исчезновения
@@ -499,6 +673,79 @@
       } else {
         console.error('Elements not found: titlePage or quizContainer');
       }
+    }
+
+    // Generate questions from quiz data
+    function generateQuestions() {
+      const questionsContainer = document.getElementById('questionsContainer');
+      questionsContainer.innerHTML = '';
+      
+      if (!quizData || !quizData.questions) {
+        console.error('No questions data available');
+        return;
+      }
+      
+      quizData.questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.dataset.points = question.points || 1;
+        
+        // Create question header
+        const questionHeader = document.createElement('h3');
+        questionHeader.textContent = `${index + 1}. ${question.question}`;
+        questionDiv.appendChild(questionHeader);
+        
+        // Create options
+        if (question.options && Array.isArray(question.options)) {
+          question.options.forEach((option, optionIndex) => {
+            const label = document.createElement('label');
+            
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = `q${index}`;
+            
+            // Handle different option formats
+            let optionValue, optionText;
+            if (typeof option === 'string') {
+              optionValue = String.fromCharCode(65 + optionIndex); // A, B, C, D...
+              optionText = option;
+            } else if (typeof option === 'object') {
+              optionValue = option.value || String.fromCharCode(65 + optionIndex);
+              optionText = option.text || option.label || option.toString();
+            }
+            
+            input.value = optionValue;
+            
+            // Mark correct answer
+            if (
+              question.correctAnswer === optionValue || 
+              question.correctAnswer === optionText || 
+              (Array.isArray(question.correctAnswer) && question.correctAnswer.includes(optionValue))
+            ) {
+              input.dataset.correct = "true";
+            }
+            
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(` ${optionText}`));
+            
+            questionDiv.appendChild(label);
+          });
+        }
+        
+        questionsContainer.appendChild(questionDiv);
+      });
+    }
+
+    // Randomize answer labels (excluding the user data block)
+    function randomizeAnswers() {
+      const questions = document.querySelectorAll('.question[data-points]:not([data-points="0"])');
+      questions.forEach(question => {
+        const labels = Array.from(question.querySelectorAll('label'));
+        const shuffled = shuffle(labels);
+        shuffled.forEach(label => label.parentNode.removeChild(label));
+        const heading = question.querySelector('h3');
+        shuffled.forEach(label => heading.parentNode.appendChild(label));
+      });
     }
 
     function startTimer() {
@@ -633,16 +880,16 @@
         const profession = professionElement ? professionElement.value.trim() : "";
         const recruiter = recruiterElement ? recruiterElement.value.trim() : "";
 
-        // Include the "day" parameter so it gets sent to the server
+        // Include the day parameter from the selected day
         const postData = {
           fullName: fullName,
           profession: profession,
           recruiter: recruiter,
-          day: "4",  // День 4 для отправки на сервер
+          day: currentDay, // Send the current day
           examName: examName,
           scoreObtained: totalPoints,
           scoreTotal: maxPoints,
-          timeUsed: timeLimit - seconds, // Исправлено: отправляем использованное время
+          timeUsed: timeLimit - seconds,
           timeTotal: timeLimit,
           date: formatDate(new Date())
         };
@@ -685,43 +932,53 @@
 
     // loadTask() replaces the quiz view with task instructions.
     function loadTask() {
-      const taskContent = `
-        <h1>🛠 Practice: Create an AI Automation Workflow for Your Field</h1>
+      let taskContent = '';
+      
+      // Try to get the task data from the current lesson
+      if (quizData && quizData.task) {
+        taskContent = `
+          <h1>🛠 Practice: ${quizData.task.title || 'Assignment'}</h1>
 
-        <div class="question" style="margin-bottom: 1.5rem;">
-          <h3>Task Description</h3>
-          <p>In this task, you'll design an AI automation workflow relevant to your professional field.</p>
-        </div>
-
-        <div class="question">
-          <h3>✅ Assignment Steps</h3>
-
-          <div class="task-step">
-            <span class="step-number">1</span>
-            <p>Design a workflow that uses trigger-based AI automation to solve a common problem in your profession.</p>
+          <div class="question" style="margin-bottom: 1.5rem;">
+            <h3>Task Description</h3>
+            <p>${quizData.task.description || 'Complete the following task related to this lesson.'}</p>
           </div>
 
-          <div class="task-step">
-            <span class="step-number">2</span>
-            <p>Your workflow design should include:</p>
-            <ul>
-              <li>Clear identification of the trigger(s) that start the automation</li>
-              <li>The specific AI tools or integrations you would use</li>
-              <li>The data flow or process steps</li>
-              <li>The expected outcome and benefits of the automation</li>
-            </ul>
+          <div class="question">
+            <h3>✅ Assignment Steps</h3>
+            ${quizData.task.steps ? renderTaskSteps(quizData.task.steps) : '<p>Task details not available.</p>'}
+          </div>
+        `;
+      } else {
+        // Default task content if not available in the test data
+        taskContent = `
+          <h1>🛠 Practice: Complete a Practical Task</h1>
+
+          <div class="question" style="margin-bottom: 1.5rem;">
+            <h3>Task Description</h3>
+            <p>Apply the concepts you've learned in this lesson to a practical task.</p>
           </div>
 
-          <div class="task-step">
-            <span class="step-number">3</span>
-            <p>Include a brief explanation of how this automation would save time or improve results compared to manual processes.</p>
-          </div>
+          <div class="question">
+            <h3>✅ Assignment Steps</h3>
 
-          <div class="tools-section">
-            <p><strong>Tools you can use:</strong> Draw.io, Lucidchart, Miro, Make.com, or even a hand-drawn diagram that you can upload as an image.</p>
+            <div class="task-step">
+              <span class="step-number">1</span>
+              <p>Review the material from the lesson.</p>
+            </div>
+
+            <div class="task-step">
+              <span class="step-number">2</span>
+              <p>Create a practical implementation based on what you've learned.</p>
+            </div>
+
+            <div class="task-step">
+              <span class="step-number">3</span>
+              <p>Submit your work through the appropriate channel.</p>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
 
       document.body.innerHTML = `
         <div style="font-family: 'Open Sans', sans-serif; background: #F8F9FA; padding: 2rem; max-width: 800px; margin: 0 auto; min-height: 100vh;">
@@ -747,69 +1004,6 @@
 
           <div id="taskCompletionMessage" style="margin-top: 1rem;"></div>
         </div>
-
-        <style>
-          .task-step {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: flex-start;
-            box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
-          }
-
-          .step-number {
-            background: var(--green);
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 1rem;
-            flex-shrink: 0;
-          }
-
-          .task-step p {
-            margin: 0;
-          }
-
-          .task-step ul {
-            margin: 0.5rem 0 0 0;
-            padding-left: 1.5rem;
-          }
-
-          .task-step li {
-            margin-bottom: 0.5rem;
-          }
-
-          .tools-section {
-            background: #f1f8e9;
-            border-left: 4px solid var(--green);
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 0 4px 4px 0;
-          }
-
-          #taskCompletedBtn:hover {
-            background: var(--green-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-          }
-
-          @media (max-width: 600px) {
-            .task-step {
-              flex-direction: column;
-            }
-
-            .step-number {
-              margin-bottom: 0.5rem;
-            }
-          }
-        </style>
       `;
 
       const taskCompletedBtn = document.getElementById("taskCompletedBtn");
@@ -831,8 +1025,8 @@
                 "Accept": "application/json, text/plain, */*"
               },
               body: JSON.stringify({
-                examName: "Trigger-Based AI Automations",
-                day: "4",  // День 4 для отправки на сервер
+                examName: examName,
+                day: currentDay,
                 link: taskLink,
                 date: formatDate(new Date())
               }),
@@ -870,11 +1064,74 @@
       }
     }
 
-    // Ensure DOM is loaded before attaching event listeners
+    // Helper function to render task steps
+    function renderTaskSteps(steps) {
+      if (!steps || !Array.isArray(steps)) {
+        return '<p>No steps available for this task.</p>';
+      }
+      
+      let html = '';
+      steps.forEach((step, index) => {
+        html += `
+          <div class="task-step">
+            <span class="step-number">${index + 1}</span>
+            <p>${step}</p>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    // Initialize the quiz system
+    async function init() {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const selectorPage = document.getElementById('selectorPage');
+      
+      try {
+        // Load test data
+        testsData = await loadTestsData();
+        
+        if (!testsData) {
+          throw new Error('Failed to load test data');
+        }
+        
+        // Hide loading indicator
+        loadingIndicator.classList.add('hidden');
+        
+        // Show selector page
+        selectorPage.classList.remove('hidden');
+        
+        // Populate selectors
+        populateSelectors(testsData);
+      } catch (error) {
+        console.error('Initialization error:', error);
+        loadingIndicator.innerHTML = `
+          <div style="text-align: center; padding: 2rem;">
+            <h2 style="color: var(--red);">Error Loading Quiz Data</h2>
+            <p>${error.message}</p>
+            <button onclick="location.reload()">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    // Attach event listeners
     document.addEventListener("DOMContentLoaded", function() {
+      // Initialize the quiz system
+      init();
+      
+      // Attach event listeners after init
       const startExamBtn = document.getElementById("startExamBtn");
       if (startExamBtn) {
         startExamBtn.addEventListener("click", startQuiz);
+      }
+      
+      const submitBtn = document.getElementById("submitBtn");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", function() {
+          calculateScore(false);
+        });
       }
     });
   </script>
