@@ -1,0 +1,185 @@
+Попробуйте внести следующие изменения именно в функцию showAudioForLesson. Ниже приведён подробный список изменений с конкретными фрагментами кода.
+
+⸻
+
+Изменение 1.
+В самом начале функции (после проверки на отсутствие lesson) добавить нормализацию аудиоданных, чтобы, если данные приходят в свойстве lesson.audio, они копировались в lesson.audioSource:
+
+Заменить этот фрагмент:
+
+if (!lesson) return;
+// Проверяем, есть ли у урока аудио
+if (lesson.audioSource) {
+  // ...
+
+На этот:
+
+if (!lesson) return;
+// Если аудио хранится в поле "audio", а не "audioSource", присваиваем его
+if (!lesson.audioSource && lesson.audio) {
+  lesson.audioSource = lesson.audio;
+  console.log('Assigned audioSource from lesson.audio');
+}
+if (!lesson.audioSource) {
+  console.log('У урока нет аудио источника');
+  return;
+}
+
+
+
+⸻
+
+Изменение 2.
+Нормализуйте тип аудио (приведите к нижнему регистру) для более надёжного сравнения. Замените строку, где определяется audioType:
+
+Заменить этот фрагмент:
+
+const audioType = lesson.audioSource.type;
+
+На этот:
+
+const audioType = (lesson.audioSource.type || '').toLowerCase();
+
+
+
+⸻
+
+Изменение 3.
+В ветвях проверки типа аудио используйте полученное значение audioType и, если ни один вариант не сработал, добавьте явное сообщение об ошибке. Например, замените последний блок, отвечающий за создание embed-кода из url:
+
+Заменить этот фрагмент:
+
+else if (lesson.audioSource.url) {
+  embedContent = `<audio controls style="width:100%; max-width:600px;">
+    <source src="${lesson.audioSource.url}" type="audio/mpeg">
+    Ваш браузер не поддерживает аудио элемент.
+  </audio>
+  <div style="font-size: 12px; margin-top: 5px;">
+    <a href="${lesson.audioSource.url}" target="_blank">Открыть аудио в новой вкладке</a>
+  </div>`;
+  console.log('Создан HTML5 audio элемент для URL');
+}
+
+На этот:
+
+else if (lesson.audioSource.url) {
+  embedContent = `<audio controls style="width:100%; max-width:600px;">
+    <source src="${lesson.audioSource.url}" type="audio/mpeg">
+    Ваш браузер не поддерживает аудио элемент.
+  </audio>`;
+  console.log('Created HTML5 audio element using url');
+}
+
+
+
+⸻
+
+Изменение 4.
+Добавьте после всех if‑блоков проверку, если embedContent так и не сформировался, то выведите ошибку и установите сообщение для пользователя. Вставьте этот фрагмент сразу после всех блоков (до записи в audioEmbed.innerHTML):
+
+Вставьте следующий фрагмент:
+
+if (!embedContent) {
+  console.error("Не удалось сформировать embedContent из audioSource:", lesson.audioSource);
+  audioEmbed.innerHTML = "<p>Audio not available</p>";
+  return;
+}
+
+
+
+⸻
+
+Полный изменённый фрагмент функции showAudioForLesson будет выглядеть примерно так:
+
+function showAudioForLesson(lesson) {
+  // Сначала скрываем все аудио
+  hideAllAudio();
+  if (!lesson) return;
+  
+  // Если аудио хранится в поле "audio", а не "audioSource", присваиваем его
+  if (!lesson.audioSource && lesson.audio) {
+    lesson.audioSource = lesson.audio;
+    console.log('Assigned audioSource from lesson.audio');
+  }
+  if (!lesson.audioSource) {
+    console.log('У урока нет аудио источника');
+    return;
+  }
+  
+  console.log('Обработка аудио для урока:', lesson.id, 'Тип аудио:', lesson.audioSource.type);
+  console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
+  
+  const audioType = (lesson.audioSource.type || '').toLowerCase();
+  const audioEmbed = document.getElementById('audio-embed');
+  if (!audioEmbed) {
+    console.warn('Элемент с id "audio-embed" не найден. Проверьте HTML-разметку.');
+    return;
+  }
+  
+  let embedContent = '';
+  
+  if (audioType === 'soundcloud') {
+    if (lesson.audioSource.embedCode) {
+      embedContent = lesson.audioSource.embedCode;
+      console.log('Используется готовый embed-код для SoundCloud');
+    } else if (lesson.audioSource.embed) {
+      embedContent = lesson.audioSource.embed;
+      console.log('Используется код embed для SoundCloud');
+    } else if (lesson.audioSource.trackUrl) {
+      embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="${lesson.audioSource.trackUrl}"></iframe>
+      <div style="font-size: 10px; color: #cccccc; margin-top: 5px; text-align: center;">
+        <a href="${lesson.audioSource.url || '#'}" style="color: #cccccc; text-decoration: none;" target="_blank">
+          ${lesson.title || 'Prompt Engineering Audio'}
+        </a>
+      </div>`;
+      console.log('Сформирован iframe для SoundCloud по trackUrl');
+    }
+  }
+  else if (audioType === 'first-lesson') {
+    embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay"
+      src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2041898968&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true">
+    </iframe>
+    <div style="font-size: 10px; color: #cccccc; margin-top: 5px; text-align: center;">
+      <a href="https://soundcloud.com/content-remote-helpers" title="Content Remote Helpers" target="_blank" style="color: #cccccc; text-decoration: none;">Content Remote Helpers</a> · 
+      <a href="https://soundcloud.com/content-remote-helpers/screen-recording-audio" title="First Lesson Audio" target="_blank" style="color: #cccccc; text-decoration: none;">First Lesson Audio</a>
+    </div>`;
+    console.log('Используется предопределенный код для first-lesson');
+  }
+  else if (lesson.audioSource.embedCode) {
+    embedContent = lesson.audioSource.embedCode;
+    console.log('Используется embedCode из источника аудио');
+  }
+  else if (lesson.audioSource.embed) {
+    embedContent = lesson.audioSource.embed;
+    console.log('Используется embed из источника аудио');
+  }
+  else if (lesson.audioSource.trackUrl) {
+    embedContent = `<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="${lesson.audioSource.trackUrl}"></iframe>`;
+    console.log('Создан универсальный iframe для trackUrl');
+  }
+  else if (lesson.audioSource.url) {
+    embedContent = `<audio controls style="width:100%; max-width:600px;">
+      <source src="${lesson.audioSource.url}" type="audio/mpeg">
+      Ваш браузер не поддерживает аудио элемент.
+    </audio>`;
+    console.log('Создан HTML5 audio элемент для URL');
+  }
+  
+  if (!embedContent) {
+    console.error("Не удалось сформировать embedContent из audioSource:", lesson.audioSource);
+    audioEmbed.innerHTML = "<p>Audio not available</p>";
+    return;
+  }
+  
+  audioEmbed.innerHTML = embedContent;
+  audioEmbed.classList.remove('hidden');
+  console.log('Отображено аудио через универсальный контейнер для типа:', audioType);
+}
+
+
+
+⸻
+
+Эти изменения помогут убедиться, что данные аудио корректно извлекаются из JSON (даже если они приходят в поле audio) и что функция правильно обрабатывает все возможные варианты. Если после этих изменений проблема сохраняется, нужно проверить, соответствует ли структура JSON ожидаемому формату и действительно ли в загруженном JSON присутствуют поля, используемые для аудио (например, type, embedCode, trackUrl или url).
+
+Попробуйте внести эти правки и проверьте логи в консоли – они должны помочь отследить, что именно содержится в lesson.audioSource и на каком шаге формирование embedContent не происходит.
