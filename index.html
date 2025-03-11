@@ -595,12 +595,17 @@
       testWebhook: "placeholder-test-webhook-vocabulary"
     };
 
-    // Функция для обработки изменения профессии
-    function handleProfessionChange() {
-      const selectedProfession = document.getElementById("profession-select").value;
-      if (selectedProfession === "lead-generator") {
-        window.location.href = "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n";
-      }
+    // Функция для обработки изменения профессии - только если она еще не определена в глобальном объекте
+    if (!window.handleProfessionChange) {
+      window.handleProfessionChange = function() {
+        const selectedProfession = document.getElementById("profession-select").value;
+        if (selectedProfession === "lead-generator") {
+          window.location.href = "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n";
+        } else if (window.courseManager && typeof window.courseManager.switchProfession === 'function') {
+          window.courseManager.switchProfession(selectedProfession);
+          updateDaysList();
+        }
+      };
     }
 
     function selectDay(day) {
