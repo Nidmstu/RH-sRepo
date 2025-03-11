@@ -1046,18 +1046,18 @@ function updateLessonsList() {
     console.log('Не выбран текущий день, невозможно обновить список уроков');
     return;
   }
-  
+
   const taskButtonsDiv = document.getElementById('task-buttons');
   if (!taskButtonsDiv) {
     console.error('Не найден контейнер для кнопок уроков (task-buttons)');
     return;
   }
-  
+
   taskButtonsDiv.innerHTML = '';
-  
+
   try {
     const lessons = courseManager.getLessonsForCurrentDay();
-    
+
     if (!lessons || !Array.isArray(lessons)) {
       console.error('Получен некорректный список уроков:', lessons);
       const errorMessage = document.createElement('p');
@@ -1067,9 +1067,9 @@ function updateLessonsList() {
       taskButtonsDiv.appendChild(errorMessage);
       return;
     }
-    
+
     console.log(`Загружено ${lessons.length} уроков для дня ${courseManager.currentDay.id}`);
-    
+
     if (lessons.length === 0) {
       const emptyMessage = document.createElement('p');
       emptyMessage.textContent = 'Для этого дня еще не добавлены уроки.';
@@ -1077,12 +1077,12 @@ function updateLessonsList() {
       taskButtonsDiv.appendChild(emptyMessage);
       return;
     }
-    
+
     lessons.forEach(lesson => {
       const btn = document.createElement('button');
       btn.innerText = lesson.title || `Урок ${lesson.id}`;
       btn.onclick = function() { selectLesson(lesson.id); };
-      
+
       if (lesson.description) {
         const description = document.createElement('small');
         description.textContent = lesson.description;
@@ -1091,7 +1091,7 @@ function updateLessonsList() {
         description.style.color = '#666';
         btn.appendChild(description);
       }
-      
+
       taskButtonsDiv.appendChild(btn);
     });
   } catch (error) {
@@ -1109,17 +1109,17 @@ function setupEventListeners() {
   if (professionSelect) {
     professionSelect.addEventListener('change', handleProfessionChange);
   }
-  
+
   const backToDayButton = document.querySelector('button[onclick="goBackToDaySelection()"]');
   if (backToDayButton) {
     backToDayButton.addEventListener('click', goBackToDaySelection);
   }
-  
+
   const backToTaskButton = document.querySelector('button[onclick="goBackToTaskSelection()"]');
   if (backToTaskButton) {
     backToTaskButton.addEventListener('click', goBackToTaskSelection);
   }
-  
+
   const vocabularyButton = document.querySelector('button[onclick="openVocabulary()"]');
   if (vocabularyButton) {
     vocabularyButton.addEventListener('click', openVocabulary);
@@ -1132,9 +1132,9 @@ function setupEventListeners() {
 function updateVocabularyButton() {
   const vocabularyContainer = document.getElementById('vocabulary-container');
   if (!vocabularyContainer) return;
-  
+
   vocabularyContainer.innerHTML = '';
-  
+
   // Проверяем наличие специальных уроков
   const specialLessons = courseManager.getSpecialLessons() || [];
   specialLessons.forEach(lesson => {
@@ -1143,7 +1143,7 @@ function updateVocabularyButton() {
     button.onclick = function() { openVocabulary(); };
     vocabularyContainer.appendChild(button);
   });
-  
+
   if (specialLessons.length === 0) {
     const placeholderText = document.createElement('p');
     placeholderText.textContent = 'Справочные материалы отсутствуют';
@@ -1253,65 +1253,51 @@ window.selectLesson = function(lessonId) {
     // Сначала скрываем все аудио
     hideAllAudio();
     if (!lesson) return;
-    
+
     // Если в JSON аудио хранится в поле "audio", а не "audioSource", присваиваем его
     if (!lesson.audioSource && lesson.audio) {
       lesson.audioSource = lesson.audio;
       console.log('Присвоено audioSource из lesson.audio');
     }
-    
+
+    if (!lesson.audioSource) {
+      console.log('У урока нет аудио источника');
+      return;
+    }
+
+    console.log('Обработка аудио для урока:', lesson.id, 'Тип аудио:', lesson.audioSource.type);
+    console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
+
+    const audioType = (lesson.audioSource.type || '').toLowerCase();
     const audioEmbed = document.getElementById('audio-embed');
     if (!audioEmbed) {
       console.warn('Элемент с id "audio-embed" не найден. Проверьте HTML-разметку.');
       return;
     }
 
-    if (!lesson.audioSource) {
-      console.log('У урока нет источника аудио:', lesson.id);
-      audioEmbed.classList.add('hidden');
+    let embedContent = '';
+    if (audioType === 'soundcloud' && lesson.audioSource.trackUrl) {
+      embedContent = `<iframe src="${lesson.audioSource.trackUrl}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
+      console.log('Created SoundCloud iframe');
+    } else if (audioType === 'soundcloud' && lesson.audioSource.url) {
+      embedContent = `<iframe src="${lesson.audioSource.url}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
+      console.log('Created SoundCloud iframe');
+    } else if (audioType === 'url' && lesson.audioSource.url) {
+      embedContent = `<audio controls style="width:100%; max-width:600px;">
+      <source src="${lesson.audioSource.url}" type="audio/mpeg">
+      Ваш браузер не поддерживает аудио элемент.
+    </audio>`;
+      console.log('Created HTML5 audio element using url');
+    }
+
+    if (!embedContent) {
+      console.error("Не удалось сформировать embedContent из audioSource:", lesson.audioSource);
+      audioEmbed.innerHTML = "<p>Audio not available</p>";
       return;
     }
 
-    console.log('Обработка аудио для урока:', lesson.id);
-    console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
-
-    // Очищаем контейнер перед добавлением нового аудио
-    audioEmbed.innerHTML = '';
-    
-    try {
-      if (lesson.audioSource.type === 'soundcloud') {
-        const iframe = document.createElement('iframe');
-        const src = lesson.audioSource.trackUrl || lesson.audioSource.url;
-        console.log('Использую SoundCloud источник:', src);
-        iframe.src = src;
-        iframe.width = '100%';
-        iframe.height = '166';
-        iframe.frameBorder = '0';
-        iframe.allow = 'autoplay';
-        
-        audioEmbed.appendChild(iframe);
-        audioEmbed.classList.remove('hidden');
-        console.log('Добавлен SoundCloud iframe для урока:', lesson.id);
-      } else if (lesson.audioSource.type === 'url' && lesson.audioSource.url) {
-        const audio = document.createElement('audio');
-        console.log('Использую URL источник:', lesson.audioSource.url);
-        audio.src = lesson.audioSource.url;
-        audio.controls = true;
-        audio.style.width = '100%';
-        audio.style.maxWidth = '600px';
-        
-        audioEmbed.appendChild(audio);
-        audioEmbed.classList.remove('hidden');
-        console.log('Добавлен audio элемент для урока:', lesson.id);
-      } else {
-        console.log('Неподдерживаемый тип аудио:', lesson.audioSource.type);
-        audioEmbed.classList.add('hidden');
-      }
-    } catch (error) {
-      console.error('Ошибка при отображении аудио:', error);
-      console.error('Детали ошибки:', error.message);
-      audioEmbed.classList.add('hidden');
-    }
+    audioEmbed.innerHTML = embedContent;
+    audioEmbed.classList.remove('hidden');
   }
   showSection('guide');
   const contentSpinner = document.getElementById('content-loading-spinner');
