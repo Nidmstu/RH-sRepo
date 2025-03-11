@@ -1,133 +1,203 @@
 
-// Function to fetch tests for available courses
-async function fetchTests() {
-  try {
-    console.log('Attempting to fetch test data...');
+// Tests data handler for learning platform
+// This module is responsible for loading test data for courses
+
+// Store test data globally to make it accessible to other modules
+let testData = {};
+let initialized = false;
+let initAttemptCount = 0;
+const MAX_ATTEMPTS = 20;
+let initialCheckDone = false;
+
+// Immediately invoking function to set up initialization without polluting global scope
+(function() {
+  // Only set up once
+  if (initialCheckDone) return;
+  initialCheckDone = true;
+  
+  // Wait for document to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitialize);
+  } else {
+    // If DOM is already loaded, check on next tick
+    setTimeout(checkAndInitialize, 100);
+  }
+})();
+
+// Check if courseManager is ready and initialize if needed
+function checkAndInitialize() {
+  // If already initialized, nothing to do
+  if (initialized) return;
+  
+  // Check if courseManager exists and is initialized
+  if (window.courseManager && window.courseManager.courses) {
+    console.log('CourseManager found, initializing tests');
+    initializeTests();
+    return;
+  }
+  
+  // If not initialized, set up polling with exponential backoff
+  console.log('CourseManager not ready, will poll');
+  pollForCourseManager();
+}
+
+// Poll for courseManager with exponential backoff
+function pollForCourseManager() {
+  let delay = 500; // Start with 500ms
+  let attempt = 0;
+  
+  function attemptInit() {
+    attempt++;
+    initAttemptCount = attempt;
     
-    // Only proceed if courseManager is fully initialized
+    if (window.courseManager && window.courseManager.courses) {
+      console.log(`CourseManager found on attempt ${attempt}, initializing tests`);
+      initializeTests();
+      return true;
+    }
+    
+    if (attempt >= MAX_ATTEMPTS) {
+      console.warn(`Max attempts (${MAX_ATTEMPTS}) reached waiting for courseManager. Tests may not be available.`);
+      return false;
+    }
+    
+    console.log(`Waiting for courseManager to be initialized... (attempt ${attempt}/${MAX_ATTEMPTS})`);
+    
+    // Increase delay with each attempt (exponential backoff)
+    delay = Math.min(delay * 1.5, 3000); // Cap at 3 seconds
+    
+    // Schedule next attempt
+    setTimeout(attemptInit, delay);
+    return false;
+  }
+  
+  // Start polling
+  attemptInit();
+}
+
+// Initialize tests data
+function initializeTests() {
+  if (initialized) return;
+  
+  console.log('Initializing test data...');
+  loadTestsData()
+    .then(data => {
+      if (data) {
+        testData = data;
+        window.testData = data; // Make available globally
+        initialized = true;
+        console.log('Test data successfully initialized');
+      } else {
+        console.warn('Failed to load test data');
+      }
+    })
+    .catch(error => {
+      console.error('Error initializing test data:', error);
+    });
+}
+
+// Load tests data from course manager
+async function loadTestsData() {
+  try {
     if (!window.courseManager || !window.courseManager.courses) {
-      console.log('CourseManager not initialized yet, will try again later');
+      console.log('CourseManager not available, cannot load tests');
       return null;
     }
-
-    console.log('Fetching test data for courses...');
-    const testData = {};
-
-    // For each course/profession
-    const professions = Object.keys(window.courseManager.courses);
-    for (const profId of professions) {
-      testData[profId] = {};
-      const course = window.courseManager.courses[profId];
-
+    
+    const coursesData = window.courseManager.courses;
+    const result = {};
+    
+    // Process each course/profession
+    for (const profId in coursesData) {
+      const course = coursesData[profId];
+      result[profId] = {};
+      
       // Skip courses with redirects
       if (course.redirectUrl) continue;
-
+      
       // Process each day and its lessons
       if (course.days && Array.isArray(course.days)) {
         for (const day of course.days) {
           if (day.lessons && Array.isArray(day.lessons)) {
             for (const lesson of day.lessons) {
               if (lesson.testSource && lesson.testSource.url) {
-                try {
-                  console.log(`Fetching test for ${profId} - Day ${day.id} - Lesson ${lesson.id}`);
-                  // Store the URL rather than fetching now
-                  testData[profId][lesson.id] = {
-                    url: lesson.testSource.url,
-                    title: lesson.title,
-                    dayId: day.id
-                  };
-                } catch (error) {
-                  console.error(`Error fetching test for ${lesson.id}:`, error);
-                }
+                result[profId][lesson.id] = {
+                  url: lesson.testSource.url,
+                  title: lesson.title,
+                  dayId: day.id
+                };
               }
             }
           }
         }
       }
-
+      
       // Process special lessons
       if (course.specialLessons && Array.isArray(course.specialLessons)) {
         for (const lesson of course.specialLessons) {
           if (lesson.testSource && lesson.testSource.url) {
-            try {
-              console.log(`Fetching test for special lesson ${lesson.id}`);
-              testData[profId][lesson.id] = {
-                url: lesson.testSource.url,
-                title: lesson.title,
-                isSpecial: true
-              };
-            } catch (error) {
-              console.error(`Error fetching test for special lesson ${lesson.id}:`, error);
-            }
+            result[profId][lesson.id] = {
+              url: lesson.testSource.url,
+              title: lesson.title,
+              isSpecial: true
+            };
           }
         }
       }
     }
-
-    console.log('Test data collection complete');
-    window.testData = testData;
-    return testData;
+    
+    return result;
   } catch (error) {
-    console.error('Error in fetchTests:', error);
+    console.error('Error loading test data:', error);
     return null;
   }
 }
 
-// Setup initialization without using recursive interval setup
-let attemptCount = 0;
-const maxAttempts = 30;
-
-function initializeTests() {
-  // Clear any existing intervals to prevent duplicates
-  if (window.testInitInterval) {
-    clearInterval(window.testInitInterval);
+// Get test URL for a specific lesson
+function getTestUrl(professionId, lessonId) {
+  if (!testData || !testData[professionId] || !testData[professionId][lessonId]) {
+    return null;
   }
-
-  // Check for courseManager once on page load
-  if (window.courseManager && window.courseManager.courses) {
-    console.log('CourseManager already initialized, fetching tests immediately');
-    fetchTests();
-    return;
-  }
-
-  // Otherwise set up a polling interval
-  console.log('Setting up courseManager polling');
-  window.testInitInterval = setInterval(() => {
-    attemptCount++;
-    
-    if (window.courseManager && window.courseManager.courses) {
-      console.log('CourseManager found, fetching tests');
-      clearInterval(window.testInitInterval);
-      fetchTests();
-      
-    } else {
-      console.log(`Waiting for courseManager to be initialized... (${attemptCount}/${maxAttempts})`);
-      
-      if (attemptCount >= maxAttempts) {
-        console.log('Max attempts reached, canceling test data initialization');
-        clearInterval(window.testInitInterval);
-      }
-    }
-  }, 1000);
   
-  // Set a timeout to cancel polling after 30 seconds
-  setTimeout(() => {
-    if (window.testInitInterval) {
-      clearInterval(window.testInitInterval);
-      console.log('Stopped waiting for courseManager after timeout');
-    }
-  }, 30000);
+  return testData[professionId][lessonId].url;
 }
 
-// Initialize once the DOM is fully loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeTests);
-} else {
-  // If DOMContentLoaded has already fired, run immediately
-  initializeTests();
+// Get all tests for a profession
+function getTestsForProfession(professionId) {
+  if (!testData || !testData[professionId]) {
+    return {};
+  }
+  
+  return testData[professionId];
 }
 
-// Export for Node.js environment
+// Check initialization status
+function isInitialized() {
+  return initialized;
+}
+
+// Manually trigger initialization
+function manualInit() {
+  if (!initialized) {
+    checkAndInitialize();
+  }
+  return initialized;
+}
+
+// Export functions for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fetchTests };
+  module.exports = {
+    getTestUrl,
+    getTestsForProfession,
+    isInitialized,
+    manualInit
+  };
 }
+
+// Make functions available globally if needed
+window.testManager = {
+  getTestUrl,
+  getTestsForProfession,
+  isInitialized,
+  manualInit
+};
