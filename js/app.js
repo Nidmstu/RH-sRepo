@@ -1256,11 +1256,14 @@ window.selectLesson = function(lessonId) {
       return;
     }
 
-    if (!lesson.audioSource) {
-      console.log('У урока нет источника аудио');
+    if (!lesson || !lesson.audioSource) {
+      console.log('У урока нет источника аудио:', lesson ? lesson.id : 'undefined');
       audioEmbed.classList.add('hidden');
       return;
     }
+
+    console.log('Обработка аудио для урока:', lesson.id);
+    console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
 
     // Очищаем контейнер перед добавлением нового аудио
     audioEmbed.innerHTML = '';
@@ -1268,7 +1271,9 @@ window.selectLesson = function(lessonId) {
     try {
       if (lesson.audioSource.type === 'soundcloud') {
         const iframe = document.createElement('iframe');
-        iframe.src = lesson.audioSource.trackUrl || lesson.audioSource.url;
+        const src = lesson.audioSource.trackUrl || lesson.audioSource.url;
+        console.log('Использую SoundCloud источник:', src);
+        iframe.src = src;
         iframe.width = '100%';
         iframe.height = '166';
         iframe.frameBorder = '0';
@@ -1279,6 +1284,7 @@ window.selectLesson = function(lessonId) {
         console.log('Добавлен SoundCloud iframe для урока:', lesson.id);
       } else if (lesson.audioSource.type === 'url' && lesson.audioSource.url) {
         const audio = document.createElement('audio');
+        console.log('Использую URL источник:', lesson.audioSource.url);
         audio.src = lesson.audioSource.url;
         audio.controls = true;
         audio.style.width = '100%';
@@ -1293,6 +1299,7 @@ window.selectLesson = function(lessonId) {
       }
     } catch (error) {
       console.error('Ошибка при отображении аудио:', error);
+      console.error('Детали ошибки:', error.message);
       audioEmbed.classList.add('hidden');
     }
   }

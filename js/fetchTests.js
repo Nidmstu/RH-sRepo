@@ -322,6 +322,9 @@ function saveTestsToFile(data) {
 
 // Only execute in browser environment
 if (typeof window !== 'undefined') {
+  let waitCount = 0;
+  const maxWaits = 30; // Максимум 30 секунд ожидания
+
   // Wait for the courseManager to be initialized
   function waitForCourseManager() {
     if (window.courseManager && window.courseManager.courses) {
@@ -330,13 +333,26 @@ if (typeof window !== 'undefined') {
         window.testData = testData;
       });
     } else {
-      console.log('Waiting for courseManager to be initialized...');
-      setTimeout(waitForCourseManager, 1000);
+      waitCount++;
+      if (waitCount <= maxWaits) {
+        console.log(`Waiting for courseManager to be initialized... (${waitCount}/${maxWaits})`);
+        setTimeout(waitForCourseManager, 1000);
+      } else {
+        console.warn('Exceeded maximum wait time for courseManager. Aborting test data fetch.');
+      }
     }
   }
   
-  // Start waiting for courseManager
-  waitForCourseManager();
+  // Wait for DOM content to be fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Delay the start to give time for app.js to initialize
+      setTimeout(waitForCourseManager, 3000);
+    });
+  } else {
+    // Document already loaded, delay the start
+    setTimeout(waitForCourseManager, 3000);
+  }
 }
 
 // Export for Node.js environment
