@@ -282,51 +282,49 @@ function extractTestFromHTML(html) {
   return testData;
 }
 
-// Save tests data to a file
+// Save tests data to a file on the server
 function saveTestsToFile(data) {
   const jsonData = JSON.stringify(data, null, 2);
+  const filename = 'tests.json';
   
-  // Function to send a fetch to save file
-  function saveToFileSystem(content, filename) {
-    try {
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      console.log(`File ${filename} prepared for download`);
-      
-      // Also try to save via server if we're in a Replit environment
-      if (window.fetch) {
-        try {
-          fetch('/save-tests', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ content, filename })
-          })
-          .then(response => response.text())
-          .then(result => {
-            console.log('Server save result:', result);
-          })
-          .catch(error => {
-            console.error('Error saving via server:', error);
-          });
-        } catch (e) {
-          console.error('Error trying to save via server:', e);
-        }
+  console.log(`Saving test data to server as ${filename}...`);
+  
+  // Save directly to server
+  fetch('/save-tests', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+      content: jsonData, 
+      filename: filename 
+    })
+  })
+  .then(response => response.text())
+  .then(result => {
+    console.log('Server save result:', result);
+    // Show success message
+    if (document.getElementById('loading-spinner')) {
+      const status = document.querySelector('.loading-status');
+      if (status) {
+        status.textContent = `Test data saved successfully to server as ${filename}`;
+        status.style.color = 'green';
       }
-    } catch (error) {
-      console.error('Error preparing file for download:', error);
     }
-  }
+  })
+  .catch(error => {
+    console.error('Error saving to server:', error);
+    // Show error message
+    if (document.getElementById('loading-spinner')) {
+      const status = document.querySelector('.loading-status');
+      if (status) {
+        status.textContent = `Error saving test data: ${error.message}`;
+        status.style.color = 'red';
+      }
+    }
+  });
   
-  saveToFileSystem(jsonData, 'tests.json');
-  console.log('Tests data prepared for download');
+  console.log('Test data sent to server for saving');
 }
 
 // Only execute in browser environment

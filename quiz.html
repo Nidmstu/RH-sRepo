@@ -898,6 +898,27 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
           resultDiv.innerHTML += '<p>Sending results to server...</p>';
 
+          // First try to use local server for results
+          fetch("/get-tests", {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            }
+          })
+          .then(function(res) {
+            if (!res.ok) {
+              throw new Error("Could not fetch local test data");
+            }
+            return res.json();
+          })
+          .then(function(testData) {
+            console.log("Successfully loaded test data from server");
+            // Continue with webhook
+          })
+          .catch(function(err) {
+            console.warn("Could not load local test data:", err.message);
+          });
+
           fetch("https://auto.crm-s.com/webhook/Onboarding/Update", {
             method: "POST",
             headers: {
