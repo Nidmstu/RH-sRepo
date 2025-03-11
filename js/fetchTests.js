@@ -14,18 +14,17 @@ async function fetchTests() {
   // Process all courses
   for (const courseId in courses) {
     const course = courses[courseId];
-    testData[courseId] = { days: [] };
-    
-    if (course.title) {
-      testData[courseId].title = course.title;
-    }
+    testData[courseId] = { 
+      title: course.title || courseId,
+      days: [] 
+    };
     
     // Process days
     if (course.days && Array.isArray(course.days)) {
       for (const day of course.days) {
         const dayData = {
           id: day.id,
-          title: day.title,
+          title: day.title || `Day ${day.id}`,
           lessons: []
         };
         
@@ -188,7 +187,8 @@ function processTestData(data) {
         points: q.points || 1
       })),
       format: 'json',
-      parsed: true
+      parsed: true,
+      task: data.task || null
     };
   } else if (data.test && data.test.questions) {
     return {
@@ -201,7 +201,8 @@ function processTestData(data) {
         points: q.points || 1
       })),
       format: 'json',
-      parsed: true
+      parsed: true,
+      task: data.test.task || data.task || null
     };
   } else if (Array.isArray(data)) {
     // If it's an array, assume it's an array of questions
@@ -289,16 +290,6 @@ function saveTestsToFile(data) {
   // Function to send a fetch to save file
   function saveToFileSystem(content, filename) {
     try {
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      console.log(`File ${filename} prepared for download`);
-      
       // Also try to save via server if we're in a Replit environment
       if (window.fetch) {
         try {
@@ -326,7 +317,7 @@ function saveTestsToFile(data) {
   }
   
   saveToFileSystem(jsonData, 'tests.json');
-  console.log('Tests data prepared for download');
+  console.log('Tests data prepared for server save');
 }
 
 // Only execute in browser environment
