@@ -1585,21 +1585,6 @@ function populateVocabulary(courseId) {
   }
 }
 
-// Function to handle profession/course change
-function handleProfessionChange() {
-  const courseSelect = document.getElementById('profession-select');
-  if (!courseSelect) return;
-  const selectedCourse = courseSelect.value;
-  if (window.courseManager.hasRedirect(selectedCourse)) {
-    const redirectUrl = window.courseManager.getRedirectUrl(selectedCourse);
-    if (redirectUrl) {
-      window.location.href = redirectUrl;
-      return;
-    }
-  }
-  populateDays(selectedCourse);
-}
-
 // Open a special lesson (like vocabulary)
 function openSpecialLesson(lessonId) {
   const lesson = window.courseManager.selectLesson(lessonId);
@@ -1629,130 +1614,6 @@ function openSpecialLesson(lessonId) {
   loadLessonContent();
 }
 
-// Load content for the current lesson
-async function loadLessonContent() {
-  const spinner = document.getElementById('content-loading-spinner');
-  if (spinner) spinner.classList.remove('hidden');
-  const markdownDiv = document.getElementById('markdown-content');
-  if (markdownDiv) markdownDiv.classList.add('hidden');
-  try {
-    const content = await window.courseManager.fetchLessonContent();
-    if (content) {
-      if (markdownDiv) {
-        markdownDiv.innerHTML = marked.parse(content);
-        markdownDiv.classList.remove('hidden');
-      }
-    } else {
-      throw new Error('Failed to load lesson content');
-    }
-  } catch (error) {
-    console.error('Error loading lesson content:', error);
-    if (markdownDiv) {
-      markdownDiv.innerHTML = `<div class="error-message">
-        <h3>Error Loading Content</h3>
-        <p>${error.message || 'Unknown error'}</p>
-      </div>`;
-      markdownDiv.classList.remove('hidden');
-    }
-  } finally {
-    if (spinner) spinner.classList.add('hidden');
-  }
-}
-
-// Function called when a day is selected
-function selectDay(dayId) {
-  window.currentDay = dayId;
-  const day = window.courseManager.selectDay(dayId);
-  if (!day) {
-    console.error(`Day ${dayId} not found`);
-    return;
-  }
-  const dayHeader = document.getElementById('day-header');
-  if (dayHeader) dayHeader.innerText = day.title || `Day ${day.id}`;
-  const daySelection = document.getElementById('day-selection');
-  if (daySelection) daySelection.classList.add('hidden');
-  const taskSelection = document.getElementById('task-selection');
-  if (taskSelection) taskSelection.classList.remove('hidden');
-  const taskButtonsDiv = document.getElementById('task-buttons');
-  if (taskButtonsDiv) {
-    taskButtonsDiv.innerHTML = '';
-    const lessons = window.courseManager.getLessonsForCurrentDay() || [];
-    if (lessons.length === 0) {
-      taskButtonsDiv.innerHTML = '<p>No lessons available for this day</p>';
-      return;
-    }
-    lessons.forEach(lesson => {
-      const btn = document.createElement('button');
-      btn.innerText = lesson.title || lesson.id;
-      btn.onclick = function() { selectLesson(lesson.id); };
-      taskButtonsDiv.appendChild(btn);
-    });
-  }
-}
-
-// Select a specific lesson
-function selectLesson(lessonId) {
-  const lesson = window.courseManager.selectLesson(lessonId);
-  if (!lesson) {
-    console.error(`Lesson ${lessonId} not found`);
-    return;
-  }
-  window.currentTopic = {
-    title: lesson.title || lesson.id,
-    contentWebhook: lesson.contentSource?.url || '',
-    testWebhook: lesson.testSource?.url || ''
-  };
-  const guideTitle = document.getElementById('guide-title');
-  if (guideTitle) guideTitle.innerText = `Guide: ${lesson.title || lesson.id}`;
-  const home = document.getElementById('home');
-  if (home) home.classList.add('hidden');
-  const guide = document.getElementById('guide');
-  if (guide) guide.classList.remove('hidden');
-  const testButton = document.getElementById('test-button');
-  if (testButton) {
-    if (lesson.testSource && lesson.testSource.url) {
-      testButton.classList.remove('hidden');
-    } else {
-      testButton.classList.add('hidden');
-    }
-  }
-  loadLessonContent();
-}
-
-// Go back to day selection
-function goBackToDaySelection() {
-  const taskSelection = document.getElementById('task-selection');
-  if (taskSelection) taskSelection.classList.add('hidden');
-  const daySelection = document.getElementById('day-selection');
-  if (daySelection) daySelection.classList.remove('hidden');
-}
-
-// Go back to task selection
-function goBackToTaskSelection() {
-  const guide = document.getElementById('guide');
-  if (guide) guide.classList.add('hidden');
-  const home = document.getElementById('home');
-  if (home) home.classList.remove('hidden');
-  if (window.currentDay) {
-    const daySelection = document.getElementById('day-selection');
-    if (daySelection) daySelection.classList.add('hidden');
-    const taskSelection = document.getElementById('task-selection');
-    if (taskSelection) taskSelection.classList.remove('hidden');
-  }
-}
-
-// Open vocabulary reference
-function openVocabulary() {
-  const specialLessons = window.courseManager.getSpecialLessons() || [];
-  const vocabulary = specialLessons.find(lesson => lesson.id === 'vocabulary');
-  if (vocabulary) {
-    openSpecialLesson('vocabulary');
-  } else {
-    console.error('Vocabulary lesson not found');
-    alert('Vocabulary reference not available for this course');
-  }
-}
-
 // Exportируем функции приложения
 const app = {
   initApp,        // первая версия инициализации
@@ -1766,12 +1627,5 @@ const app = {
   goBackToTaskSelection,
   openVocabulary
 };
-
-window.handleProfessionChange = handleProfessionChange;
-window.selectDay = selectDay;
-window.selectLesson = selectLesson;
-window.goBackToDaySelection = goBackToDaySelection;
-window.goBackToTaskSelection = goBackToTaskSelection;
-window.openVocabulary = openVocabulary;
 
 export default app;
