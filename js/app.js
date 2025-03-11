@@ -1250,14 +1250,24 @@ window.selectLesson = function(lessonId) {
 
   // Вспомогательная функция для отображения аудио для урока
   function showAudioForLesson(lesson) {
+    // Сначала скрываем все аудио
+    hideAllAudio();
+    if (!lesson) return;
+    
+    // Если в JSON аудио хранится в поле "audio", а не "audioSource", присваиваем его
+    if (!lesson.audioSource && lesson.audio) {
+      lesson.audioSource = lesson.audio;
+      console.log('Присвоено audioSource из lesson.audio');
+    }
+    
     const audioEmbed = document.getElementById('audio-embed');
     if (!audioEmbed) {
-      console.error('Не найден контейнер для аудио (audio-embed)');
+      console.warn('Элемент с id "audio-embed" не найден. Проверьте HTML-разметку.');
       return;
     }
 
-    if (!lesson || !lesson.audioSource) {
-      console.log('У урока нет источника аудио:', lesson ? lesson.id : 'undefined');
+    if (!lesson.audioSource) {
+      console.log('У урока нет источника аудио:', lesson.id);
       audioEmbed.classList.add('hidden');
       return;
     }
