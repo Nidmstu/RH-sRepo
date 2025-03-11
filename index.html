@@ -383,9 +383,9 @@
     <!-- Контейнер для Markdown контента -->
     <div id="markdown-content" class="markdown-content hidden"></div>
 
-    <!-- Кнопка Test для выбранного модуля -->
+    <!-- Test button for the selected module -->
     <div class="center" style="margin-top:20px;">
-      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
+      <button id="test-button" onclick="openTestForCurrentTopic()">Test</button>
     </div>
     <!-- Кнопка Back для возврата к списку топиков -->
     <div class="center" style="margin-top:20px;">
@@ -722,14 +722,37 @@
       if (taskSelection) taskSelection.classList.add("hidden");
     };
 
-    // Функция для открытия словаря
+    // Function to handle test button click
+    function openTestForCurrentTopic() {
+      if (!window.currentTopic) return;
+      
+      // First try to get test URL from testManager if it's available
+      if (window.testManager && window.courseManager) {
+        const activeProf = window.courseManager.getActiveProfessionId();
+        const currentLessonId = window.currentTopic.id;
+        
+        if (activeProf && currentLessonId) {
+          const testUrl = window.testManager.getTestUrl(activeProf, currentLessonId);
+          if (testUrl) {
+            window.location.href = testUrl;
+            return;
+          }
+        }
+      }
+      
+      // Fallback to direct webhook URL
+      if (window.currentTopic.testWebhook) {
+        window.location.href = window.currentTopic.testWebhook;
+      }
+    }
+    
+    // Function to open vocabulary
     function openVocabulary() {
       window.currentTopic = vocabularyTopic;
       const guideTitle = document.getElementById("guide-title");
       if (guideTitle) guideTitle.innerText = "Guide: " + window.currentTopic.title;
       hideAllAudio();
-      // Аудио для Vocabulary остается скрытым
-      // Скрываем кнопку теста для словаря
+      // Hide test button for vocabulary
       document.getElementById("test-button").classList.add("hidden");
       showSection("guide");
       fetchMarkdownContent();
