@@ -469,8 +469,8 @@
 
           // Пытаемся загрузить данные снова
           try {
-            if (typeof app === 'object' && app.initApp) {
-              await app.initApp();
+            if (typeof app === 'object' && app.initialize) {
+              await app.initialize();
             } else {
               await courseManager.initialize();
             }
@@ -505,8 +505,8 @@
       // Используем модуль app.js для инициализации приложения
       // вместо прямого вызова courseManager.initialize()
       try {
-        if (typeof app === 'object' && app.initApp) {
-          await app.initApp();
+        if (typeof app === 'object' && app.initialize) {
+          await app.initialize();
         } else {
           // Если модуль app недоступен, инициализируем менеджер курсов напрямую
           await courseManager.initialize();

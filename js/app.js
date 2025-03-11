@@ -2142,7 +2142,7 @@ async function createJsonBackup(coursesData) {
 // Main application JavaScript
 
 // Initialize the application
-async function initApp() {
+async function initialize() {
   try {
     console.log('Initializing application...');
     
@@ -2516,7 +2516,8 @@ function openVocabulary() {
 
 // Export the app functions
 const app = {
-  initApp,
+  initApp: initialize, // Map initApp to the new function name for backward compatibility
+  initialize,
   populateCourseDropdown,
   populateDays,
   handleProfessionChange,
