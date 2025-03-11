@@ -2141,7 +2141,10 @@ async function createJsonBackup(coursesData) {
 }
 // Main application JavaScript
 
-// Initialize the application
+/**
+ * Initialize the application
+ * This is the main entry point for the application
+ */
 async function initialize() {
   try {
     console.log('Initializing application...');
@@ -2158,8 +2161,19 @@ async function initialize() {
       }
     }
     
-    // Initialize course manager
-    await window.courseManager.initialize();
+    // Make sure courseManager exists and is initialized only once
+    if (!window.courseManager) {
+      console.error('CourseManager is not available!');
+      throw new Error('CourseManager not found');
+    }
+    
+    // Initialize course manager if not already initialized
+    if (!window.courseManager.courses || Object.keys(window.courseManager.courses).length === 0) {
+      console.log('Initializing course manager...');
+      await window.courseManager.initialize();
+    } else {
+      console.log('CourseManager already initialized with courses');
+    }
     
     // Populate course selection dropdown
     populateCourseDropdown();

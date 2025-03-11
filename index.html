@@ -496,20 +496,29 @@
       console.log("Page loaded, initializing application...");
 
       // Глобальный доступ к менеджеру курсов и админ-панели
+      // ВАЖНО: устанавливаем глобальные объекты до их использования
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
-
+      
       // Настраиваем обработчик для кнопки повторной загрузки
       setupRetryHandler();
 
-      // Используем модуль app.js для инициализации приложения
-      // вместо прямого вызова courseManager.initialize()
+      // Последовательность инициализации:
+      // 1. Инициализация менеджера курсов
+      // 2. Инициализация приложения
       try {
+        // Сначала инициализируем менеджер курсов
+        console.log("Initializing courseManager...");
+        await courseManager.initialize();
+        console.log("CourseManager initialized successfully");
+        
+        // Затем инициализируем приложение
+        console.log("Initializing application...");
         if (typeof app === 'object' && app.initialize) {
           await app.initialize();
+          console.log("Application initialized successfully");
         } else {
-          // Если модуль app недоступен, инициализируем менеджер курсов напрямую
-          await courseManager.initialize();
+          console.warn("App module not available or initialize method not found");
         }
       } catch (error) {
         console.error('Ошибка при инициализации приложения:', error);
