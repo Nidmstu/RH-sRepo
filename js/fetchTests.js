@@ -1,4 +1,4 @@
-javascript
+
 // Function to fetch tests for available courses
 async function fetchTests() {
   // Only run if we have the courseManager and its data available
@@ -82,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.testData = testData;
         console.log('Test data saved to window.testData');
       });
+    } else {
+      console.log("Waiting for courseManager to be initialized...");
     }
   }, 2000); // Check every 2 seconds
 
