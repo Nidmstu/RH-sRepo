@@ -30,23 +30,6 @@ app.post('/save-tests', (req, res) => {
   }
 });
 
-// Route to get test data
-app.get('/get-test-data', (req, res) => {
-  try {
-    const filePath = path.join(__dirname, '..', 'tests.json');
-    
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf8');
-      res.json(JSON.parse(content));
-    } else {
-      res.status(404).send('Test data file not found');
-    }
-  } catch (error) {
-    console.error('Error reading test data:', error);
-    res.status(500).send(`Error reading test data: ${error.message}`);
-  }
-});
-
 // Start the server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);

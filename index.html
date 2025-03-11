@@ -320,31 +320,30 @@
     <!-- Домашняя страница -->
     <div id="home" class="container center">
     <div id="day-selection">
-      <h1>Learning Platform</h1>
+      <h1>Prompt Engineering Onboarding</h1>
       <p>
-        Course:&nbsp;
+        Profession:&nbsp;
         <select id="profession-select" onchange="handleProfessionChange()">
-          <option value="">Select a course</option>
+          <option value="prompt-engineer">Prompt Engineer</option>
+          <option value="lead-generator">Lead Generator</option>
         </select>
       </p>
 
       <div style="margin: 30px 0;">
         <p>Quick Reference:</p>
         <div id="vocabulary-container">
-          <!-- Vocabulary buttons will be dynamically added here -->
+          <!-- Сюда будет динамически добавлена кнопка словаря -->
+          <button onclick="openVocabulary()">Prompt Engineering Vocabulary</button>
         </div>
       </div>
 
       <div style="margin-top: 30px;">
         <p>Select Training Day:</p>
-        <div id="days-container">
-          <!-- Day buttons will be dynamically added here -->
-        </div>
       </div>
 
       <div id="admin-access" style="margin-top: 30px;">
         <a href="admin.html" style="text-decoration: none;">
-          <button style="background-color: #3498db;">Course Management</button>
+          <button style="background-color: #3498db;">Управление курсами</button>
         </a>
       </div>
     </div>
@@ -383,9 +382,9 @@
     <!-- Контейнер для Markdown контента -->
     <div id="markdown-content" class="markdown-content hidden"></div>
 
-    <!-- Test button for the selected module -->
+    <!-- Кнопка Test для выбранного модуля -->
     <div class="center" style="margin-top:20px;">
-      <button id="test-button" onclick="openTestForCurrentTopic()">Test</button>
+      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
     </div>
     <!-- Кнопка Back для возврата к списку топиков -->
     <div class="center" style="margin-top:20px;">
@@ -430,11 +429,6 @@
     import devMode from './js/devMode.js';
     import adminPanel from './js/admin.js';
     import app from './js/app.js';
-    
-    // Load fetchTests.js after module imports
-    const fetchTestsScript = document.createElement('script');
-    fetchTestsScript.src = 'js/fetchTests.js';
-    document.head.appendChild(fetchTestsScript);
 
     // Глобальная функция для фильтрации скрытых курсов
     window.filterHiddenCourses = function(courses) {
@@ -474,8 +468,8 @@
 
           // Пытаемся загрузить данные снова
           try {
-            if (typeof app === 'object' && app.initialize) {
-              await app.initialize();
+            if (typeof app === 'object' && app.initApp) {
+              await app.initApp();
             } else {
               await courseManager.initialize();
             }
@@ -501,29 +495,20 @@
       console.log("Page loaded, initializing application...");
 
       // Глобальный доступ к менеджеру курсов и админ-панели
-      // ВАЖНО: устанавливаем глобальные объекты до их использования
       window.courseManager = courseManager;
       window.adminPanel = adminPanel;
 
       // Настраиваем обработчик для кнопки повторной загрузки
       setupRetryHandler();
 
-      // Последовательность инициализации:
-      // 1. Инициализация менеджера курсов
-      // 2. Инициализация приложения
+      // Используем модуль app.js для инициализации приложения
+      // вместо прямого вызова courseManager.initialize()
       try {
-        // Сначала инициализируем менеджер курсов
-        console.log("Initializing courseManager...");
-        await courseManager.initialize();
-        console.log("CourseManager initialized successfully");
-
-        // Затем инициализируем приложение
-        console.log("Initializing application...");
-        if (typeof app === 'object' && app.initialize) {
-          await app.initialize();
-          console.log("Application initialized successfully");
+        if (typeof app === 'object' && app.initApp) {
+          await app.initApp();
         } else {
-          console.warn("App module not available or initialize method not found");
+          // Если модуль app недоступен, инициализируем менеджер курсов напрямую
+          await courseManager.initialize();
         }
       } catch (error) {
         console.error('Ошибка при инициализации приложения:', error);
@@ -599,23 +584,12 @@
       testWebhook: "placeholder-test-webhook-vocabulary"
     };
 
-    // Define a handleProfessionChange function for backward compatibility
-    function updateDaysList() {
-      // Will be implemented if not already defined
-      console.log("Days list update requested");
-    }
-    
-    // Define global function only if it doesn't exist yet
-    if (typeof window.handleProfessionChange !== 'function') {
-      window.handleProfessionChange = function() {
-        const selectedProfession = document.getElementById("profession-select").value;
-        if (selectedProfession === "lead-generator") {
-          window.location.href = "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n";
-        } else if (window.courseManager && typeof window.courseManager.switchProfession === 'function') {
-          window.courseManager.switchProfession(selectedProfession);
-          updateDaysList();
-        }
-      };
+    // Функция для обработки изменения профессии
+    function handleProfessionChange() {
+      const selectedProfession = document.getElementById("profession-select").value;
+      if (selectedProfession === "lead-generator") {
+        window.location.href = "https://hook.eu1.make.com/jcjl176nvrhlm4ag7qiixjzssxqdbl5n";
+      }
     }
 
     function selectDay(day) {
@@ -722,37 +696,14 @@
       if (taskSelection) taskSelection.classList.add("hidden");
     };
 
-    // Function to handle test button click
-    function openTestForCurrentTopic() {
-      if (!window.currentTopic) return;
-      
-      // First try to get test URL from testManager if it's available
-      if (window.testManager && window.courseManager) {
-        const activeProf = window.courseManager.getActiveProfessionId();
-        const currentLessonId = window.currentTopic.id;
-        
-        if (activeProf && currentLessonId) {
-          const testUrl = window.testManager.getTestUrl(activeProf, currentLessonId);
-          if (testUrl) {
-            window.location.href = testUrl;
-            return;
-          }
-        }
-      }
-      
-      // Fallback to direct webhook URL
-      if (window.currentTopic.testWebhook) {
-        window.location.href = window.currentTopic.testWebhook;
-      }
-    }
-    
-    // Function to open vocabulary
+    // Функция для открытия словаря
     function openVocabulary() {
       window.currentTopic = vocabularyTopic;
       const guideTitle = document.getElementById("guide-title");
       if (guideTitle) guideTitle.innerText = "Guide: " + window.currentTopic.title;
       hideAllAudio();
-      // Hide test button for vocabulary
+      // Аудио для Vocabulary остается скрытым
+      // Скрываем кнопку теста для словаря
       document.getElementById("test-button").classList.add("hidden");
       showSection("guide");
       fetchMarkdownContent();
@@ -1799,6 +1750,7 @@ When a prompt is too long and exceeds the model's context window, causing inform
 </details>`;
     }
   </script>
-  <!-- Scripts already loaded via import statements above -->
+  <script src="js/app.js" type="module"></script>
+  <script src="js/fetchTests.js"></script>
 </body>
 </html>
