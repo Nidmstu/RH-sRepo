@@ -320,30 +320,31 @@
     <!-- Домашняя страница -->
     <div id="home" class="container center">
     <div id="day-selection">
-      <h1>Prompt Engineering Onboarding</h1>
+      <h1>Learning Platform</h1>
       <p>
-        Profession:&nbsp;
+        Course:&nbsp;
         <select id="profession-select" onchange="handleProfessionChange()">
-          <option value="prompt-engineer">Prompt Engineer</option>
-          <option value="lead-generator">Lead Generator</option>
+          <option value="">Select a course</option>
         </select>
       </p>
 
       <div style="margin: 30px 0;">
         <p>Quick Reference:</p>
         <div id="vocabulary-container">
-          <!-- Сюда будет динамически добавлена кнопка словаря -->
-          <button onclick="openVocabulary()">Prompt Engineering Vocabulary</button>
+          <!-- Vocabulary buttons will be dynamically added here -->
         </div>
       </div>
 
       <div style="margin-top: 30px;">
         <p>Select Training Day:</p>
+        <div id="days-container">
+          <!-- Day buttons will be dynamically added here -->
+        </div>
       </div>
 
       <div id="admin-access" style="margin-top: 30px;">
         <a href="admin.html" style="text-decoration: none;">
-          <button style="background-color: #3498db;">Управление курсами</button>
+          <button style="background-color: #3498db;">Course Management</button>
         </a>
       </div>
     </div>
@@ -366,11 +367,11 @@
     <div id="audio-embed" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%; display: flex; flex-direction: column; align-items: center;">
       <!-- Динамически заполняется из JS -->
     </div>
-    
+
     <!-- Скрытые аудио-контейнеры для обратной совместимости -->
     <div id="audio-first-lesson" class="hidden"></div>
     <div id="audio-vocabulary" class="hidden"></div>
-    
+
     <!-- Резервный аудио-контейнер для прямых URL -->
     <div id="audio-fallback" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%;">
       <audio controls style="width:100%; max-width:600px;">
@@ -429,11 +430,11 @@
     import devMode from './js/devMode.js';
     import adminPanel from './js/admin.js';
     import app from './js/app.js';
-    
+
     // Глобальная функция для фильтрации скрытых курсов
     window.filterHiddenCourses = function(courses) {
       if (!courses) return {};
-      
+
       const filteredCourses = {};
       for (const courseId in courses) {
         if (!courses[courseId].hidden) {
@@ -809,7 +810,7 @@
             const response = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
 
-            
+
             console.log("Response status:", response.status);
 
             if (!response.ok) {
@@ -818,8 +819,7 @@
             }
 
             const responseText = await response.text();
-            console.log("Response size:", responseText.length, "bytes");
-            console.log("Response preview:", responseText.substring(0, 100));
+            console.log("Response size:", responseText.length, "bytes");console.log("Response preview:", responseText.substring(0, 100));
             return responseText;
           } catch (fetchError) {
             // Если основной запрос не удался, используем резервное содержимое
@@ -1751,5 +1751,7 @@ When a prompt is too long and exceeds the model's context window, causing inform
 </details>`;
     }
   </script>
+  <script src="js/app.js" type="module"></script>
+  <script src="js/fetchTests.js"></script>
 </body>
 </html>

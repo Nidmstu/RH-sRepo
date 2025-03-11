@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Quiz System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --deep-blue: #081E2F;
+      --primary-yellow: #FCB305;
+      --red: #D32F2F;
+      --red-hover: #C62828;
+      --green: #2E7D32;
+      --green-hover: #1B5E20;
+      --blue: #197502;
+      --blue-dark: #1555C0;
+      --blue-light: #4245F5;
+    }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: #F8F9FA;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+    #titlePage {
+      text-align: center;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #titlePage h1 {
+      font-size: 28px;
+      color: var(--deep-blue);
+      margin-bottom: 1rem;
+    }
+    #quiz-selector {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(8, 30, 47, 0.1);
+      margin: 1rem auto;
+      max-width: 600px;
+    }
+    .quiz-selector-title {
+      font-size: 20px;
+      margin-bottom: 1rem;
+      color: var(--deep-blue);
+    }
+    .selector-group {
+      margin-bottom: 1.5rem;
+    }
+    .selector-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #4A4A4A;
+    }
+    .selector-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #DEE2E6;
+      background-color: #fff;
+      font-size: 15px;
+    }
+    .quiz-info {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(8, 30, 47, 0.1);
+      margin: 1rem auto;
+      max-width: 500px;
+    }
+    .info-item {
+      font-size: 15px;
+      color: #4A4A4A;
+      margin: 0.75rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #timer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--green);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(46, 125, 50, 0.2);
+    }
+    .hidden {
+      display: none !important;
+      visibility: hidden;
+    }
+
+    /* Анимация для титульной страницы */
+    @keyframes fadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(1.05); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .fade-out {
+      animation: fadeOut 0.6s ease forwards;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease forwards;
+    }
+    .question {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+      transition: all 0.3s ease;
+    }
+    .question h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--deep-blue);
+      margin: 0 0 1rem 0;
+    }
+    label {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #4A4A4A;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    label:hover {
+      background: rgba(25, 118, 210, 0.04);
+    }
+    /* Radio buttons (single-answer) */
+    input[type="radio"] {
+      margin-right: 0.75rem;
+      accent-color: var(--green);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+    }
+    /* Checkboxes (multi-answer) */
+    input[type="checkbox"] {
+      margin-right: 0.75rem;
+      accent-color: var(--green);
+    }
+    input[type="text"],
+    input[type="number"] {
+      padding: 0.5rem;
+      border: 1px solid #DEE2E6;
+      border-radius: 4px;
+      font-size: 16px; /* Minimum font size to prevent zoom on iOS */
+      width: 100%;
+      box-sizing: border-box;
+      -webkit-appearance: none; /* Prevents iOS styling */
+      appearance: none;
+    }
+    /* Replace read-only profession input with dropdown */
+    select[name="profession"] {
+      padding: 0.5rem;
+      border: 1px solid #DEE2E6;
+      border-radius: 4px;
+      font-size: 16px; /* Minimum font size to prevent zoom on iOS */
+      width: 100%;
+      box-sizing: border-box;
+      background: #fff;
+      color: #4A4A4A;
+      -webkit-appearance: none; /* Better styling on iOS */
+      appearance: none;
+    }
+    button {
+      background: var(--green);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: block;
+      margin: 1rem auto 0;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: var(--green-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    #result {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 2rem;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+    }
+    .correct {
+      border-left: 4px solid var(--green);
+      background: #F0F9FF;
+    }
+    .incorrect {
+      border-left: 4px solid var(--red);
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      .question {
+        padding: 1rem;
+      }
+      button {
+        width: 100%;
+        padding: 14px 20px;
+      }
+      #timer {
+        top: 10px;
+        right: 10px;
+        font-size: 14px;
+      }
+    }
+    .task-step {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(8, 30, 47, 0.1);
+    }
+    .step-number {
+      background: var(--green);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    .task-step p {
+      margin: 0;
+    }
+    .task-step ul {
+      margin: 0.5rem 0 0 0;
+      padding-left: 1.5rem;
+    }
+    .task-step li {
+      margin-bottom: 0.5rem;
+    }
+    .tools-section {
+      background: #f1f8e9;
+      border-left: 4px solid var(--green);
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 0 4px 4px 0;
+    }
+    #loadingIndicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--green);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Indicator -->
+  <div id="loadingIndicator">
+    <div class="spinner"></div>
+    <p>Loading quiz data...</p>
+  </div>
+
+  <!-- Quiz Selector Page -->
+  <div id="selectorPage" class="hidden">
+    <h1 style="text-align: center;">Quiz System</h1>
+    <div id="quiz-selector">
+      <h2 class="quiz-selector-title">Select a Quiz</h2>
+      <div class="selector-group">
+        <label for="courseSelect">Course:</label>
+        <select id="courseSelect">
+          <option value="">Select a course</option>
+        </select>
+      </div>
+      <div class="selector-group">
+        <label for="daySelect">Day:</label>
+        <select id="daySelect" disabled>
+          <option value="">Select a day</option>
+        </select>
+      </div>
+      <div class="selector-group">
+        <label for="lessonSelect">Lesson:</label>
+        <select id="lessonSelect" disabled>
+          <option value="">Select a lesson</option>
+        </select>
+      </div>
+      <button id="loadQuizBtn" disabled>Load Quiz</button>
+    </div>
+  </div>
+
+  <!-- Title Page -->
+  <div id="titlePage" class="hidden">
+    <h1 id="quizTitle">Quiz Title</h1>
+    <div class="quiz-info">
+      <div class="info-item">
+        <span>Questions:</span>
+        <strong id="questionCount">0</strong>
+      </div>
+      <div class="info-item">
+        <span>Time Limit:</span>
+        <strong id="timeLimit">5 minutes</strong>
+      </div>
+      <div class="info-item">
+        <span>Passing Score:</span>
+        <strong>80%</strong>
+      </div>
+      <div class="info-item" style="color: var(--green); font-weight: bold; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span>Good news: 😁</span>
+        <strong style="text-align: right; max-width: 70%;">You can try this exam multiple times, no need to pass on your first attempt!</strong>
+      </div>
+      <div class="info-item" style="color: var(--red); font-weight: bold; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span>Bad news: 😥</span>
+        <strong style="text-align: right; max-width: 70%;">You must enter your full name (first and last name) before submitting</strong>
+      </div>
+      <button id="startExamBtn">Start Exam</button>
+    </div>
+  </div>
+
+  <!-- Quiz Container -->
+  <div id="quizContainer" class="hidden">
+    <div id="timer">00:00</div>
+    <h1 id="quizTitleInExam">Quiz Title</h1>
+    <form id="examForm">
+      <!-- User Data Block (not scored) -->
+      <div class="question" data-points="0">
+        <h3>Enter Your Information</h3>
+        <label>
+          Your Full Name (First and Last Name): (required)
+          <input type="text" name="fullName" placeholder="e.g., John Doe" required pattern="^\s*[A-Za-zА-Яа-яЁё]+\s+[A-Za-zА-Яа-яЁё]+\s*$" title="Please enter both your first and last name">
+        </label>
+        <label>
+          Your Profession:
+          <select name="profession">
+            <option value="3d designer">3d designer</option>
+            <option value="account manager">account manager</option>
+            <option value="affiliate manager">affiliate manager</option>
+            <option value="analyst">analyst</option>
+            <option value="animator">animator</option>
+            <option value="back end developer">back end developer</option>
+            <option value="chat operator">chat operator</option>
+            <option value="content manager">content manager</option>
+            <option value="copywriter">copywriter</option>
+            <option value="email marketer">email marketer</option>
+            <option value="event manager">event manager</option>
+            <option value="financial manager">financial manager</option>
+            <option value="front end developer">front end developer</option>
+            <option value="full stack developer">full stack developer</option>
+            <option value="graphic designer">graphic designer</option>
+            <option value="hr manager">hr manager</option>
+            <option value="illustrator">illustrator</option>
+            <option value="influencer manager">influencer manager</option>
+            <option value="interior designer">interior designer</option>
+            <option value="investment manager">investment manager</option>
+            <option value="lead generator">lead generator</option>
+            <option value="linkbuilder">linkbuilder</option>
+            <option value="media buyer">media buyer</option>
+            <option value="mobile developer">mobile developer</option>
+            <option value="mobile video editor">mobile video editor</option>
+            <option value="motion designer">motion designer</option>
+            <option value="personal assistant">personal assistant</option>
+            <option value="ppc specialist">ppc specialist</option>
+            <option value="pr manager">pr manager</option>
+            <option value="project manager">project manager</option>
+            <option value="proofreader">proofreader</option>
+            <option value="qa">qa</option>
+            <option value="recruiter">recruiter</option>
+            <option value="sales manager">sales manager</option>
+            <option value="seo manager">seo manager</option>
+            <option value="social media manager">social media manager</option>
+            <option value="system administrator">system administrator</option>
+            <option value="targetologist">targetologist</option>
+            <option value="tourism manager">tourism manager</option>
+            <option value="ui/ux designer">ui/ux designer</option>
+            <option value="video editor">video editor</option>
+            <option value="web designer">web designer</option>
+            <option value="wordpress designer">wordpress designer</option>
+          </select>
+        </label>
+        <label>
+          Your Recruiter:
+          <select name="recruiter" style="padding: 10px; border-radius: 6px; border: 1px solid #DEE2E6; background-color: #fff; color: #4A4A4A; font-size: 15px; width: 100%; box-sizing: border-box;">
+            <option value="Anastasia Fadeeva">Anastasia Fadeeva</option>
+            <option value="Elena Ermakova">Elena Ermakova</option>
+            <option value="Anna Aleksandrova">Anna Aleksandrova</option>
+            <option value="Sabina Gasanova">Sabina Gasanova</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Questions will be dynamically inserted here -->
+      <div id="questionsContainer"></div>
+
+      <button id="submitBtn" type="button">Submit Exam</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    let quizData = null;
+    let timer;
+    let seconds = 0;
+    let timeLimit = 300; // Default: 5 minutes
+    let examName = "Quiz";
+    let currentDay = "";
+    let currentCourse = "";
+    let currentLesson = "";
+    let testsData = null;
+
+    // Fisher–Yates shuffle function
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Load tests data
+    async function loadTestsData() {
+      try {
+        const response = await fetch('tests.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load tests data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Tests data loaded successfully');
+        return data;
+      } catch (error) {
+        console.error('Error loading tests data:', error);
+        alert('Failed to load tests data. Please try again later.');
+        return null;
+      }
+    }
+
+    // Populate selectors with available quizzes
+    function populateSelectors(data) {
+      const courseSelect = document.getElementById('courseSelect');
+      
+      // Clear existing options
+      courseSelect.innerHTML = '<option value="">Select a course</option>';
+      
+      // Add courses
+      for (const courseId in data) {
+        const course = data[courseId];
+        const option = document.createElement('option');
+        option.value = courseId;
+        option.textContent = course.title || courseId;
+        courseSelect.appendChild(option);
+      }
+      
+      // Add event listeners
+      courseSelect.addEventListener('change', handleCourseChange);
+      document.getElementById('daySelect').addEventListener('change', handleDayChange);
+      document.getElementById('lessonSelect').addEventListener('change', handleLessonChange);
+      document.getElementById('loadQuizBtn').addEventListener('click', loadSelectedQuiz);
+    }
+
+    // Handle course selection change
+    function handleCourseChange() {
+      const courseSelect = document.getElementById('courseSelect');
+      const daySelect = document.getElementById('daySelect');
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentCourse = courseSelect.value;
+      
+      // Reset day and lesson selections
+      daySelect.innerHTML = '<option value="">Select a day</option>';
+      lessonSelect.innerHTML = '<option value="">Select a lesson</option>';
+      lessonSelect.disabled = true;
+      loadQuizBtn.disabled = true;
+      
+      if (!currentCourse) {
+        daySelect.disabled = true;
+        return;
+      }
+      
+      // Populate days
+      const course = testsData[currentCourse];
+      daySelect.disabled = false;
+      
+      // Add days
+      if (course.days && course.days.length > 0) {
+        course.days.forEach(day => {
+          // Only add days that have lessons with test data
+          const hasTests = day.lessons && day.lessons.some(lesson => lesson.testData);
+          if (hasTests) {
+            const option = document.createElement('option');
+            option.value = day.id;
+            option.textContent = day.title || `Day ${day.id}`;
+            daySelect.appendChild(option);
+          }
+        });
+      }
+      
+      // Add special lessons as a day option if there are special lessons with tests
+      if (course.specialLessons && course.specialLessons.some(lesson => lesson.testData)) {
+        const option = document.createElement('option');
+        option.value = "special";
+        option.textContent = "Special Lessons";
+        daySelect.appendChild(option);
+      }
+    }
+
+    // Handle day selection change
+    function handleDayChange() {
+      const daySelect = document.getElementById('daySelect');
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentDay = daySelect.value;
+      
+      // Reset lesson selection
+      lessonSelect.innerHTML = '<option value="">Select a lesson</option>';
+      loadQuizBtn.disabled = true;
+      
+      if (!currentDay || !currentCourse) {
+        lessonSelect.disabled = true;
+        return;
+      }
+      
+      // Populate lessons
+      lessonSelect.disabled = false;
+      const course = testsData[currentCourse];
+      
+      if (currentDay === "special") {
+        // Add special lessons
+        if (course.specialLessons) {
+          course.specialLessons.forEach(lesson => {
+            if (lesson.testData) {
+              const option = document.createElement('option');
+              option.value = lesson.id;
+              option.textContent = lesson.title || lesson.id;
+              lessonSelect.appendChild(option);
+            }
+          });
+        }
+      } else {
+        // Find the day and add its lessons
+        const day = course.days.find(d => d.id == currentDay);
+        if (day && day.lessons) {
+          day.lessons.forEach(lesson => {
+            if (lesson.testData) {
+              const option = document.createElement('option');
+              option.value = lesson.id;
+              option.textContent = lesson.title || lesson.id;
+              lessonSelect.appendChild(option);
+            }
+          });
+        }
+      }
+    }
+
+    // Handle lesson selection change
+    function handleLessonChange() {
+      const lessonSelect = document.getElementById('lessonSelect');
+      const loadQuizBtn = document.getElementById('loadQuizBtn');
+      
+      currentLesson = lessonSelect.value;
+      loadQuizBtn.disabled = !currentLesson;
+    }
+
+    // Load the selected quiz
+    function loadSelectedQuiz() {
+      if (!currentCourse || !currentDay || !currentLesson) {
+        alert('Please select a course, day, and lesson');
+        return;
+      }
+      
+      const course = testsData[currentCourse];
+      let lesson;
+      
+      if (currentDay === "special") {
+        lesson = course.specialLessons.find(l => l.id === currentLesson);
+      } else {
+        const day = course.days.find(d => d.id == currentDay);
+        lesson = day.lessons.find(l => l.id === currentLesson);
+      }
+      
+      if (!lesson || !lesson.testData) {
+        alert('No test data available for the selected lesson');
+        return;
+      }
+      
+      // Set the quiz data
+      quizData = lesson.testData;
+      examName = lesson.title || currentLesson;
+      
+      // Update quiz title
+      document.getElementById('quizTitle').textContent = examName;
+      document.getElementById('quizTitleInExam').textContent = examName;
+      
+      // Update question count
+      const questionCount = quizData.questions ? quizData.questions.length : 0;
+      document.getElementById('questionCount').textContent = questionCount;
+      
+      // Hide selector page and show title page
+      document.getElementById('selectorPage').classList.add('hidden');
+      document.getElementById('titlePage').classList.remove('hidden');
+    }
+
+    function startQuiz() {
+      const titlePage = document.getElementById('titlePage');
+      const quizContainer = document.getElementById('quizContainer');
+
+      if (!quizData || !quizData.questions || quizData.questions.length === 0) {
+        alert('No questions available for this quiz');
+        return;
+      }
+
+      // Generate questions
+      generateQuestions();
+
+      if (titlePage && quizContainer) {
+        // Добавляем анимацию исчезновения
+        titlePage.classList.add('fade-out');
+
+        // После завершения анимации скрываем титульную страницу и показываем экзамен
+        setTimeout(() => {
+          titlePage.style.display = 'none'; // Полностью удаляем из потока
+          titlePage.classList.add('hidden');
+          quizContainer.classList.remove('hidden');
+          // Добавляем анимацию появления для экзамена
+          quizContainer.classList.add('fade-in');
+          quizContainer.style.display = 'block'; // Уверены, что контейнер будет отображен
+          window.scrollTo(0, 0);
+          randomizeAnswers();
+          startTimer();
+        }, 500); // Ждем почти до конца анимации (500мс)
+      } else {
+        console.error('Elements not found: titlePage or quizContainer');
+      }
+    }
+
+    // Generate questions from quiz data
+    function generateQuestions() {
+      const questionsContainer = document.getElementById('questionsContainer');
+      questionsContainer.innerHTML = '';
+      
+      if (!quizData || !quizData.questions) {
+        console.error('No questions data available');
+        return;
+      }
+      
+      quizData.questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.dataset.points = question.points || 1;
+        
+        // Create question header
+        const questionHeader = document.createElement('h3');
+        questionHeader.textContent = `${index + 1}. ${question.question}`;
+        questionDiv.appendChild(questionHeader);
+        
+        // Create options
+        if (question.options && Array.isArray(question.options)) {
+          question.options.forEach((option, optionIndex) => {
+            const label = document.createElement('label');
+            
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = `q${index}`;
+            
+            // Handle different option formats
+            let optionValue, optionText;
+            if (typeof option === 'string') {
+              optionValue = String.fromCharCode(65 + optionIndex); // A, B, C, D...
+              optionText = option;
+            } else if (typeof option === 'object') {
+              optionValue = option.value || String.fromCharCode(65 + optionIndex);
+              optionText = option.text || option.label || option.toString();
+            }
+            
+            input.value = optionValue;
+            
+            // Mark correct answer
+            if (
+              question.correctAnswer === optionValue || 
+              question.correctAnswer === optionText || 
+              (Array.isArray(question.correctAnswer) && question.correctAnswer.includes(optionValue))
+            ) {
+              input.dataset.correct = "true";
+            }
+            
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(` ${optionText}`));
+            
+            questionDiv.appendChild(label);
+          });
+        }
+        
+        questionsContainer.appendChild(questionDiv);
+      });
+    }
+
+    // Randomize answer labels (excluding the user data block)
+    function randomizeAnswers() {
+      const questions = document.querySelectorAll('.question[data-points]:not([data-points="0"])');
+      questions.forEach(question => {
+        const labels = Array.from(question.querySelectorAll('label'));
+        const shuffled = shuffle(labels);
+        shuffled.forEach(label => label.parentNode.removeChild(label));
+        const heading = question.querySelector('h3');
+        shuffled.forEach(label => heading.parentNode.appendChild(label));
+      });
+    }
+
+    function startTimer() {
+      // Очищаем предыдущий таймер, если он существует
+      if (timer) {
+        clearInterval(timer);
+      }
+
+      seconds = timeLimit;
+
+      // Обновляем отображение таймера сразу
+      const initialMinutes = Math.floor(seconds / 60);
+      const initialRem = seconds % 60;
+      const initialTimerElement = document.getElementById('timer');
+      if (initialTimerElement) {
+        initialTimerElement.textContent = String(initialMinutes).padStart(2, '0') + ":" + String(initialRem).padStart(2, '0');
+      }
+
+      // Устанавливаем новый таймер
+      timer = setInterval(function() {
+        seconds--;
+        const minutes = Math.floor(seconds / 60);
+        const rem = seconds % 60;
+        const timerElement = document.getElementById('timer');
+        if (timerElement) {
+          timerElement.textContent = String(minutes).padStart(2, '0') + ":" + String(rem).padStart(2, '0');
+        }
+        if (seconds <= 0) {
+          clearInterval(timer);
+          calculateScore(true);
+        }
+      }, 1000);
+    }
+
+    // Formats date as "dd.mm.yyyy hh:mm"
+    function formatDate(date) {
+      const options = {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      };
+      const formatted = date.toLocaleString("en-GB", options);
+      return formatted.replace(/\//g, ".").replace(", ", " ");
+    }
+
+    function calculateScore(timeout = false) {
+      const fullNameInput = document.querySelector('[name="fullName"]');
+      const fullName = fullNameInput ? fullNameInput.value.trim() : "";
+      const namePattern = /^\s*[A-Za-zА-Яа-яЁё]+\s+[A-Za-zА-Яа-яЁё]+\s*$/;
+
+      if (!fullName && !timeout) {
+        alert("Please enter your name before submitting!");
+        return;
+      }
+
+      if (!timeout && !namePattern.test(fullName)) {
+        alert("Please enter both your first and last name!");
+        return;
+      }
+
+      const submitButton = document.getElementById('submitBtn');
+      if (submitButton) {
+        submitButton.style.display = 'none';
+      }
+
+      if (timer) {
+        clearInterval(timer);
+      }
+
+      let totalPoints = 0;
+      let maxPoints = 0;
+      const questions = document.querySelectorAll('.question');
+
+      questions.forEach(function(question) {
+        const points = parseInt(question.dataset.points) || 1;
+        maxPoints += points;
+        if (points === 0) return; // Skip user info block
+
+        let correct = true;
+        const inputs = question.querySelectorAll('input');
+        let selectedValues = [];
+        let correctValues = [];
+
+        inputs.forEach(function(inp) {
+          if (inp.checked) selectedValues.push(inp.value);
+          if (inp.dataset.correct === "true") correctValues.push(inp.value);
+        });
+
+        if (
+          selectedValues.length !== correctValues.length ||
+          !selectedValues.every(function(val) { return correctValues.includes(val); })
+        ) {
+          correct = false;
+        }
+
+        if (correct) {
+          totalPoints += points;
+          question.classList.add('correct');
+        } else {
+          question.classList.add('incorrect');
+        }
+      });
+
+      const percentage = ((totalPoints / maxPoints) * 100).toFixed(1);
+      const timeUsedValue = timeLimit - seconds;
+      const timeUsed = Math.floor(timeUsedValue / 60) + "m " + (timeUsedValue % 60) + "s";
+      const resultDiv = document.getElementById('result');
+
+      if (resultDiv) {
+        let resultsHTML = `
+          <h3>Exam Results</h3>
+          <p>Your score: ${totalPoints} / ${maxPoints} (${percentage}%)</p>
+          <p>Time used: ${timeUsed}</p>
+          ${percentage >= 80 ? "Congratulations! You passed!" : "Try again! Review your mistakes below."}
+          ${timeout ? "<p class='warning'>Time limit exceeded!</p>" : ""}
+        `;
+
+        resultsHTML += `
+          <button type="button" onclick="location.reload()">Retry</button>
+          <button type="button" onclick="window.location.href='#'">Read Again</button>
+          <button type="button" id="taskButton" onclick="loadTask()">Task</button>
+        `;
+
+        resultDiv.innerHTML = resultsHTML;
+
+        const professionElement = document.querySelector('[name="profession"]');
+        const recruiterElement = document.querySelector('[name="recruiter"]');
+
+        const profession = professionElement ? professionElement.value.trim() : "";
+        const recruiter = recruiterElement ? recruiterElement.value.trim() : "";
+
+        // Include the day parameter from the selected day
+        const postData = {
+          fullName: fullName,
+          profession: profession,
+          recruiter: recruiter,
+          day: currentDay, // Send the current day
+          examName: examName,
+          scoreObtained: totalPoints,
+          scoreTotal: maxPoints,
+          timeUsed: timeLimit - seconds,
+          timeTotal: timeLimit,
+          date: formatDate(new Date())
+        };
+
+        try {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          resultDiv.innerHTML += '<p>Sending results to server...</p>';
+
+          fetch("https://auto.crm-s.com/webhook/Onboarding/Update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json, text/plain, */*"
+            },
+            body: JSON.stringify(postData),
+            mode: "cors"
+          })
+          .then(function(res) {
+            return res.text().then(function(text) {
+              console.log("POST response status:", res.status);
+              console.log("POST response body:", text);
+
+              if (res.status === 200) {
+                resultDiv.innerHTML += '<p style="color: green;">✓ Results successfully sent to server!</p>';
+              } else {
+                resultDiv.innerHTML += '<p style="color: red;">Error sending results to server: ' + res.status + '</p>';
+              }
+            });
+          })
+          .catch(function(err) {
+            console.error("Error in POST:", err);
+            resultDiv.innerHTML += '<p style="color: red;">Error sending results: ' + err.message + '</p>';
+          });
+        } catch (error) {
+          console.error("Error submitting quiz results:", error);
+          resultDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+        }
+      }
+    }
+
+    // loadTask() replaces the quiz view with task instructions.
+    function loadTask() {
+      let taskContent = '';
+      
+      // Try to get the task data from the current lesson
+      if (quizData && quizData.task) {
+        taskContent = `
+          <h1>🛠 Practice: ${quizData.task.title || 'Assignment'}</h1>
+
+          <div class="question" style="margin-bottom: 1.5rem;">
+            <h3>Task Description</h3>
+            <p>${quizData.task.description || 'Complete the following task related to this lesson.'}</p>
+          </div>
+
+          <div class="question">
+            <h3>✅ Assignment Steps</h3>
+            ${quizData.task.steps ? renderTaskSteps(quizData.task.steps) : '<p>Task details not available.</p>'}
+          </div>
+        `;
+      } else {
+        // Default task content if not available in the test data
+        taskContent = `
+          <h1>🛠 Practice: Complete a Practical Task</h1>
+
+          <div class="question" style="margin-bottom: 1.5rem;">
+            <h3>Task Description</h3>
+            <p>Apply the concepts you've learned in this lesson to a practical task.</p>
+          </div>
+
+          <div class="question">
+            <h3>✅ Assignment Steps</h3>
+
+            <div class="task-step">
+              <span class="step-number">1</span>
+              <p>Review the material from the lesson.</p>
+            </div>
+
+            <div class="task-step">
+              <span class="step-number">2</span>
+              <p>Create a practical implementation based on what you've learned.</p>
+            </div>
+
+            <div class="task-step">
+              <span class="step-number">3</span>
+              <p>Submit your work through the appropriate channel.</p>
+            </div>
+          </div>
+        `;
+      }
+
+      document.body.innerHTML = `
+        <div style="font-family: 'Open Sans', sans-serif; background: #F8F9FA; padding: 2rem; max-width: 800px; margin: 0 auto; min-height: 100vh;">
+          <div id="timer" style="position: fixed; top: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">Assignment</div>
+
+          ${taskContent}
+
+          <div class="question" style="margin-top: 2rem;">
+            <h3>Submit Your Work</h3>
+            <label style="display: block; margin: 1rem 0;">
+              Your Work Link (optional):
+              <input type="text" id="taskLinkInput" placeholder="https://docs.google.com/..." style="width: 100%; padding: 0.75rem; border: 1px solid #DEE2E6; border-radius: 4px; font-size: 15px; margin-top: 0.5rem;">
+            </label>
+
+            <button id="taskCompletedBtn" style="background: var(--green); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; margin: 1rem 0; width: 100%;">
+              Mark Task as Completed
+            </button>
+
+            <button onclick="location.reload()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; margin: 0.5rem 0; width: 100%;">
+              Back to Exam
+            </button>
+          </div>
+
+          <div id="taskCompletionMessage" style="margin-top: 1rem;"></div>
+        </div>
+      `;
+
+      const taskCompletedBtn = document.getElementById("taskCompletedBtn");
+      if (taskCompletedBtn) {
+        taskCompletedBtn.addEventListener("click", function() {
+          const taskLinkInput = document.getElementById("taskLinkInput");
+          const taskLink = taskLinkInput ? taskLinkInput.value.trim() : "";
+          taskCompletedBtn.disabled = true;
+          taskCompletedBtn.innerHTML = "Marking as Complete...";
+
+          const messageDiv = document.getElementById("taskCompletionMessage");
+          messageDiv.innerHTML = '<div class="question" style="background: #f5f5f5;"><p>Sending task completion to server...</p></div>';
+
+          try {
+            fetch("https://auto.crm-s.com/webhook/Onboarding/UpdateTaskTable", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*"
+              },
+              body: JSON.stringify({
+                examName: examName,
+                day: currentDay,
+                link: taskLink,
+                date: formatDate(new Date())
+              }),
+              mode: "cors"
+            })
+            .then(function(res) {
+              return res.text().then(function(text) {
+                console.log("Task completed webhook status:", res.status);
+                console.log("Task completed webhook body:", text);
+
+                if (res.status === 200) {
+                  messageDiv.innerHTML = '<div class="question correct"><p style="font-weight: bold;">✓ Task completion successfully sent to server!</p></div>';
+                  taskCompletedBtn.innerHTML = "✓ Completed";
+                  taskCompletedBtn.style.background = "var(--green-hover)";
+                } else {
+                  messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Task marked as complete, but server returned status: ' + res.status + '</p></div>';
+                  taskCompletedBtn.innerHTML = "⚠ Completed with Warning";
+                  taskCompletedBtn.style.background = "#FF9800";
+                }
+              });
+            })
+            .catch(function(err) {
+              console.error("Error sending task completed webhook:", err);
+              messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Error sending task completion: ' + err.message + '</p></div>';
+              taskCompletedBtn.innerHTML = "⚠ Error";
+              taskCompletedBtn.style.background = "var(--red)";
+            });
+          } catch (error) {
+            console.error("Error marking task as complete:", error);
+            messageDiv.innerHTML = '<div class="question incorrect"><p style="font-weight: bold;">Error: ' + error.message + '</p></div>';
+            taskCompletedBtn.innerHTML = "⚠ Error";
+            taskCompletedBtn.style.background = "var(--red)";
+          }
+        });
+      }
+    }
+
+    // Helper function to render task steps
+    function renderTaskSteps(steps) {
+      if (!steps || !Array.isArray(steps)) {
+        return '<p>No steps available for this task.</p>';
+      }
+      
+      let html = '';
+      steps.forEach((step, index) => {
+        html += `
+          <div class="task-step">
+            <span class="step-number">${index + 1}</span>
+            <p>${step}</p>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    // Initialize the quiz system
+    async function init() {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const selectorPage = document.getElementById('selectorPage');
+      
+      try {
+        // Load test data
+        testsData = await loadTestsData();
+        
+        if (!testsData) {
+          throw new Error('Failed to load test data');
+        }
+        
+        // Hide loading indicator
+        loadingIndicator.classList.add('hidden');
+        
+        // Show selector page
+        selectorPage.classList.remove('hidden');
+        
+        // Populate selectors
+        populateSelectors(testsData);
+      } catch (error) {
+        console.error('Initialization error:', error);
+        loadingIndicator.innerHTML = `
+          <div style="text-align: center; padding: 2rem;">
+            <h2 style="color: var(--red);">Error Loading Quiz Data</h2>
+            <p>${error.message}</p>
+            <button onclick="location.reload()">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    // Attach event listeners
+    document.addEventListener("DOMContentLoaded", function() {
+      // Initialize the quiz system
+      init();
+      
+      // Attach event listeners after init
+      const startExamBtn = document.getElementById("startExamBtn");
+      if (startExamBtn) {
+        startExamBtn.addEventListener("click", startQuiz);
+      }
+      
+      const submitBtn = document.getElementById("submitBtn");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", function() {
+          calculateScore(false);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
