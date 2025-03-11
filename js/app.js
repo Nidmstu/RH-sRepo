@@ -1253,51 +1253,71 @@ window.selectLesson = function(lessonId) {
     // Сначала скрываем все аудио
     hideAllAudio();
     if (!lesson) return;
-
+    
     // Если в JSON аудио хранится в поле "audio", а не "audioSource", присваиваем его
     if (!lesson.audioSource && lesson.audio) {
       lesson.audioSource = lesson.audio;
       console.log('Присвоено audioSource из lesson.audio');
     }
-
+    
     if (!lesson.audioSource) {
       console.log('У урока нет аудио источника');
       return;
     }
-
+    
     console.log('Обработка аудио для урока:', lesson.id, 'Тип аудио:', lesson.audioSource.type);
     console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
-
+    
     const audioType = (lesson.audioSource.type || '').toLowerCase();
     const audioEmbed = document.getElementById('audio-embed');
     if (!audioEmbed) {
       console.warn('Элемент с id "audio-embed" не найден. Проверьте HTML-разметку.');
       return;
     }
-
+    
     let embedContent = '';
-    if (audioType === 'soundcloud' && lesson.audioSource.trackUrl) {
-      embedContent = `<iframe src="${lesson.audioSource.trackUrl}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
-      console.log('Created SoundCloud iframe');
-    } else if (audioType === 'soundcloud' && lesson.audioSource.url) {
-      embedContent = `<iframe src="${lesson.audioSource.url}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
-      console.log('Created SoundCloud iframe');
+    
+    if (audioType === 'soundcloud') {
+      if (lesson.audioSource.trackUrl) {
+        embedContent = `<iframe src="${lesson.audioSource.trackUrl}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
+        console.log('Created SoundCloud iframe from trackUrl');
+      } else if (lesson.audioSource.url) {
+        embedContent = `<iframe src="${lesson.audioSource.url}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
+        console.log('Created SoundCloud iframe from url');
+      } else if (lesson.audioSource.embedCode) {
+        embedContent = lesson.audioSource.embedCode;
+        console.log('Using SoundCloud embed code directly');
+      } else if (lesson.audioSource.embed) {
+        embedContent = lesson.audioSource.embed;
+        console.log('Using embed field for SoundCloud');
+      }
     } else if (audioType === 'url' && lesson.audioSource.url) {
       embedContent = `<audio controls style="width:100%; max-width:600px;">
-      <source src="${lesson.audioSource.url}" type="audio/mpeg">
-      Ваш браузер не поддерживает аудио элемент.
-    </audio>`;
+        <source src="${lesson.audioSource.url}" type="audio/mpeg">
+        Ваш браузер не поддерживает аудио элемент.
+      </audio>`;
       console.log('Created HTML5 audio element using url');
+    } else if (audioType === 'embed' && lesson.audioSource.embedCode) {
+      embedContent = lesson.audioSource.embedCode;
+      console.log('Using custom embed code');
+    } else if (lesson.audioSource.url) {
+      // Запасной вариант для любого типа с URL
+      embedContent = `<audio controls style="width:100%; max-width:600px;">
+        <source src="${lesson.audioSource.url}" type="audio/mpeg">
+        Ваш браузер не поддерживает аудио элемент.
+      </audio>`;
+      console.log('Created fallback HTML5 audio element using url property');
     }
-
+    
     if (!embedContent) {
       console.error("Не удалось сформировать embedContent из audioSource:", lesson.audioSource);
       audioEmbed.innerHTML = "<p>Audio not available</p>";
       return;
     }
-
+    
     audioEmbed.innerHTML = embedContent;
     audioEmbed.classList.remove('hidden');
+    console.log('Аудио контейнер отображен с содержимым');
   }
   showSection('guide');
   const contentSpinner = document.getElementById('content-loading-spinner');
