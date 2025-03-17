@@ -300,9 +300,30 @@
       <div class="loader"></div>
       <div class="loading-status">Loading...</div>
     </div>
-    <select id="profession-select"></select>
-    <div id="days-container"></div>
-    <div id="vocabulary-container"></div>
+
+    <div id="day-selection">
+      <h1>Learning Platform</h1>
+      <p>
+        Course:&nbsp;
+        <select id="profession-select" onchange="handleProfessionChange()">
+          <option value="">Select a course</option>
+        </select>
+      </p>
+
+      <div style="margin: 30px 0;">
+        <p>Quick Reference:</p>
+        <div id="vocabulary-container">
+          <!-- Vocabulary buttons will be dynamically added here -->
+        </div>
+      </div>
+
+      <div style="margin-top: 30px;">
+        <p>Select Training Day:</p>
+        <div id="days-container">
+          <!-- Day buttons will be dynamically added here -->
+        </div>
+      </div>
+    </div>
 
   </div>
 
