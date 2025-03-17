@@ -500,7 +500,7 @@
       <h1>Learning Platform</h1>
       <p>
         Course:&nbsp;
-        <select id="profession-select">
+        <select id="profession-select" onchange="handleProfessionChange()">
           <option value="">Select a course</option>
         </select>
       </p>
@@ -521,63 +521,23 @@
     </div>
 
     <div id="guide" class="hidden">
-    <h1 id="guide-title">Guide:</h1>
-    <div id="content-loading-spinner" class="center hidden">
-      <div class="spinner"></div>
-      <p class="loading-status">Loading content...</p>
-    </div>
-    <div id="markdown-content" class="markdown-content hidden"></div>
-    <div class="center" style="margin-top:20px;">
-      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
-    </div>
-    <div class="center" style="margin-top:20px;">
-      <button onclick="goBackToTaskSelection()">Back</button>
-    </div>
-  </div>
-
-    <div id="day-selection" class="hidden">
-      <!-- Day selection content -->
+      <h1 id="guide-title">Guide:</h1>
+      <div id="content-loading-spinner" class="center hidden">
+        <div class="spinner"></div>
+        <p class="loading-status">Loading content...</p>
+      </div>
+      <div class="center" style="margin-top:20px;">
+        <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
+      </div>
+      <div class="center" style="margin-top:20px;">
+        <button onclick="goBackToTaskSelection()">Back</button>
+      </div>
     </div>
 
     <div id="task-selection" class="hidden">
       <h1 id="day-header"></h1>
       <div id="task-buttons" class="task-buttons"></div>
       <button onclick="goBackToDaySelection()">Back</button>
-    </div>
-
-    <div id="global-loading-overlay" class="hidden">
-      <div class="loader"></div>
-      <div class="loading-status">Loading...</div>
-    </div>
-
-    <div id="day-selection">
-      <h1>Learning Platform</h1>
-      <p>
-        Course:&nbsp;
-        <select id="profession-select" onchange="handleProfessionChange()">
-          <option value="">Select a course</option>
-        </select>
-      </p>
-
-      <div style="margin: 30px 0;">
-        <p>Quick Reference:</p>
-        <div id="vocabulary-container">
-          <!-- Vocabulary buttons will be dynamically added here -->
-        </div>
-      </div>
-
-      <div style="margin-top: 30px;">
-        <p>Select Training Day:</p>
-        <div id="days-container">
-          <!-- Day buttons will be dynamically added here -->
-        </div>
-      </div>
-
-      <div id="task-selection" class="hidden">
-        <h1 id="day-header"></h1>
-        <div id="task-buttons" class="task-buttons"></div>
-        <button onclick="goBackToDaySelection()">Back</button>
-      </div>
     </div>
 
   </div>
