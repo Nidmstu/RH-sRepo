@@ -1227,8 +1227,7 @@
 
   // Создаем экземпляр класса
   const courseManager = new CourseManager();
-  // export { courseManager };
-  // export default courseManager;
+  window.courseManager = courseManager;
   // ==================== END COURSE MANAGER CODE ====================
 
 
@@ -2807,7 +2806,7 @@
     devMode.initialize();
   });
   window.devMode = devMode;
-  // export default devMode;
+  window.devMode = devMode;
   // ==================== END DEV MODE CODE ====================
 
 
@@ -2961,7 +2960,7 @@
       }
     }, 500);
   });
-  // export default adminPanel;
+  window.adminPanel = adminPanel;
   window.openAdminPanel = function() {
     adminPanel.show();
   };
