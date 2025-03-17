@@ -1227,8 +1227,8 @@
 
   // Создаем экземпляр класса
   const courseManager = new CourseManager();
-  export { courseManager };
-  export default courseManager;
+  // export { courseManager };
+  // export default courseManager;
   // ==================== END COURSE MANAGER CODE ====================
 
 
@@ -2807,7 +2807,7 @@
     devMode.initialize();
   });
   window.devMode = devMode;
-  export default devMode;
+  // export default devMode;
   // ==================== END DEV MODE CODE ====================
 
 
@@ -2822,7 +2822,7 @@
    * - Управлять тестами
    * - Управлять заданиями
    */
-  import courseManager from './courseManager.js';
+  // import courseManager from './courseManager.js';
   const adminPanel = {
     show() {
       const adminInterface = window.adminInterface;
@@ -2961,7 +2961,7 @@
       }
     }, 500);
   });
-  export default adminPanel;
+  // export default adminPanel;
   window.openAdminPanel = function() {
     adminPanel.show();
   };
