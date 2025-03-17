@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Learning Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+/* Base styles */
+:root {
+  --primary-color: #4a6baf;
+  --primary-hover: #3a5b9f;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --background-color: #f5f7fa;
+  --card-bg: #ffffff;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+/* Header */
+header {
+  background: var(--primary-color);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Course cards */
+.course-card {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  border-left: 4px solid var(--primary-color);
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.course-card h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  font-size: 1.4rem;
+}
+
+/* Buttons */
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin: 5px 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+/* Sections */
+.section {
+  padding: 20px;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 20px;
+}
+
+/* Navigation */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.back-button {
+  background-color: var(--secondary-color);
+  max-width: 150px;
+}
+
+/* Content cards grid */
+.content-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Markdown content */
+#markdown-content {
+  background-color: var(--card-bg);
+  padding: 25px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  line-height: 1.8;
+}
+
+#markdown-content h1, 
+#markdown-content h2,
+#markdown-content h3 {
+  color: var(--primary-color);
+}
+
+#markdown-content blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: 15px;
+  color: var(--secondary-color);
+  font-style: italic;
+}
+
+#markdown-content code {
+  background-color: #f5f5f5;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-top: 5px solid var(--primary-color);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Admin styles */
+.admin-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.admin-header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-body {
+  display: flex;
+  height: calc(100% - 60px);
+  overflow: hidden;
+}
+
+.admin-sidebar {
+  width: 280px;
+  background-color: #fff;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 20px;
+  background-color: #f9f9f9;
+  overflow-y: auto;
+}
+
+/* Hidden elements */
+.hidden {
+  display: none !important;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .content-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  button {
+    padding: 12px 15px;
+  }
+  
+  .admin-body {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar,
+  .admin-content {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+  </style>
+</head>
+<body>
+  <!-- Global loading overlay -->
+  <div id="global-loading-overlay">
+    <div class="loading-spinner"></div>
+    <h2>Loading data...</h2>
+    <p id="global-loading-status">Checking data sources...</p>
+  </div>
+
+  <!-- Main content -->
+  <div id="app-content" class="hidden">
+    <!-- Home page -->
+    <div id="home" class="container">
+      <div id="day-selection">
+        <h1>Learning Platform</h1>
+        <p>
+          Course:
+          <select id="profession-select" onchange="handleProfessionChange()">
+            <option value="">Select a course</option>
+          </select>
+        </p>
+        <div id="vocabulary-container"></div>
+        <div id="days-container"></div>
+      </div>
+      <div id="task-selection" class="hidden">
+        <h1 id="day-header"></h1>
+        <div id="task-buttons"></div>
+        <button onclick="goBackToDaySelection()">Back</button>
+      </div>
+    </div>
+
+    <!-- Guide page -->
+    <div id="guide" class="container hidden">
+      <h1 id="guide-title">Guide:</h1>
+      <div id="audio-embed" class="hidden"></div>
+      <div id="markdown-content" class="hidden"></div>
+      <div class="center">
+        <button id="test-button">Test</button>
+        <button onclick="goBackToTaskSelection()">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin interface -->
+  <div id="admin-interface" class="admin-panel hidden">
+    <!-- Admin panel content -->
+  </div>
+
+  <script>
+// Course manager implementation
+class CourseManager {
+  constructor() {
+    this.courses = null;
+    this.fallbacks = null;
+    this.currentProfession = null;
+    this.currentDay = null;
+    this.currentLesson = null;
+  }
+
+  async initialize() {
+    try {
+      // Load courses from API or localStorage
+      const response = await fetch('https://auto.crm-s.com/webhook/OnboardingJSON');
+      if (response.ok) {
+        this.courses = await response.json();
+      } else {
+        // Try loading from backup
+        const backup = localStorage.getItem('coursesBackup');
+        if (backup) {
+          this.courses = JSON.parse(backup);
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+      return false;
+    }
+  }
+
+  // Add other CourseManager methods here
+  // getProfessions(), switchProfession(), etc.
+}
+
+// Initialize application
+document.addEventListener('DOMContentLoaded', async () => {
+  const courseManager = new CourseManager();
+  await courseManager.initialize();
+  
+  // Setup UI event handlers
+  setupEventListeners();
+  
+  // Initialize admin interface if needed
+  if (window.location.hash === '#admin') {
+    initializeAdminInterface();
+  }
+});
+
+// Main application logic
+function setupEventListeners() {
+  // Add event listeners for navigation, content loading, etc.
+}
+
+// Admin interface logic
+function initializeAdminInterface() {
+  // Initialize admin panel functionality
+}
+
+// Helper functions for UI updates, navigation, etc.
+function updateUI() {
+  // Update UI elements based on current state
+}
+
+// Export necessary components for admin interface
+window.courseManager = courseManager;
+  </script>
+</body>
+</html>
