@@ -123,6 +123,10 @@
       <div class="loader"></div>
       <div class="loading-status">Loading...</div>
     </div>
+    <select id="profession-select"></select>
+    <div id="days-container"></div>
+    <div id="vocabulary-container"></div>
+
   </div>
 
   <script>
@@ -157,11 +161,11 @@
           if (response.ok) {
             this.courses = await response.json();
             console.log('Courses loaded from courses.json');
-            
+
             // Save backup
             localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
             localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-            
+
             return true;
           }
           throw new Error(`Failed to load courses: ${response.status}`);
@@ -393,7 +397,7 @@
       },
 
       initializeUI() {
-        // UI initialization logic (Placeholder - needs to be implemented)
+        // Initialize profession select
         const professionSelect = document.getElementById('profession-select');
         if (professionSelect) {
           courseManager.getProfessions().forEach(profId => {
@@ -404,26 +408,75 @@
           });
         }
 
-        //Add other UI initialization code here as needed
+        // Initialize vocabulary
+        const vocabularyContainer = document.getElementById('vocabulary-container');
+        if (vocabularyContainer) {
+          const vocabularyButton = document.createElement('button');
+          vocabularyButton.textContent = 'Vocabulary';
+          vocabularyButton.onclick = () => openVocabulary();
+          vocabularyContainer.appendChild(vocabularyButton);
+        }
 
+        // Initialize days container
+        const daysContainer = document.getElementById('days-container');
+        if (daysContainer) {
+          courseManager.getDays().forEach(day => {
+            const btn = document.createElement('button');
+            btn.innerText = `Day ${day.id}`;
+            btn.onclick = () => selectDay(day.id);
+            daysContainer.appendChild(btn);
+          });
+        }
       },
 
       bindEvents() {
-        // Event binding logic (Placeholder - needs to be implemented based on original code)
         const professionSelect = document.getElementById('profession-select');
         if (professionSelect) {
           professionSelect.addEventListener('change', () => {
             const profId = professionSelect.value;
             if (profId) {
+              if (courseManager.hasRedirect(profId)) {
+                window.location.href = courseManager.getRedirectUrl(profId);
+                return;
+              }
               courseManager.switchProfession(profId);
-              // Update UI elements based on new profession
+              this.updateUI();
             }
           });
         }
-        // Add other event listeners here as needed.
 
+        // Add global error handling
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+          return false;
+        };
+      },
+
+      updateUI() {
+        const daysContainer = document.getElementById('days-container');
+        if (daysContainer) {
+          daysContainer.innerHTML = '';
+          courseManager.getDays().forEach(day => {
+            const btn = document.createElement('button');
+            btn.innerText = `Day ${day.id}`;
+            btn.onclick = () => selectDay(day.id);
+            daysContainer.appendChild(btn);
+          });
+        }
       }
     };
+
+    // Placeholder functions -  These need to be implemented based on your actual vocabulary and day selection logic
+    function openVocabulary() {
+      console.log("Opening vocabulary...");
+      // Add your vocabulary display logic here.  For example, you might open a modal or display vocabulary in a new section
+    }
+
+    function selectDay(dayId) {
+      console.log(`Day ${dayId} selected`);
+      // Add your day selection logic here.  This might involve fetching lesson data or updating the UI to display lessons for the selected day
+    }
+
 
     // Global instance creation
     const courseManager = new CourseManager();
