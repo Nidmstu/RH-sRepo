@@ -1,986 +1,360 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link type="image/png" sizes="16x16" rel="icon" href="https://i.postimg.cc/gJf9MgWR/icons8-32.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Learning Platform</title>
-  <link rel="icon" type="image/png" sizes="16x16" href="generated-icon.png">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-      font-size: 16px;
-    }
-    .container {
-      padding: 15px;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-    .hidden {
-      display: none;
-    }
-    .center {
-      text-align: center;
-    }
-    button {
-      padding: 12px 20px;
-      margin: 8px 5px;
-      cursor: pointer;
-      border: none;
-      background-color: #4CAF50;
-      color: white;
-      border-radius: 5px;
-      width: auto;
-      font-size: 16px;
-      display: inline-block;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    select, input {
-      font-size: 16px;
-      padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      max-width: 300px;
-      box-sizing: border-box;
-    }
-    .spinner {
-      border: 6px solid #f3f3f3;
-      border-top: 6px solid #3498db;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 2s linear infinite;
-      margin: 20px auto;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .markdown-content {
-      font-size: 16px;
-      line-height: 1.5;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-    }
-    .markdown-content p {
-      margin: 10px 0;
-    }
-    .markdown-content ul {
-      margin: 10px 5px;
-      padding-left: 20px;
-    }
-    .markdown-content table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 10px 0;
-      display: block;
-      overflow-x: auto;
-    }
-    .markdown-content table,
-    .markdown-content th,
-    .markdown-content td {
-      border: 1px solid #ddd;
-    }
-    .markdown-content th,
-    .markdown-content td {
-      padding: 8px;
-      text-align: left;
-      min-width: 100px;
-    }
-    details {
-      background: #fff;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    summary {
-      cursor: pointer;
-      padding: 10px 0;
-    }
-    details > summary {
-      font-size: 1.1em;
-      font-weight: bold;
-    }
-    details details > summary {
-      font-size: 0.9em;
-      font-weight: bold;
-    }
-    details details details > summary {
-      font-size: 0.8em;
-      font-weight: bold;
-    }
-    .markdown-content pre {
-      background-color: #f9f9f9;
-      border-left: 4px solid #ccc;
-      padding: 10px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      margin: 10px 0;
-      font-size: 14px;
-    }
-    .markdown-content code {
-      background-color: #f9f9f9;
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-size: 14px;
-    }
+/* Base styles */
+:root {
+  --primary-color: #4a6baf;
+  --primary-hover: #3a5b9f;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --background-color: #f5f7fa;
+  --card-bg: #ffffff;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
 
-    #loading-spinner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #f8f8f8;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  transition: all 0.3s ease;
+}
 
-    #loading-spinner .loading-status {
-      font-size: 14px !important;
-      color: #666 !important;
-      margin-top: 5px;
-    }
+/* Header */
+header {
+  background: var(--primary-color);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
 
-    #loading-spinner p {
-      margin: 10px 0;
-      font-size: 18px;
-      color: #333;
-    }
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
 
-    .task-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin: 20px 0;
-    }
+/* Course cards */
+.course-card {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  border-left: 4px solid var(--primary-color);
+}
 
-    .task-buttons button {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
-    }
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
 
-    @media (max-width: 768px) {
-      button {
-        padding: 12px 15px;
-      }
-      #markdown-content {
-        padding: 15px;
-      }
-    }
+.course-card h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  font-size: 1.4rem;
+}
 
-    /* Loading styles */
-    .loader {
-      border: 4px solid rgba(0, 0, 0, 0.1);
-      border-left-color: var(--primary);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
+/* Buttons */
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin: 5px 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
 
-    @keyframes spin {
-      to {transform: rotate(360deg);}
-    }
+button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
 
-    .loading-status {
-      text-align: center;
-      margin: 10px 0;
-      color: var(--text);
-    }
+/* Sections */
+.section {
+  padding: 20px;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 20px;
+}
 
-    .hidden {
-      display: none !important;
-    }
+/* Navigation */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
 
-    /* Markdown styles */
-    .markdown-content {
-      font-size: 16px;
-      line-height: 1.5;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-    }
+.back-button {
+  background-color: var(--secondary-color);
+  max-width: 150px;
+}
 
-    .markdown-content p {
-      margin: 10px 0;
-    }
+/* Content cards grid */
+.content-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
 
-    .markdown-content ul {
-      margin: 10px 5px;
-      padding-left: 20px;
-    }
+/* Markdown content */
+#markdown-content {
+  background-color: var(--card-bg);
+  padding: 25px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  line-height: 1.8;
+}
 
-    .markdown-content table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 10px 0;
-      display: block;
-      overflow-x: auto;
-    }
+#markdown-content h1, 
+#markdown-content h2,
+#markdown-content h3 {
+  color: var(--primary-color);
+}
 
-    .markdown-content table,
-    .markdown-content th,
-    .markdown-content td {
-      border: 1px solid #ddd;
-    }
+#markdown-content blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: 15px;
+  color: var(--secondary-color);
+  font-style: italic;
+}
 
-    .markdown-content th,
-    .markdown-content td {
-      padding: 8px;
-      text-align: left;
-      min-width: 100px;
-    }
+#markdown-content code {
+  background-color: #f5f5f5;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
 
-    .markdown-content pre {
-      background-color: #f9f9f9;
-      border-left: 4px solid #ccc;
-      padding: 10px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      margin: 10px 0;
-      font-size: 14px;
-    }
+/* Loading spinner */
+.loading-spinner {
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-top: 5px solid var(--primary-color);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
 
-    .markdown-content code {
-      background-color: #f9f9f9;
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-size: 14px;
-    }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-    details {
-      background: #fff;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 5px;
-    }
+/* Admin styles */
+.admin-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
 
-    summary {
-      cursor: pointer;
-      padding: 10px 0;
-    }
+.admin-header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    details > summary {
-      font-size: 1.1em;
-      font-weight: bold;
-    }
+.admin-body {
+  display: flex;
+  height: calc(100% - 60px);
+  overflow: hidden;
+}
 
-    details details > summary {
-      font-size: 0.9em;
-      font-weight: bold;
-    }
+.admin-sidebar {
+  width: 280px;
+  background-color: #fff;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  overflow-y: auto;
+}
 
-    details details details > summary {
-      font-size: 0.8em;
-      font-weight: bold;
-    }
+.admin-content {
+  flex: 1;
+  padding: 20px;
+  background-color: #f9f9f9;
+  overflow-y: auto;
+}
 
-    /* Audio container styles */
-    .audio-container {
-      margin: 20px 0;
-      width: 100%;
-      max-width: 600px;
-    }
+/* Hidden elements */
+.hidden {
+  display: none !important;
+}
 
-    .audio-container audio {
-      width: 100%;
-    }
-
-    /* Base styles */
-    :root {
-      --primary: #0079F2;
-      --green: #2E7D32;
-      --green-hover: #1B5E20;
-      --red: #D32F2F;
-      --blue: #1976D2;
-      --yellow: #FBC02D;
-      --dark: #37474F;
-      --border: #CFD8DC;
-      --background: #ECEFF1;
-      --text: #263238;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      line-height: 1.6;
-      color: var(--text);
-      background: var(--background);
-    }
-
-    /* Layout */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
-
-    /* Navigation */
-    .nav {
-      background: white;
-      padding: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    /* Cards */
-    .card {
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    /* Buttons */
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      background: var(--primary);
-      color: white;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-    }
-
-    .btn:hover {
-      opacity: 0.9;
-    }
-
-    /* Loading overlay */
-    #global-loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    .center {
-      text-align: center;
-    }
-
-    /* Task container styles */
-    .task-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin: 20px 0;
-    }
-
-    .task-buttons button {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    /* Loading spinner */
-    #loading-spinner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(248, 248, 248, 0.9);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .loading-spinner {
-      border: 6px solid #f3f3f3;
-      border-top: 6px solid #3498db;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-
-    .global-loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    /* Adaptive styles */
-    @media (max-width: 768px) {
-      .container {
-        padding: 0.5rem;
-      }
-
-      .card {
-        padding: 1rem;
-      }
-    }
+/* Mobile styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .content-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  button {
+    padding: 12px 15px;
+  }
+  
+  .admin-body {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar,
+  .admin-content {
+    width: 100%;
+    max-width: 100%;
+  }
+}
   </style>
 </head>
 <body>
-  <!-- Глобальный индикатор загрузки -->
-  <div id="global-loading-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.9); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-    <div class="spinner" style="width: 80px; height: 80px; border-width: 8px;"></div>
-    <h2 style="color: #3498db; margin-top: 20px;">Ожидание загрузки данных...</h2>
-    <p id="global-loading-status" style="font-size: 16px; margin-top: 15px;">Проверка источников данных...</p>
+  <!-- Global loading overlay -->
+  <div id="global-loading-overlay">
+    <div class="loading-spinner"></div>
+    <h2>Loading data...</h2>
+    <p id="global-loading-status">Checking data sources...</p>
   </div>
 
-  <!-- Индикатор загрузки -->
-  <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-    <div class="spinner" style="width: 80px; height: 80px; border-width: 8px;"></div>
-    <h2 style="color: #3498db; margin-top: 20px;">Загрузка данных курсов...</h2>
-    <p class="loading-status" style="font-size: 16px; margin-top: 15px;">Инициализация...</p>
-    <div id="loading-retry-container" class="hidden" style="margin-top: 20px; background-color: #ffeeee; padding: 15px; border-radius: 5px; border-left: 4px solid #ff5555; max-width: 400px;">
-      <p style="font-weight: bold; color: #cc0000;">Не удалось загрузить данные. Возможно, проблемы с подключением.</p>
-      <button onclick="location.reload()" style="background-color: #ff5555; margin-top: 10px; padding: 8px 16px; border: none; border-radius: 4px; color: white; cursor: pointer;">Повторить загрузку</button>
-      <p style="font-size: 14px; margin-top: 10px; color: #666;">Если проблема повторяется, обратитесь к администратору.</p>
-      <div class="error-details" style="margin-top: 15px; font-size: 12px; color: #666;"></div>
-    </div>
-  </div>
-
-  <div id="app-content">
-    <!-- Универсальный аудио-контейнер для всех типов аудио -->
-    <div id="audio-embed" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%; display: flex; flex-direction: column; align-items: center;">
-      <!-- Динамически заполняется из JS -->
-    </div>
-
-    <!-- Скрытые аудио-контейнеры для обратной совместимости -->
-    <div id="audio-first-lesson" class="hidden"></div>
-    <div id="audio-vocabulary" class="hidden"></div>
-
-    <!-- Резервный аудио-контейнер для прямых URL -->
-    <div id="audio-fallback" class="hidden center audio-container" style="margin-bottom: 20px; max-width: 100%; width: 100%;">
-      <audio controls style="width:100%; max-width:600px;">
-        <source src="" type="audio/mpeg" id="audio-fallback-source">
-        Ваш браузер не поддерживает аудио элемент.
-      </audio>
-    </div>
-    <div id="content-loading-spinner" class="hidden">
-      <div class="loader"></div>
-      <div class="loading-status">Loading lesson content...</div>
-    </div>
-    <div id="audio-container" class="hidden">
-      <audio controls>
-        <source src="" type="audio/mpeg">
-        Your browser does not support the audio element.
-      </audio>
-    </div>
-    <div id="markdown-content" class="markdown-content hidden"></div>
-    <div id="home" class="hidden">
-      <h1>Learning Platform</h1>
-      <p>
-        Course:&nbsp;
-        <select id="profession-select" onchange="handleProfessionChange()">
-          <option value="">Select a course</option>
-        </select>
-      </p>
-
-      <div style="margin: 30px 0;">
-        <p>Quick Reference:</p>
-        <div id="vocabulary-container">
-          <!-- Vocabulary buttons will be dynamically added here -->
-        </div>
+  <!-- Main content -->
+  <div id="app-content" class="hidden">
+    <!-- Home page -->
+    <div id="home" class="container">
+      <div id="day-selection">
+        <h1>Learning Platform</h1>
+        <p>
+          Course:
+          <select id="profession-select" onchange="handleProfessionChange()">
+            <option value="">Select a course</option>
+          </select>
+        </p>
+        <div id="vocabulary-container"></div>
+        <div id="days-container"></div>
       </div>
-
-      <div style="margin-top: 30px;">
-        <p>Select Training Day:</p>
-        <div id="days-container">
-          <!-- Day buttons will be dynamically added here -->
-        </div>
+      <div id="task-selection" class="hidden">
+        <h1 id="day-header"></h1>
+        <div id="task-buttons"></div>
+        <button onclick="goBackToDaySelection()">Back</button>
       </div>
     </div>
 
-    <div id="guide" class="hidden">
+    <!-- Guide page -->
+    <div id="guide" class="container hidden">
       <h1 id="guide-title">Guide:</h1>
-      <div id="content-loading-spinner" class="center hidden">
-        <div class="spinner"></div>
-        <p class="loading-status">Loading content...</p>
-      </div>
-      <div class="center" style="margin-top:20px;">
-        <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
-      </div>
-      <div class="center" style="margin-top:20px;">
+      <div id="audio-embed" class="hidden"></div>
+      <div id="markdown-content" class="hidden"></div>
+      <div class="center">
+        <button id="test-button">Test</button>
         <button onclick="goBackToTaskSelection()">Back</button>
       </div>
     </div>
+  </div>
 
-    <div id="task-selection" class="hidden">
-      <h1 id="day-header"></h1>
-      <div id="task-buttons" class="task-buttons"></div>
-      <button onclick="goBackToDaySelection()">Back</button>
-    </div>
-
+  <!-- Admin interface -->
+  <div id="admin-interface" class="admin-panel hidden">
+    <!-- Admin panel content -->
   </div>
 
   <script>
-    // CourseManager implementation
-    class CourseManager {
-      constructor() {
-        this.courses = null;
-        this.fallbacks = null;
-        this.currentProfession = "prompt-engineer";
-        this.currentDay = null;
-        this.currentLesson = null;
-        this.courseUpdateCallbacks = [];
-      }
+// Course manager implementation
+class CourseManager {
+  constructor() {
+    this.courses = null;
+    this.fallbacks = null;
+    this.currentProfession = null;
+    this.currentDay = null;
+    this.currentLesson = null;
+  }
 
-      async initialize() {
-        try {
-          // Try to load from localStorage first
-          const backupStr = localStorage.getItem('coursesBackup');
-          if (backupStr) {
-            try {
-              this.courses = JSON.parse(backupStr);
-              const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'unknown';
-              console.log(`Courses restored from backup (${timestamp})`);
-              return true;
-            } catch (backupError) {
-              console.error('Error restoring from backup:', backupError);
-            }
-          }
-
-          // If no backup, load from file
-          const response = await fetch('data/courses.json');
-          if (response.ok) {
-            this.courses = await response.json();
-            console.log('Courses loaded from courses.json');
-
-            // Save backup
-            localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
-            localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
-
-            return true;
-          }
-          throw new Error(`Failed to load courses: ${response.status}`);
-        } catch (error) {
-          console.error('Failed to initialize CourseManager:', error);
-          return false;
+  async initialize() {
+    try {
+      // Load courses from API or localStorage
+      const response = await fetch('https://auto.crm-s.com/webhook/OnboardingJSON');
+      if (response.ok) {
+        this.courses = await response.json();
+      } else {
+        // Try loading from backup
+        const backup = localStorage.getItem('coursesBackup');
+        if (backup) {
+          this.courses = JSON.parse(backup);
         }
-      }
-
-      getProfessions(includeHidden = false) {
-        if (!this.courses || typeof this.courses !== 'object') {
-          console.error('Courses object is not defined or is not an object:', this.courses);
-          return [];
-        }
-
-        if (includeHidden) {
-          return Object.keys(this.courses);
-        } else {
-          return Object.keys(this.courses).filter(profId => {
-            const course = this.courses[profId];
-            return !course.hidden;
-          });
-        }
-      }
-
-      switchProfession(professionId) {
-        if (this.courses[professionId]) {
-          this.currentProfession = professionId;
-          this.currentDay = null;
-          this.currentLesson = null;
-          return true;
-        }
-        return false;
-      }
-
-      hasRedirect(professionId = this.currentProfession) {
-        return this.courses[professionId]?.redirectUrl !== undefined;
-      }
-
-      getRedirectUrl(professionId = this.currentProfession) {
-        return this.courses[professionId]?.redirectUrl;
-      }
-
-      getDays() {
-        if (!this.courses[this.currentProfession] || !this.courses[this.currentProfession].days) {
-          return [];
-        }
-        return this.courses[this.currentProfession].days;
-      }
-
-      getSpecialLessons() {
-        if (!this.courses[this.currentProfession] || !this.courses[this.currentProfession].specialLessons) {
-          return [];
-        }
-        return this.courses[this.currentProfession].specialLessons;
-      }
-
-      selectDay(dayId) {
-        const day = this.getDays().find(d => d.id === dayId);
-        if (day) {
-          this.currentDay = day;
-          this.currentLesson = null;
-          return day;
-        }
-        return null;
-      }
-
-      getLessonsForCurrentDay() {
-        if (!this.currentDay) return [];
-        return this.currentDay.lessons || [];
-      }
-
-      selectLesson(lessonId) {
-        if (!this.courses) {
-          console.error('Error: courses not loaded yet');
-          return null;
-        }
-
-        // Check current day first
-        if (this.currentDay && this.currentDay.lessons) {
-          const lesson = this.currentDay.lessons.find(l => l.id === lessonId);
-          if (lesson) {
-            this.currentLesson = lesson;
-            return lesson;
-          }
-        }
-
-        // Then check special lessons
-        const specialLessons = this.getSpecialLessons();
-        if (specialLessons && specialLessons.length > 0) {
-          const specialLesson = specialLessons.find(l => l.id === lessonId);
-          if (specialLesson) {
-            this.currentLesson = specialLesson;
-            return specialLesson;
-          }
-        }
-
-        return null;
-      }
-
-      async fetchLessonContent() {
-        if (!this.currentLesson) {
-          console.error('Error: no lesson selected');
-          return null;
-        }
-
-        const source = this.currentLesson.contentSource;
-        if (!source) {
-          return `# ${this.currentLesson.title}\n\nNo content source specified for this lesson.`;
-        }
-
-        try {
-          let content = '';
-
-          if (source.type === 'webhook' && source.url) {
-            try {
-              const response = await fetch(source.url, {
-                method: 'GET',
-                headers: {
-                  'Accept': 'text/plain, text/markdown, text/html, application/json, */*',
-                  'Cache-Control': 'no-cache'
-                },
-                cache: 'no-store'
-              });
-
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-
-              content = await response.text();
-
-              if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
-                try {
-                  const jsonData = JSON.parse(content);
-                  content = jsonData.content || jsonData.markdown || jsonData.text || jsonData.data || content;
-                } catch (e) {}
-              }
-            } catch (error) {
-              console.error('Error loading content from webhook:', error);
-
-              if (source.fallbackType === 'local' && source.fallbackId) {
-                content = await this.fetchLocalContent(source.fallbackId);
-              } else if (source.fallbackType === 'markdown' && source.fallbackContent) {
-                content = source.fallbackContent;
-              } else {
-                content = `# ${this.currentLesson.title}\n\n## Error Loading Content\n\nFailed to load lesson content.\n\nError: ${error.message}`;
-              }
-            }
-          } else if (source.type === 'local' && source.id) {
-            content = await this.fetchLocalContent(source.id);
-          } else if (source.type === 'markdown' && source.content) {
-            content = source.content;
-          }
-
-          return content;
-        } catch (error) {
-          console.error('Error in fetchLessonContent:', error);
-          throw error;
-        }
-      }
-
-      async fetchLocalContent(id) {
-        try {
-          const response = await fetch(`data/content/${id}.md`);
-          if (response.ok) {
-            return await response.text();
-          }
-          throw new Error(`Failed to load local content with ID ${id}: ${response.status}`);
-        } catch (error) {
-          console.error("Error loading local content:", error);
-          return null;
-        }
-      }
-
-      onCoursesUpdated(callback) {
-        if (typeof callback === 'function') {
-          this.courseUpdateCallbacks.push(callback);
-        }
-      }
-
-      notifyCoursesUpdated() {
-        if (this.courseUpdateCallbacks && Array.isArray(this.courseUpdateCallbacks)) {
-          this.courseUpdateCallbacks.forEach(callback => {
-            try {
-              callback(this.courses);
-            } catch (error) {
-              console.error('Error in course update callback:', error);
-            }
-          });
-        }
-      }
-    }
-
-
-    // DevMode implementation (Placeholder)
-    const devMode = {
-      enabled: false,
-      initialize() {
-        // DevMode initialization logic
-      }
-    };
-
-    // Admin Panel implementation (Placeholder)
-    const adminPanel = {
-      initialize() {
-        // Admin panel initialization logic
-      }
-    };
-
-    // Main app implementation
-    const app = {
-      async initApp() {
-        try {
-          const loadingOverlay = document.getElementById('global-loading-overlay');
-          loadingOverlay.classList.remove('hidden');
-          const success = await courseManager.initialize();
-          if (!success) {
-            throw new Error('Failed to load course data');
-          }
-          devMode.initialize();
-          adminPanel.initialize();
-          this.initializeUI();
-          this.bindEvents();
-          loadingOverlay.classList.add('hidden');
-        } catch (error) {
-          console.error('App initialization failed:', error);
-          //  Add error handling here to show error message in loadingOverlay
-        }
-      },
-
-      initializeUI() {
-        // Initialize profession select
-        const professionSelect = document.getElementById('profession-select');
-        if (professionSelect) {
-          courseManager.getProfessions().forEach(profId => {
-            const option = document.createElement('option');
-            option.value = profId;
-            option.textContent = profId;
-            professionSelect.appendChild(option);
-          });
-        }
-
-        // Initialize vocabulary
-        const vocabularyContainer = document.getElementById('vocabulary-container');
-        if (vocabularyContainer) {
-          const vocabularyButton = document.createElement('button');
-          vocabularyButton.textContent = 'Vocabulary';
-          vocabularyButton.onclick = () => openVocabulary();
-          vocabularyContainer.appendChild(vocabularyButton);
-        }
-
-        // Initialize days container
-        const daysContainer = document.getElementById('days-container');
-        if (daysContainer) {
-          courseManager.getDays().forEach(day => {
-            const btn = document.createElement('button');
-            btn.innerText = `Day ${day.id}`;
-            btn.onclick = () => selectDay(day.id);
-            daysContainer.appendChild(btn);
-          });
-        }
-      },
-
-      bindEvents() {
-        const professionSelect = document.getElementById('profession-select');
-        if (professionSelect) {
-          professionSelect.addEventListener('change', () => {
-            const profId = professionSelect.value;
-            if (profId) {
-              if (courseManager.hasRedirect(profId)) {
-                window.location.href = courseManager.getRedirectUrl(profId);
-                return;
-              }
-              courseManager.switchProfession(profId);
-              this.updateUI();
-            }
-          });
-        }
-
-        // Add global error handling
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-          console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
-          return false;
-        };
-      },
-
-      updateUI() {
-        const daysContainer = document.getElementById('days-container');
-        if (daysContainer) {
-          daysContainer.innerHTML = '';
-          courseManager.getDays().forEach(day => {
-            const btn = document.createElement('button');
-            btn.innerText = `Day ${day.id}`;
-            btn.onclick = () => selectDay(day.id);
-            daysContainer.appendChild(btn);
-          });
-        }
-      }
-    };
-
-    // Placeholder functions -  These need to be implemented based on your actual vocabulary and day selection logic
-    function openVocabulary() {
-      console.log("Opening vocabulary...");
-      // Add your vocabulary display logic here.  For example, you might open a modal or display vocabulary in a new section
-    }
-
-    function selectDay(dayId) {
-      console.log(`Day ${dayId} selected`);
-      // Add your day selection logic here.  This might involve fetching lesson data or updating the UI to display lessons for the selected day
-    }
-
-
-    // Global instance creation
-    const courseManager = new CourseManager();
-    window.courseManager = courseManager;
-    window.devMode = devMode;
-    window.adminPanel = adminPanel;
-    window.app = app;
-
-    // Single initialization point
-    const initializeApp = async () => {
-      const loadingOverlay = document.getElementById('global-loading-overlay');
-      const loadingStatus = document.getElementById('global-loading-status');
-      const retryContainer = document.getElementById('loading-retry-container');
-      const appContent = document.getElementById('app-content');
-
-      try {
-        if (appContent) appContent.style.display = 'none';
-        if (loadingOverlay) {
-          loadingOverlay.style.display = 'flex';
-          loadingOverlay.style.opacity = '1';
-        }
-
-        if (loadingStatus) {
-          loadingStatus.textContent = 'Инициализация приложения...';
-          loadingStatus.style.color = '#3498db';
-        }
-
-        // Sequential initialization with verification
-        const initialized = await courseManager.initialize();
-        if (!initialized) {
-          throw new Error('Не удалось инициализировать CourseManager');
-        }
-
-        await Promise.all([
-          devMode.initialize(),
-          adminPanel.initialize()
-        ]);
-
-        // Verify course data loaded successfully
-        if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
-          throw new Error('Не удалось загрузить данные курсов');
-        }
-
-        // Initialize UI components
-        app.initializeUI();
-        app.bindEvents();
-
-        // Update course list and verify
-        courseManager.notifyCoursesUpdated();
-        const professions = courseManager.getProfessions();
-        if (!professions || professions.length === 0) {
-          throw new Error('Нет доступных курсов');
-        }
-
-        if (loadingOverlay) {
-          loadingOverlay.style.opacity = '0';
-                    setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-            if (appContent) appContent.style.display = 'block';
-          }, 500);
-        }
-      } catch (error) {
-        console.error('Failed to initialize app:', error);
-        if (retryContainer) {
-          retryContainer.classList.remove('hidden');
-          const errorDetails = retryContainer.querySelector('.error-details');
-          if (errorDetails) {
-            errorDetails.textContent = `Подробности ошибки: ${error.message}`;
-          }
-        }
-        if (loadingStatus) {
-          loadingStatus.textContent = 'Ошибка при инициализации приложения';
-          loadingStatus.style.color = '#ff5555';
-        }
-        if (loadingOverlay) {
-          loadingOverlay.style.opacity = '0.8';
-          loadingOverlay.style.backgroundColor = 'rgba(255, 240, 240, 0.95)';
-        }
-        return false;
       }
       return true;
-    };
-
-    // Start the application when DOM is loaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => setTimeout(initializeApp, 100));
-    } else {
-      setTimeout(initializeApp, 100);
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+      return false;
     }
+  }
+
+  // Add other CourseManager methods here
+  // getProfessions(), switchProfession(), etc.
+}
+
+// Initialize application
+document.addEventListener('DOMContentLoaded', async () => {
+  const courseManager = new CourseManager();
+  await courseManager.initialize();
+  
+  // Setup UI event handlers
+  setupEventListeners();
+  
+  // Initialize admin interface if needed
+  if (window.location.hash === '#admin') {
+    initializeAdminInterface();
+  }
+});
+
+// Main application logic
+function setupEventListeners() {
+  // Add event listeners for navigation, content loading, etc.
+}
+
+// Admin interface logic
+function initializeAdminInterface() {
+  // Initialize admin panel functionality
+}
+
+// Helper functions for UI updates, navigation, etc.
+function updateUI() {
+  // Update UI elements based on current state
+}
+
+// Export necessary components for admin interface
+window.courseManager = courseManager;
   </script>
-  <script src="js/fetchTests.js"></script>
-  <script src="js/app.js" type="module"></script>
 </body>
 </html>

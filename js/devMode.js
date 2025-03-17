@@ -49,7 +49,6 @@ class DevMode {
       <div class="dev-panel-header">
         <h3>Режим разработчика</h3>
         <div class="dev-panel-actions">
-          <button id="dev-panel-standalone" title="Открыть Standalone версию"><i class="fas fa-external-link-alt"></i></button>
           <button id="dev-panel-analyze" title="Анализировать данные курсов"><i class="fas fa-chart-bar"></i></button>
           <button id="dev-panel-debug" title="Показать отладочную информацию"><i class="fas fa-bug"></i></button>
           <button id="dev-panel-storage" title="LocalStorage менеджер"><i class="fas fa-database"></i></button>
@@ -100,11 +99,6 @@ class DevMode {
     // Добавляем обработчик для кнопки LocalStorage
     document.getElementById('dev-panel-storage').addEventListener('click', () => {
       this.showLocalStorageManager();
-    });
-    
-    // Добавляем обработчик для кнопки Standalone
-    document.getElementById('dev-panel-standalone').addEventListener('click', () => {
-      window.open('standalone.html', '_blank');
     });
   }
   
