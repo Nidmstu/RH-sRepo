@@ -914,20 +914,22 @@
           loadingStatus.textContent = 'Инициализация приложения...';
         }
 
-        if (!window.courseManager) {
-          courseManager.initialize();
+        // Sequential initialization to prevent race conditions
+        await courseManager.initialize();
+        await devMode.initialize();
+        await adminPanel.initialize();
+
+        // Verify course data loaded successfully
+        if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
+          throw new Error('Не удалось загрузить данные курсов');
         }
 
-        // Initialize application modules
-        await Promise.all([
-          courseManager.initialize(),
-          devMode.initialize(),
-          adminPanel.initialize()
-        ]);
-
-        // Initialize UI
+        // Initialize UI components
         app.initializeUI();
         app.bindEvents();
+
+        // Update course list
+        courseManager.notifyCoursesUpdated();
         
         if (loadingOverlay) {
           loadingOverlay.style.opacity = '0';
@@ -937,12 +939,24 @@
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);
-        if (retryContainer) retryContainer.classList.remove('hidden');
-        if (loadingStatus) {
-          loadingStatus.textContent = `Ошибка загрузки: ${error.message}. Пожалуйста, попробуйте перезагрузить страницу.`;
+        if (retryContainer) {
+          retryContainer.classList.remove('hidden');
+          const errorDetails = retryContainer.querySelector('.error-details');
+          if (errorDetails) {
+            errorDetails.textContent = `Подробности ошибки: ${error.message}`;
+          }
         }
-        if (loadingOverlay) loadingOverlay.style.opacity = '0.5';
+        if (loadingStatus) {
+          loadingStatus.textContent = 'Ошибка при инициализации приложения';
+          loadingStatus.style.color = '#ff5555';
+        }
+        if (loadingOverlay) {
+          loadingOverlay.style.opacity = '0.8';
+          loadingOverlay.style.backgroundColor = 'rgba(255, 240, 240, 0.95)';
+        }
+        return false;
       }
+      return true;
     };
 
     // Start the application when DOM is loaded
