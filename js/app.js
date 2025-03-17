@@ -743,7 +743,7 @@ async function tryImportFromUrl(url) {
         }
       } catch (jsonError) {
         updateLoadingStatus('Поиск JSON данных в ответе...');
-        console.log('Не удалось распарсить ответ как JSON, ищемJSON в тексте:', jsonError.message);
+        console.log('Не удалось распарсить ответ как JSON, ищем JSON в тексте:', jsonError.message);
         const jsonRegex = /{[\s\S]*}/;
         const match = responseText.match(jsonRegex);
         if (match && match[0]) {
@@ -1253,30 +1253,30 @@ window.selectLesson = function(lessonId) {
     // Сначала скрываем все аудио
     hideAllAudio();
     if (!lesson) return;
-
+    
     // Если в JSON аудио хранится в поле "audio", а не "audioSource", присваиваем его
     if (!lesson.audioSource && lesson.audio) {
       lesson.audioSource = lesson.audio;
       console.log('Присвоено audioSource из lesson.audio');
     }
-
+    
     if (!lesson.audioSource) {
       console.log('У урока нет аудио источника');
       return;
     }
-
+    
     console.log('Обработка аудио для урока:', lesson.id, 'Тип аудио:', lesson.audioSource.type);
     console.log('Данные аудио:', JSON.stringify(lesson.audioSource));
-
+    
     const audioType = (lesson.audioSource.type || '').toLowerCase();
     const audioEmbed = document.getElementById('audio-embed');
     if (!audioEmbed) {
       console.warn('Элемент с id "audio-embed" не найден. Проверьте HTML-разметку.');
       return;
     }
-
+    
     let embedContent = '';
-
+    
     if (audioType === 'soundcloud') {
       if (lesson.audioSource.trackUrl) {
         embedContent = `<iframe src="${lesson.audioSource.trackUrl}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
@@ -1308,13 +1308,13 @@ window.selectLesson = function(lessonId) {
       </audio>`;
       console.log('Created fallback HTML5 audio element using url property');
     }
-
+    
     if (!embedContent) {
       console.error("Не удалось сформировать embedContent из audioSource:", lesson.audioSource);
       audioEmbed.innerHTML = "<p>Audio not available</p>";
       return;
     }
-
+    
     audioEmbed.innerHTML = embedContent;
     audioEmbed.classList.remove('hidden');
     console.log('Аудио контейнер отображен с содержимым');
@@ -1355,10 +1355,10 @@ async function loadTestForLesson(lesson) {
       alert('Тестовые данные отсутствуют');
       return;
     }
-
+    
     // Сохраняем данные теста в глобальную переменную
     window.quizData = testContent;
-
+    
     // Запускаем отображение теста
     startQuiz();
   } catch (error) {
@@ -1390,7 +1390,7 @@ function startQuiz() {
     quizFrame.style.zIndex = '9999';
     quizFrame.style.backgroundColor = '#f8f9fa';
     document.body.appendChild(quizFrame);
-
+    
     // Добавляем кнопку закрытия
     const closeButton = document.createElement('button');
     closeButton.innerText = 'Закрыть тест';
@@ -1412,7 +1412,7 @@ function startQuiz() {
   } else {
     quizFrame.style.display = 'block';
   }
-
+  
   // Загружаем страницу quiz.html
   quizFrame.src = 'quiz.html';
 }
@@ -1503,6 +1503,7 @@ async function loadLessonContent() {
       }, 500);
     }
   }
+}
 
 // Открытие словаря
 window.openVocabulary = function() {
