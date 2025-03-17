@@ -898,18 +898,35 @@
     window.adminPanel = adminPanel;
     window.app = app;
 
-    // Start the application when DOM is loaded
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Single initialization point
+    const initializeApp = async () => {
       try {
+        const loadingOverlay = document.getElementById('global-loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        
         await app.initApp();
+        
+        if (loadingOverlay) {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 500);
+        }
       } catch (error) {
         console.error('Failed to initialize app:', error);
         document.getElementById('loading-retry-container').classList.remove('hidden');
         document.getElementById('global-loading-status').textContent = 'Ошибка загрузки данных. Пожалуйста, попробуйте перезагрузить страницу.';
       }
-    });
+    };
+
+    // Start the application when DOM is loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
   </script>
-  <script src="js/app.js" type="module"></script>
+  <script src="js/app.js" type="module" async></script>
   <script src="js/fetchTests.js"></script>
 </body>
 </html>
