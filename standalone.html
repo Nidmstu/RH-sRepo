@@ -1228,6 +1228,8 @@
   // Создаем экземпляр класса
   const courseManager = new CourseManager();
   window.courseManager = courseManager;
+  // Инициализируем менеджер курсов
+  courseManager.initialize();
   // ==================== END COURSE MANAGER CODE ====================
 
 
@@ -2806,7 +2808,8 @@
     devMode.initialize();
   });
   window.devMode = devMode;
-  window.devMode = devMode;
+  // Инициализируем режим разработчика
+  devMode.initialize();
   // ==================== END DEV MODE CODE ====================
 
 
@@ -2964,6 +2967,8 @@
   window.openAdminPanel = function() {
     adminPanel.show();
   };
+  // Инициализируем админ-панель
+  adminPanel.initialize();
   // ==================== END ADMIN CODE ====================
   // ==================== BEGIN APP CODE ====================
   // Основной модуль приложения
