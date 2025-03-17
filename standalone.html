@@ -9,6 +9,30 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
+    #loading-spinner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #f8f8f8;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1.5s linear infinite;
+      margin: 0 auto 20px auto;
+    }
+
     /* Loading styles */
     .loader {
       border: 4px solid rgba(0, 0, 0, 0.1);
@@ -138,8 +162,19 @@
     </div>
 
     <div id="guide" class="hidden">
-      <!-- Guide content -->
+    <h1 id="guide-title">Guide:</h1>
+    <div id="content-loading-spinner" class="center hidden">
+      <div class="spinner"></div>
+      <p>Loading content...</p>
     </div>
+    <div id="markdown-content" class="markdown-content hidden"></div>
+    <div class="center" style="margin-top:20px;">
+      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
+    </div>
+    <div class="center" style="margin-top:20px;">
+      <button onclick="goBackToTaskSelection()">Back</button>
+    </div>
+  </div>
 
     <div id="day-selection" class="hidden">
       <!-- Day selection content -->
