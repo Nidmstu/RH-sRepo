@@ -686,7 +686,7 @@
     // Start the application when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
       app.initApp();
-      
+
       // Add error handling
       window.onerror = function(msg, url, lineNo, columnNo, error) {
         console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
@@ -703,5 +703,7 @@
       };
     });
   </script>
+  <script src="js/app.js" type="module"></script>
+  <script src="js/fetchTests.js"></script>
 </body>
 </html>
