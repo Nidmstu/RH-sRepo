@@ -23,6 +23,18 @@
       align-items: center;
     }
 
+    #loading-spinner .loading-status {
+      font-size: 14px !important;
+      color: #666 !important;
+      margin-top: 5px;
+    }
+
+    #loading-spinner p {
+      margin: 10px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
     .spinner {
       border: 8px solid #f3f3f3;
       border-top: 8px solid #3498db;
@@ -359,6 +371,9 @@
       <p class="loading-status">Loading content...</p>
     </div>
     <div id="markdown-content" class="markdown-content hidden"></div>
+    <div class="center" style="margin-top:20px;">
+      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
+    </div>
     <div class="center" style="margin-top:20px;">
       <button id="test-button" onclick="window.location.href = currentTopic.testWebhook" class="hidden">Test</button>
     </div>
