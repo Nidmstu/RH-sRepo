@@ -130,99 +130,228 @@
     class CourseManager {
       constructor() {
         this.courses = null;
-        this.currentProfession = null;
+        this.fallbacks = null;
+        this.currentProfession = "prompt-engineer";
         this.currentDay = null;
         this.currentLesson = null;
-        this.coursesUpdatedCallbacks = [];
+        this.courseUpdateCallbacks = [];
       }
 
       async initialize() {
         try {
-          const response = await fetch('/data/courses.json');
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+          // Try to load from localStorage first
+          const backupStr = localStorage.getItem('coursesBackup');
+          if (backupStr) {
+            try {
+              this.courses = JSON.parse(backupStr);
+              const timestamp = localStorage.getItem('coursesBackupTimestamp') || 'unknown';
+              console.log(`Courses restored from backup (${timestamp})`);
+              return true;
+            } catch (backupError) {
+              console.error('Error restoring from backup:', backupError);
+            }
           }
-          this.courses = await response.json();
-          this.notifyCoursesUpdated();
-          return true;
+
+          // If no backup, load from file
+          const response = await fetch('data/courses.json');
+          if (response.ok) {
+            this.courses = await response.json();
+            console.log('Courses loaded from courses.json');
+            
+            // Save backup
+            localStorage.setItem('coursesBackup', JSON.stringify(this.courses));
+            localStorage.setItem('coursesBackupTimestamp', new Date().toISOString());
+            
+            return true;
+          }
+          throw new Error(`Failed to load courses: ${response.status}`);
         } catch (error) {
           console.error('Failed to initialize CourseManager:', error);
           return false;
         }
       }
 
-      getProfessions() {
-        return Object.keys(this.courses || {});
+      getProfessions(includeHidden = false) {
+        if (!this.courses || typeof this.courses !== 'object') {
+          console.error('Courses object is not defined or is not an object:', this.courses);
+          return [];
+        }
+
+        if (includeHidden) {
+          return Object.keys(this.courses);
+        } else {
+          return Object.keys(this.courses).filter(profId => {
+            const course = this.courses[profId];
+            return !course.hidden;
+          });
+        }
       }
 
       switchProfession(professionId) {
-        if (this.courses && this.courses[professionId]) {
+        if (this.courses[professionId]) {
           this.currentProfession = professionId;
           this.currentDay = null;
           this.currentLesson = null;
-          this.notifyCoursesUpdated();
           return true;
         }
         return false;
       }
 
+      hasRedirect(professionId = this.currentProfession) {
+        return this.courses[professionId]?.redirectUrl !== undefined;
+      }
+
+      getRedirectUrl(professionId = this.currentProfession) {
+        return this.courses[professionId]?.redirectUrl;
+      }
+
       getDays() {
-        return (this.courses && this.courses[this.currentProfession] && this.courses[this.currentProfession].days) || [];
+        if (!this.courses[this.currentProfession] || !this.courses[this.currentProfession].days) {
+          return [];
+        }
+        return this.courses[this.currentProfession].days;
+      }
+
+      getSpecialLessons() {
+        if (!this.courses[this.currentProfession] || !this.courses[this.currentProfession].specialLessons) {
+          return [];
+        }
+        return this.courses[this.currentProfession].specialLessons;
       }
 
       selectDay(dayId) {
         const day = this.getDays().find(d => d.id === dayId);
         if (day) {
           this.currentDay = day;
-          this.notifyCoursesUpdated();
+          this.currentLesson = null;
           return day;
         }
         return null;
       }
 
       getLessonsForCurrentDay() {
-        return this.currentDay?.lessons || [];
+        if (!this.currentDay) return [];
+        return this.currentDay.lessons || [];
       }
 
       selectLesson(lessonId) {
-        const lesson = this.getLessonsForCurrentDay().find(l => l.id === lessonId);
-        if (lesson) {
-          this.currentLesson = lesson;
-          this.notifyCoursesUpdated();
-          return lesson;
+        if (!this.courses) {
+          console.error('Error: courses not loaded yet');
+          return null;
         }
+
+        // Check current day first
+        if (this.currentDay && this.currentDay.lessons) {
+          const lesson = this.currentDay.lessons.find(l => l.id === lessonId);
+          if (lesson) {
+            this.currentLesson = lesson;
+            return lesson;
+          }
+        }
+
+        // Then check special lessons
+        const specialLessons = this.getSpecialLessons();
+        if (specialLessons && specialLessons.length > 0) {
+          const specialLesson = specialLessons.find(l => l.id === lessonId);
+          if (specialLesson) {
+            this.currentLesson = specialLesson;
+            return specialLesson;
+          }
+        }
+
         return null;
       }
 
       async fetchLessonContent() {
-        if (!this.currentLesson || !this.currentLesson.contentSource) return null;
+        if (!this.currentLesson) {
+          console.error('Error: no lesson selected');
+          return null;
+        }
+
         const source = this.currentLesson.contentSource;
+        if (!source) {
+          return `# ${this.currentLesson.title}\n\nNo content source specified for this lesson.`;
+        }
 
         try {
+          let content = '';
+
           if (source.type === 'webhook' && source.url) {
-            const response = await fetch(source.url);
-            if (response.ok) {
-              let content = await response.text();
-              try {
-                const json = JSON.parse(content);
-                content = json.content || json.data || content;
-              } catch (e) {}
-              return content;
+            try {
+              const response = await fetch(source.url, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'text/plain, text/markdown, text/html, application/json, */*',
+                  'Cache-Control': 'no-cache'
+                },
+                cache: 'no-store'
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+
+              content = await response.text();
+
+              if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+                try {
+                  const jsonData = JSON.parse(content);
+                  content = jsonData.content || jsonData.markdown || jsonData.text || jsonData.data || content;
+                } catch (e) {}
+              }
+            } catch (error) {
+              console.error('Error loading content from webhook:', error);
+
+              if (source.fallbackType === 'local' && source.fallbackId) {
+                content = await this.fetchLocalContent(source.fallbackId);
+              } else if (source.fallbackType === 'markdown' && source.fallbackContent) {
+                content = source.fallbackContent;
+              } else {
+                content = `# ${this.currentLesson.title}\n\n## Error Loading Content\n\nFailed to load lesson content.\n\nError: ${error.message}`;
+              }
             }
+          } else if (source.type === 'local' && source.id) {
+            content = await this.fetchLocalContent(source.id);
+          } else if (source.type === 'markdown' && source.content) {
+            content = source.content;
           }
-          return source.content || null;
+
+          return content;
         } catch (error) {
-          console.error('Error fetching lesson content:', error);
+          console.error('Error in fetchLessonContent:', error);
+          throw error;
+        }
+      }
+
+      async fetchLocalContent(id) {
+        try {
+          const response = await fetch(`data/content/${id}.md`);
+          if (response.ok) {
+            return await response.text();
+          }
+          throw new Error(`Failed to load local content with ID ${id}: ${response.status}`);
+        } catch (error) {
+          console.error("Error loading local content:", error);
           return null;
         }
       }
 
       onCoursesUpdated(callback) {
-        this.coursesUpdatedCallbacks.push(callback);
+        if (typeof callback === 'function') {
+          this.courseUpdateCallbacks.push(callback);
+        }
       }
 
       notifyCoursesUpdated() {
-        this.coursesUpdatedCallbacks.forEach(callback => callback(this.courses));
+        if (this.courseUpdateCallbacks && Array.isArray(this.courseUpdateCallbacks)) {
+          this.courseUpdateCallbacks.forEach(callback => {
+            try {
+              callback(this.courses);
+            } catch (error) {
+              console.error('Error in course update callback:', error);
+            }
+          });
+        }
       }
     }
 
