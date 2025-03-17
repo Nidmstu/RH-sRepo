@@ -899,41 +899,14 @@
     window.app = app;
 
     // Start the application when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      app.initApp();
-
-      // Add error handling
-      window.onerror = function(msg, url, lineNo, columnNo, error) {
-        console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
-        return false;
-      };
-
-      // Initialize audio handling
-      window.hideAllAudio = function() {
-        const audioEmbed = document.getElementById("audio-embed");
-        const audioContainer = document.getElementById("audio-container");
-        const audioFallback = document.getElementById("audio-fallback");
-
-        if (audioEmbed) {
-          audioEmbed.classList.add("hidden");
-          audioEmbed.innerHTML = '';
-        }
-        if (audioContainer) {
-          audioContainer.classList.add("hidden");
-        }
-        if (audioFallback) {
-          audioFallback.classList.add("hidden");
-        }
-      };
-
-      // Handle audio playback
-      document.querySelectorAll('audio').forEach(audio => {
-        audio.addEventListener('play', function() {
-          document.querySelectorAll('audio').forEach(otherAudio => {
-            if (otherAudio !== this) otherAudio.pause();
-          });
-        });
-      });
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await app.initApp();
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        document.getElementById('loading-retry-container').classList.remove('hidden');
+        document.getElementById('global-loading-status').textContent = 'Ошибка загрузки данных. Пожалуйста, попробуйте перезагрузить страницу.';
+      }
     });
   </script>
   <script src="js/app.js" type="module"></script>
