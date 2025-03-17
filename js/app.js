@@ -21,10 +21,7 @@ const testButton = document.getElementById('test-button');
 async function initApp() {
   console.log('Инициализация приложения...');
 
-  // Скрываем глобальный индикатор загрузки - он должен оставаться видимым пока все не загрузится
   const globalLoadingOverlay = document.getElementById('global-loading-overlay');
-
-  // Показываем индикатор загрузки перед началом инициализации
   const loadingIndicator = document.getElementById('loading-spinner');
   const appContent = document.getElementById('app-content');
   const retryContainer = document.getElementById('loading-retry-container');
@@ -33,11 +30,140 @@ async function initApp() {
   if (retryContainer) retryContainer.classList.add('hidden');
   if (appContent) appContent.classList.add('hidden');
 
-  // Автоматически импортируем настройки вебхуков, если они отсутствуют
-  await autoImportWebhooks();
+  // Добавляем кнопку администратора
+  const adminButton = document.createElement('button');
+  adminButton.id = 'admin-button';
+  adminButton.innerHTML = '<i class="fas fa-cog"></i> Админ панель';
+  adminButton.style.position = 'fixed';
+  adminButton.style.bottom = '20px';
+  adminButton.style.right = '20px';
+  adminButton.style.zIndex = '1000';
+  adminButton.onclick = () => window.location.href = 'admin.html';
+  document.body.appendChild(adminButton);
 
-  // Настраиваем обработчики событий
-  setupEventListeners();
+  try {
+    updateLoadingStatus('Инициализация приложения...');
+    
+    // Пытаемся загрузить данные
+    let attemptCount = 0;
+    const maxAttempts = 3;
+    
+    while (attemptCount < maxAttempts) {
+      try {
+        const success = await loadCourseData();
+        if (success) {
+          console.log('Данные успешно загружены');
+          break;
+        }
+      } catch (error) {
+        console.error(`Попытка ${attemptCount + 1} загрузки данных не удалась:`, error);
+        attemptCount++;
+        if (attemptCount < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+
+    if (attemptCount === maxAttempts) {
+      throw new Error('Не удалось загрузить данные после нескольких попыток');
+    }
+
+    // Настраиваем обработчики событий
+    setupEventListeners();
+    
+    // Инициализируем курс менеджер
+    const success = await courseManager.initialize();
+    
+    if (!success) {
+      throw new Error('Ошибка инициализации менеджера курсов');
+    }
+
+    updateLoadingStatus('Загрузка завершена');
+    
+    // Показываем интерфейс
+    if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    if (appContent) appContent.classList.remove('hidden');
+    if (globalLoadingOverlay) {
+      globalLoadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        globalLoadingOverlay.style.display = 'none';
+      }, 500);
+    }
+
+  } catch (error) {
+    console.error('Ошибка при инициализации:', error);
+    updateLoadingStatus('Произошла ошибка при загрузке данных', true);
+    if (retryContainer) retryContainer.classList.remove('hidden');
+  }
+}
+
+async function loadCourseData() {
+  try {
+    let data = null;
+    
+    // Пробуем загрузить с вебхука
+    const webhookUrl = localStorage.getItem('adminImportWebhook') || 
+                      localStorage.getItem('importWebhookUrl') ||
+                      'https://auto.crm-s.com/webhook/OnboardingJSON';
+
+    if (webhookUrl) {
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.warn('Ошибка парсинга JSON из вебхука:', e);
+          // Пытаемся найти JSON в тексте
+          const match = text.match(/{[\s\S]*}/);
+          if (match) {
+            data = JSON.parse(match[0]);
+          }
+        }
+      }
+    }
+
+    // Если не удалось загрузить с вебхука, используем локальные данные
+    if (!data) {
+      const response = await fetch('data/courses.json');
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        throw new Error('Не удалось загрузить локальные данные');
+      }
+    }
+
+    // Проверяем структуру данных
+    if (!data || typeof data !== 'object') {
+      throw new Error('Некорректная структура данных');
+    }
+
+    courseManager.courses = data;
+    localStorage.setItem('coursesBackup', JSON.stringify(data));
+    return true;
+
+  } catch (error) {
+    console.error('Ошибка загрузки данных:', error);
+    // Пробуем восстановить из бэкапа
+    const backup = localStorage.getItem('coursesBackup');
+    if (backup) {
+      try {
+        courseManager.courses = JSON.parse(backup);
+        return true;
+      } catch (e) {
+        console.error('Ошибка восстановления из бэкапа:', e);
+      }
+    }
+    return false;
+  }
+}
 
   function updateGlobalLoadingStatus(message) {
     const statusElement = document.getElementById('global-loading-status');
