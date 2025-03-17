@@ -578,30 +578,126 @@ function goBackToTaskSelection() {
 }
 
 // Setup UI event handlers
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize marked options
+  marked.setOptions({
+    breaks: true,
+    gfm: true
+  });
 
-// Initialize admin interface if needed
-  if (window.location.hash === '#admin') {
-    initializeAdminInterface();
-  }
+  showLoadingIndicator();
+  await initApp();
+  hideLoadingIndicator();
 });
 
 // Main application logic
 function setupEventListeners() {
-  // Add event listeners for navigation, content loading, etc.
+  const professionSelect = document.getElementById('profession-select');
+  if (professionSelect) {
+    professionSelect.addEventListener('change', handleProfessionChange);
+  }
+
+  document.querySelectorAll('.back-button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.target === 'days') {
+        goBackToDaySelection();
+      } else if (btn.dataset.target === 'tasks') {
+        goBackToTaskSelection();
+      }
+    });
+  });
 }
 
-// Admin interface logic
-function initializeAdminInterface() {
-  // Initialize admin panel functionality
+// Audio handling functions
+function hideAllAudio() {
+  const audioElements = document.querySelectorAll('audio, .audio-container, #audio-embed');
+  audioElements.forEach(el => {
+    el.classList.add('hidden');
+    if (el.tagName === 'AUDIO') {
+      el.pause();
+    }
+  });
 }
 
-// Helper functions for UI updates, navigation, etc.
+function showAudioForLesson(lesson) {
+  hideAllAudio();
+  if (!lesson?.audioSource) return;
+
+  const audioEmbed = document.getElementById('audio-embed');
+  if (!audioEmbed) return;
+
+  let embedContent = '';
+  const audioType = lesson.audioSource.type?.toLowerCase();
+
+  if (audioType === 'soundcloud' && lesson.audioSource.url) {
+    embedContent = `<iframe src="${lesson.audioSource.url}" width="100%" height="166" frameborder="0" allow="autoplay"></iframe>`;
+  } else if (audioType === 'url' && lesson.audioSource.url) {
+    embedContent = `<audio controls style="width:100%"><source src="${lesson.audioSource.url}" type="audio/mpeg">Your browser does not support audio element.</audio>`;
+  } else if (audioType === 'embed' && lesson.audioSource.embedCode) {
+    embedContent = lesson.audioSource.embedCode;
+  }
+
+  if (embedContent) {
+    audioEmbed.innerHTML = embedContent;
+    audioEmbed.classList.remove('hidden');
+  }
+}
+
+// Test handling functions
+function startQuiz() {
+  const quizFrame = document.getElementById('quiz-frame') || document.createElement('iframe');
+  quizFrame.id = 'quiz-frame';
+  quizFrame.style.cssText = 'border:none;width:100%;height:100vh;position:fixed;top:0;left:0;z-index:9999;background:#f8f9fa;';
+  document.body.appendChild(quizFrame);
+
+  const closeButton = document.createElement('button');
+  closeButton.innerText = 'Close Quiz';
+  closeButton.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;padding:8px 15px;border:none;border-radius:5px;background:#e74c3c;color:white;cursor:pointer;';
+  closeButton.onclick = () => {
+    quizFrame.style.display = 'none';
+    document.body.removeChild(closeButton);
+  };
+  document.body.appendChild(closeButton);
+
+  quizFrame.src = 'quiz.html';
+}
+
+// Helper functions for UI updates
 function updateUI() {
-  // Update UI elements based on current state
+  const professionSelect = document.getElementById('profession-select');
+  const daySelection = document.getElementById('day-selection');
+  const taskSelection = document.getElementById('task-selection');
+  const guide = document.getElementById('guide');
+
+  if (courseManager.currentProfession) {
+    updateDaysList();
+    if (courseManager.currentDay) {
+      updateLessonsList();
+      if (courseManager.currentLesson) {
+        loadLessonContent();
+      }
+    }
+  }
+}
+
+// Content formatting functions
+function formatContent(content) {
+  if (!content) return '';
+  
+  // Add title if not present
+  if (!content.trim().startsWith('#')) {
+    content = `# ${courseManager.currentLesson?.title || 'Lesson'}\n\n${content}`;
+  }
+  
+  return marked.parse(content);
 }
 
 // Export necessary components for admin interface
 window.courseManager = courseManager;
+window.showLoadingIndicator = showLoadingIndicator;
+window.hideLoadingIndicator = hideLoadingIndicator;
+window.updateLoadingStatus = updateLoadingStatus;
+window.formatContent = formatContent;
   </script>
 </body>
 </html>
