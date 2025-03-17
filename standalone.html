@@ -275,11 +275,11 @@
     <h1 id="guide-title">Guide:</h1>
     <div id="content-loading-spinner" class="center hidden">
       <div class="spinner"></div>
-      <p>Loading content...</p>
+      <p class="loading-status">Loading content...</p>
     </div>
     <div id="markdown-content" class="markdown-content hidden"></div>
     <div class="center" style="margin-top:20px;">
-      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
+      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook" class="hidden">Test</button>
     </div>
     <div class="center" style="margin-top:20px;">
       <button onclick="goBackToTaskSelection()">Back</button>
@@ -291,7 +291,9 @@
     </div>
 
     <div id="task-selection" class="hidden">
-      <!-- Task selection content -->
+      <h1 id="day-header"></h1>
+      <div id="task-buttons" class="task-buttons"></div>
+      <button onclick="goBackToDaySelection()">Back</button>
     </div>
 
     <div id="global-loading-overlay" class="hidden">
