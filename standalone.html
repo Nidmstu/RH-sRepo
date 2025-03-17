@@ -301,6 +301,18 @@ button:hover {
     <!-- Admin panel content -->
   </div>
 
+  <!-- Loading indicator and status -->
+  <div id="loading-spinner" class="container center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f8f8; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+    <div class="spinner" style="width: 80px; height: 80px; border-width: 8px;"></div>
+    <h2 style="color: #3498db; margin-top: 20px;">Loading data...</h2>
+    <p class="loading-status" style="font-size: 16px; margin-top: 15px;">Initializing...</p>
+    <div id="loading-retry-container" class="hidden" style="margin-top: 20px; background-color: #ffeeee; padding: 15px; border-radius: 5px; border-left: 4px solid #ff5555;">
+      <p style="font-weight: bold; color: #cc0000;">Failed to load data. Connection issues may exist.</p>
+      <button onclick="location.reload()" style="background-color: #ff5555; margin-top: 10px;">Retry Loading</button>
+      <p style="font-size: 14px; margin-top: 10px; color: #666;">If the problem persists, contact administrator.</p>
+    </div>
+  </div>
+
   <script>
 // Global state
 let courses = null;
@@ -499,8 +511,71 @@ window.addEventListener('unhandledrejection', function(event) {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
-// Course manager implementation
+function updateLoadingStatus(message, isError = false) {
+  const statusElement = document.querySelector('.loading-status');
+  if (statusElement) {
+    statusElement.textContent = message;
+    if (isError) {
+      statusElement.style.color = '#ff5555';
+      statusElement.style.fontWeight = 'bold';
+    } else {
+      statusElement.style.color = '';
+      statusElement.style.fontWeight = '';
+    }
+  }
+  console.log('Loading status:', message);
+}
 
+function showLoadingIndicator() {
+  const loadingOverlay = document.getElementById('loading-spinner');
+  if (loadingOverlay) {
+    loadingOverlay.style.display = 'flex';
+  }
+}
+
+function hideLoadingIndicator() {
+  const loadingOverlay = document.getElementById('loading-spinner');
+  if (loadingOverlay) {
+    loadingOverlay.style.display = 'none';
+  }
+}
+
+function displayDays(days) {
+  const container = document.getElementById('days-container');
+  container.innerHTML = '';
+  days.forEach(day => {
+    const dayElement = document.createElement('div');
+    dayElement.className = 'day-card';
+    dayElement.innerHTML = `<h3>${day.title}</h3>`;
+    dayElement.onclick = () => selectDay(day.id);
+    container.appendChild(dayElement);
+  });
+}
+
+async function handleProfessionChange() {
+  const profId = document.getElementById('profession-select').value;
+  if (profId) {
+    if (courseManager.hasRedirect(profId)) {
+      const redirectUrl = courseManager.getRedirectUrl(profId);
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+    }
+    courseManager.switchProfession(profId);
+    displayDays(courseManager.getDays());
+  }
+}
+
+function goBackToDaySelection() {
+  document.getElementById('task-selection').classList.add('hidden');
+  document.getElementById('day-selection').classList.remove('hidden');
+}
+
+function goBackToTaskSelection() {
+  document.getElementById('guide').classList.add('hidden');
+  document.getElementById('task-selection').classList.remove('hidden');
+}
 
 // Setup UI event handlers
 
