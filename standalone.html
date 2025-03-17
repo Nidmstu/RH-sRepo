@@ -917,10 +917,16 @@
           loadingStatus.style.color = '#3498db';
         }
 
-        // Sequential initialization to prevent race conditions
-        await courseManager.initialize();
-        await devMode.initialize();
-        await adminPanel.initialize();
+        // Sequential initialization with verification
+        const initialized = await courseManager.initialize();
+        if (!initialized) {
+          throw new Error('Не удалось инициализировать CourseManager');
+        }
+
+        await Promise.all([
+          devMode.initialize(),
+          adminPanel.initialize()
+        ]);
 
         // Verify course data loaded successfully
         if (!courseManager.courses || Object.keys(courseManager.courses).length === 0) {
@@ -931,12 +937,16 @@
         app.initializeUI();
         app.bindEvents();
 
-        // Update course list
+        // Update course list and verify
         courseManager.notifyCoursesUpdated();
+        const professions = courseManager.getProfessions();
+        if (!professions || professions.length === 0) {
+          throw new Error('Нет доступных курсов');
+        }
 
         if (loadingOverlay) {
           loadingOverlay.style.opacity = '0';
-          setTimeout(() => {
+                    setTimeout(() => {
             loadingOverlay.style.display = 'none';
             if (appContent) appContent.style.display = 'block';
           }, 500);
