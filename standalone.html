@@ -903,8 +903,10 @@
       const loadingOverlay = document.getElementById('global-loading-overlay');
       const loadingStatus = document.getElementById('global-loading-status');
       const retryContainer = document.getElementById('loading-retry-container');
+      const appContent = document.getElementById('app-content');
 
       try {
+        if (appContent) appContent.style.display = 'none';
         if (loadingOverlay) {
           loadingOverlay.style.display = 'flex';
           loadingOverlay.style.opacity = '1';
@@ -912,6 +914,7 @@
 
         if (loadingStatus) {
           loadingStatus.textContent = 'Инициализация приложения...';
+          loadingStatus.style.color = '#3498db';
         }
 
         // Sequential initialization to prevent race conditions
@@ -935,6 +938,7 @@
           loadingOverlay.style.opacity = '0';
           setTimeout(() => {
             loadingOverlay.style.display = 'none';
+            if (appContent) appContent.style.display = 'block';
           }, 500);
         }
       } catch (error) {
