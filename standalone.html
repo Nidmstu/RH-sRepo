@@ -396,9 +396,6 @@
       <button id="test-button" onclick="window.location.href = currentTopic.testWebhook">Test</button>
     </div>
     <div class="center" style="margin-top:20px;">
-      <button id="test-button" onclick="window.location.href = currentTopic.testWebhook" class="hidden">Test</button>
-    </div>
-    <div class="center" style="margin-top:20px;">
       <button onclick="goBackToTaskSelection()">Back</button>
     </div>
   </div>
@@ -819,11 +816,29 @@
       // Initialize audio handling
       window.hideAllAudio = function() {
         const audioEmbed = document.getElementById("audio-embed");
+        const audioContainer = document.getElementById("audio-container");
+        const audioFallback = document.getElementById("audio-fallback");
+
         if (audioEmbed) {
           audioEmbed.classList.add("hidden");
           audioEmbed.innerHTML = '';
         }
+        if (audioContainer) {
+          audioContainer.classList.add("hidden");
+        }
+        if (audioFallback) {
+          audioFallback.classList.add("hidden");
+        }
       };
+
+      // Handle audio playback
+      document.querySelectorAll('audio').forEach(audio => {
+        audio.addEventListener('play', function() {
+          document.querySelectorAll('audio').forEach(otherAudio => {
+            if (otherAudio !== this) otherAudio.pause();
+          });
+        });
+      });
     });
   </script>
   <script src="js/app.js" type="module"></script>
