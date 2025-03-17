@@ -900,10 +900,31 @@
 
     // Single initialization point
     const initializeApp = async () => {
+      const loadingOverlay = document.getElementById('global-loading-overlay');
+      const loadingStatus = document.getElementById('global-loading-status');
+      const retryContainer = document.getElementById('loading-retry-container');
+      
       try {
-        const loadingOverlay = document.getElementById('global-loading-overlay');
-        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        if (loadingOverlay) {
+          loadingOverlay.style.display = 'flex';
+          loadingOverlay.style.opacity = '1';
+        }
         
+        if (loadingStatus) {
+          loadingStatus.textContent = 'Инициализация приложения...';
+        }
+
+        // Wait for courseManager to be defined
+        let attempts = 0;
+        while (!window.courseManager && attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+
+        if (!window.courseManager) {
+          throw new Error('CourseManager не инициализирован');
+        }
+
         await app.initApp();
         
         if (loadingOverlay) {
@@ -914,16 +935,19 @@
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);
-        document.getElementById('loading-retry-container').classList.remove('hidden');
-        document.getElementById('global-loading-status').textContent = 'Ошибка загрузки данных. Пожалуйста, попробуйте перезагрузить страницу.';
+        if (retryContainer) retryContainer.classList.remove('hidden');
+        if (loadingStatus) {
+          loadingStatus.textContent = `Ошибка загрузки: ${error.message}. Пожалуйста, попробуйте перезагрузить страницу.`;
+        }
+        if (loadingOverlay) loadingOverlay.style.opacity = '0.5';
       }
     };
 
     // Start the application when DOM is loaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeApp);
+      document.addEventListener('DOMContentLoaded', () => setTimeout(initializeApp, 100));
     } else {
-      initializeApp();
+      setTimeout(initializeApp, 100);
     }
   </script>
   <script src="js/app.js" type="module" async></script>
