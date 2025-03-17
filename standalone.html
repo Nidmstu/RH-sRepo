@@ -58,6 +58,62 @@
       display: none !important;
     }
 
+    /* Markdown styles */
+    .markdown-content {
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+
+    .markdown-content p {
+      margin: 10px 0;
+    }
+
+    .markdown-content ul {
+      margin: 10px 5px;
+      padding-left: 20px;
+    }
+
+    .markdown-content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10px 0;
+      display: block;
+      overflow-x: auto;
+    }
+
+    .markdown-content table,
+    .markdown-content th,
+    .markdown-content td {
+      border: 1px solid #ddd;
+    }
+
+    .markdown-content th,
+    .markdown-content td {
+      padding: 8px;
+      text-align: left;
+      min-width: 100px;
+    }
+
+    .markdown-content pre {
+      background-color: #f9f9f9;
+      border-left: 4px solid #ccc;
+      padding: 10px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .markdown-content code {
+      background-color: #f9f9f9;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
     /* Base styles */
     :root {
       --primary: #0079F2;
