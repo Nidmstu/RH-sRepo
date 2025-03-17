@@ -903,13 +903,13 @@
       const loadingOverlay = document.getElementById('global-loading-overlay');
       const loadingStatus = document.getElementById('global-loading-status');
       const retryContainer = document.getElementById('loading-retry-container');
-      
+
       try {
         if (loadingOverlay) {
           loadingOverlay.style.display = 'flex';
           loadingOverlay.style.opacity = '1';
         }
-        
+
         if (loadingStatus) {
           loadingStatus.textContent = 'Инициализация приложения...';
         }
@@ -930,7 +930,7 @@
 
         // Update course list
         courseManager.notifyCoursesUpdated();
-        
+
         if (loadingOverlay) {
           loadingOverlay.style.opacity = '0';
           setTimeout(() => {
