@@ -914,18 +914,20 @@
           loadingStatus.textContent = 'Инициализация приложения...';
         }
 
-        // Wait for courseManager to be defined
-        let attempts = 0;
-        while (!window.courseManager && attempts < 10) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          attempts++;
-        }
-
         if (!window.courseManager) {
-          throw new Error('CourseManager не инициализирован');
+          courseManager.initialize();
         }
 
-        await app.initApp();
+        // Initialize application modules
+        await Promise.all([
+          courseManager.initialize(),
+          devMode.initialize(),
+          adminPanel.initialize()
+        ]);
+
+        // Initialize UI
+        app.initializeUI();
+        app.bindEvents();
         
         if (loadingOverlay) {
           loadingOverlay.style.opacity = '0';
@@ -950,7 +952,7 @@
       setTimeout(initializeApp, 100);
     }
   </script>
-  <script src="js/app.js" type="module" async></script>
   <script src="js/fetchTests.js"></script>
+  <script src="js/app.js" type="module"></script>
 </body>
 </html>
