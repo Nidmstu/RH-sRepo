@@ -3196,8 +3196,28 @@ class AdminInterface {
       }
     }
 
+    // Проверяем, является ли урок уроком без дня (noDayLesson)
+    const isNoDayLesson = !this.currentEditing.isSpecial && !this.currentEditing.day;
+
     // Сохраняем изменения
-    if (this.currentEditing.isSpecial) {
+    if (isNoDayLesson) {
+      // Убедимся, что массив уроков без дня существует
+      if (!this.currentEditing.course.noDayLessons) {
+        this.currentEditing.course.noDayLessons = [];
+      }
+
+      // Сохраняем урок без дня
+      if (this.currentEditing.isNew) {
+        // Новый урок
+        this.currentEditing.course.noDayLessons.push(lessonData);
+      } else {
+        // Обновляем существующий
+        this.currentEditing.course.noDayLessons[this.currentEditing.lessonIndex] = lessonData;
+      }
+
+      // Обновляем список
+      this.loadNoDayLessonsList();
+    } else if (this.currentEditing.isSpecial) {
       // Убедимся, что массив специальных уроков существует
       if (!this.currentEditing.course.specialLessons) {
         this.currentEditing.course.specialLessons = [];
@@ -3246,7 +3266,10 @@ class AdminInterface {
   cancelLessonEdit() {
     this.currentEditing.lesson = null;
 
-    if (this.currentEditing.isSpecial) {
+    // Проверяем, является ли урок уроком без дня (noDayLesson)
+    const isNoDayLesson = !this.currentEditing.isSpecial && !this.currentEditing.day;
+
+    if (isNoDayLesson || this.currentEditing.isSpecial) {
       document.getElementById('admin-lesson-editor').classList.add('hidden');
       document.getElementById('admin-course-editor').classList.remove('hidden');
     } else {
@@ -4756,6 +4779,7 @@ class AdminInterface {
     this.currentEditing.lesson = lesson;
     this.currentEditing.lessonIndex = index;
     this.currentEditing.isSpecial = false;
+    this.currentEditing.day = null; // Явно указываем, что это урок не привязан к дню
     this.currentEditing.isNew = false;
     document.getElementById('admin-welcome').classList.add('hidden');
     document.getElementById('admin-course-editor').classList.add('hidden');
@@ -4797,6 +4821,7 @@ class AdminInterface {
     this.currentEditing.lesson = newLesson;
     this.currentEditing.lessonIndex = -1;
     this.currentEditing.isSpecial = false;
+    this.currentEditing.day = null; // Явно указываем, что это урок не привязан к дню
     this.currentEditing.isNew = true;
     
     // Показываем редактор урока
