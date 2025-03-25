@@ -631,9 +631,29 @@ class CourseManager {
         return specialLesson;
       }
     }
+    
+    // Затем ищем в уроках без дня
+    if (this.courses[this.currentProfession] && this.courses[this.currentProfession].noDayLessons) {
+      const noDayLesson = this.courses[this.currentProfession].noDayLessons.find(l => l.id === lessonId);
+      if (noDayLesson) {
+        this.currentLesson = noDayLesson;
+        console.log(`Выбран урок без дня: ${noDayLesson.title} (ID: ${noDayLesson.id})`);
+        return noDayLesson;
+      }
+    }
 
-    console.error(`Урок с ID ${lessonId} не найден ни в текущем дне, ни в специальных уроках`);
+    console.error(`Урок с ID ${lessonId} не найден ни в текущем дне, ни в специальных уроках, ни в уроках без дня`);
     return null;
+  }
+  
+  /**
+   * Получить уроки без дня для текущей профессии
+   */
+  getNoDayLessons() {
+    if (!this.courses[this.currentProfession] || !this.courses[this.currentProfession].noDayLessons) {
+      return [];
+    }
+    return this.courses[this.currentProfession].noDayLessons;
   }
 
   /**

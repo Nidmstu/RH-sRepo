@@ -3165,7 +3165,7 @@ class AdminInterface {
         }
       } else if (testSourceType === 'markdown') {
         lessonData.testSource.id = document.getElementById('admin-test-markdown-id').value;
-        // Здесь может быть логика для сохранения содержимого теста в файл
+        lessonData.testSource.content = document.getElementById('admin-test-markdown').value;
       }
     }
 
@@ -3196,10 +3196,10 @@ class AdminInterface {
       }
     }
 
-    // Проверяем, является ли урок уроком без дня (noDayLesson)
-    const isNoDayLesson = !this.currentEditing.isSpecial && !this.currentEditing.day;
+    // Определяем тип урока для сохранения
+    const isNoDayLesson = this.currentEditing.isNoDayLesson || (!this.currentEditing.isSpecial && !this.currentEditing.day);
 
-    // Сохраняем изменения
+    // Сохраняем изменения в зависимости от типа урока
     if (isNoDayLesson) {
       // Убедимся, что массив уроков без дня существует
       if (!this.currentEditing.course.noDayLessons) {
@@ -3210,9 +3210,11 @@ class AdminInterface {
       if (this.currentEditing.isNew) {
         // Новый урок
         this.currentEditing.course.noDayLessons.push(lessonData);
+        console.log('Создан новый урок без дня:', lessonData);
       } else {
         // Обновляем существующий
         this.currentEditing.course.noDayLessons[this.currentEditing.lessonIndex] = lessonData;
+        console.log('Обновлен урок без дня:', lessonData);
       }
 
       // Обновляем список
@@ -3227,9 +3229,11 @@ class AdminInterface {
       if (this.currentEditing.isNew) {
         // Новый урок
         this.currentEditing.course.specialLessons.push(lessonData);
+        console.log('Создан новый специальный урок:', lessonData);
       } else {
         // Обновляем существующий
         this.currentEditing.course.specialLessons[this.currentEditing.lessonIndex] = lessonData;
+        console.log('Обновлен специальный урок:', lessonData);
       }
 
       // Обновляем список
@@ -3242,14 +3246,19 @@ class AdminInterface {
           this.currentEditing.day.lessons = [];
         }
         this.currentEditing.day.lessons.push(lessonData);
+        console.log('Создан новый урок:', lessonData);
       } else {
         // Обновляем существующий
         this.currentEditing.day.lessons[this.currentEditing.lessonIndex] = lessonData;
+        console.log('Обновлен урок:', lessonData);
       }
 
       // Обновляем список
       this.loadLessonsList();
     }
+
+    // Сбрасываем флаг типа урока
+    this.currentEditing.isNoDayLesson = false;
 
     // Сохраняем изменения в JSON файл или отправляем на вебхук
     this.saveCoursesToJSON();
@@ -3264,18 +3273,28 @@ class AdminInterface {
    * Отмена редактирования урока
    */
   cancelLessonEdit() {
+    // Определяем тип урока для корректного возврата к предыдущему экрану
+    const isNoDayLesson = this.currentEditing.isNoDayLesson || (!this.currentEditing.isSpecial && !this.currentEditing.day);
+
+    // Очищаем текущие данные редактирования
     this.currentEditing.lesson = null;
+    this.currentEditing.isNoDayLesson = false;
 
-    // Проверяем, является ли урок уроком без дня (noDayLesson)
-    const isNoDayLesson = !this.currentEditing.isSpecial && !this.currentEditing.day;
-
+    // Возвращаемся к соответствующему экрану в зависимости от типа урока
     if (isNoDayLesson || this.currentEditing.isSpecial) {
       document.getElementById('admin-lesson-editor').classList.add('hidden');
       document.getElementById('admin-course-editor').classList.remove('hidden');
+      
+      // Переключаемся на вкладку специальных уроков, если это был специальный или noDay урок
+      if (this.currentEditing.isSpecial || isNoDayLesson) {
+        this.switchTab('special-lessons');
+      }
     } else {
       document.getElementById('admin-lesson-editor').classList.add('hidden');
       document.getElementById('admin-day-editor').classList.remove('hidden');
     }
+    
+    console.log('Редактирование урока отменено');
   }
 
   /**
@@ -4715,7 +4734,17 @@ class AdminInterface {
     const noDayLessonsList = document.getElementById('admin-no-day-lessons-list');
     noDayLessonsList.innerHTML = '';
 
-    if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons) return;
+    if (!this.currentEditing.course) return;
+
+    // Убедимся, что массив noDayLessons существует
+    if (!this.currentEditing.course.noDayLessons) {
+      this.currentEditing.course.noDayLessons = [];
+    }
+
+    if (this.currentEditing.course.noDayLessons.length === 0) {
+      noDayLessonsList.innerHTML = '<div class="admin-list-empty">Нет уроков без дня. Добавьте новый урок.</div>';
+      return;
+    }
 
     this.currentEditing.course.noDayLessons.forEach((lesson, index) => {
       // Формируем информацию об источнике контента
@@ -4742,14 +4771,25 @@ class AdminInterface {
         testSourceInfo += '</div>';
       }
       
+      // Формируем информацию об аудио
+      let audioSourceInfo = '';
+      if (lesson.audioSource) {
+        audioSourceInfo = `<div class="admin-list-item-source">Аудио: ${lesson.audioSource.type}`;
+        if (lesson.audioSource.type === 'soundcloud' && lesson.audioSource.trackUrl) {
+          audioSourceInfo += ` (${lesson.audioSource.trackUrl.substring(0, 30)}${lesson.audioSource.trackUrl.length > 30 ? '...' : ''})`;
+        }
+        audioSourceInfo += '</div>';
+      }
+      
       const lessonItem = document.createElement('div');
       lessonItem.className = 'admin-list-item';
       lessonItem.innerHTML = `
         <div class="admin-list-item-info">
-          <div class="admin-list-item-title">${lesson.title}</div>
-          <div class="admin-list-item-subtitle">ID: ${lesson.id}</div>
+          <div class="admin-list-item-title">${lesson.title || 'Без названия'}</div>
+          <div class="admin-list-item-subtitle">ID: ${lesson.id || 'Без ID'}</div>
           ${contentSourceInfo}
           ${testSourceInfo}
+          ${audioSourceInfo}
         </div>
         <div class="admin-list-item-actions">
           <button class="admin-btn admin-btn-sm edit-no-day-lesson" data-index="${index}">
@@ -4774,39 +4814,64 @@ class AdminInterface {
 
   editNoDayLesson(index) {
     if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons[index]) return;
+    
     const lesson = this.currentEditing.course.noDayLessons[index];
+    
+    // Заполняем форму урока
     this.fillLessonForm(lesson);
+    
+    // Настраиваем параметры редактирования
     this.currentEditing.lesson = lesson;
     this.currentEditing.lessonIndex = index;
     this.currentEditing.isSpecial = false;
     this.currentEditing.day = null; // Явно указываем, что это урок не привязан к дню
     this.currentEditing.isNew = false;
+    this.currentEditing.isNoDayLesson = true;
+    
+    // Показываем редактор урока
     document.getElementById('admin-welcome').classList.add('hidden');
     document.getElementById('admin-course-editor').classList.add('hidden');
     document.getElementById('admin-day-editor').classList.add('hidden');
     document.getElementById('admin-lesson-editor').classList.remove('hidden');
+    
+    console.log('Редактирование урока без дня:', lesson.id);
   }
 
   deleteNoDayLesson(index) {
     if (!this.currentEditing.course || !this.currentEditing.course.noDayLessons[index]) return;
+    
     const lesson = this.currentEditing.course.noDayLessons[index];
-    if (!confirm(`Вы уверены, что хотите удалить урок "${lesson.title}"?`)) return;
+    
+    if (!confirm(`Вы уверены, что хотите удалить урок "${lesson.title}"?`)) {
+      return;
+    }
+
+    // Удаляем урок
     this.currentEditing.course.noDayLessons.splice(index, 1);
+    
+    // Обновляем список
     this.loadNoDayLessonsList();
+    
+    // Сохраняем изменения
     this.saveCoursesToJSON();
+    
+    console.log('Урок без дня удален:', lesson.id);
   }
 
   createNoDayLesson() {
-    console.log('Создание нового урока без дня (словаря)');
+    console.log('Создание нового урока без дня');
     
-    // Создаем шаблон нового урока
+    // Создаем шаблон нового урока с полной структурой
     const newLesson = {
-      id: 'new-vocabulary',
-      title: 'Новый словарь',
+      id: `no-day-lesson-${Date.now().toString().slice(-6)}`,
+      title: 'Новый урок без дня',
       contentSource: { 
         type: 'markdown', 
-        content: '# Новый словарь\n\nДобавьте контент для словаря здесь.' 
-      }
+        content: '# Новый урок без дня\n\nДобавьте контент для урока здесь.' 
+      },
+      testSource: null,
+      taskSource: null,
+      audioSource: null
     };
     
     // Убедимся, что массив noDayLessons существует
@@ -4823,6 +4888,7 @@ class AdminInterface {
     this.currentEditing.isSpecial = false;
     this.currentEditing.day = null; // Явно указываем, что это урок не привязан к дню
     this.currentEditing.isNew = true;
+    this.currentEditing.isNoDayLesson = true;
     
     // Показываем редактор урока
     document.getElementById('admin-welcome').classList.add('hidden');
@@ -4830,38 +4896,122 @@ class AdminInterface {
     document.getElementById('admin-day-editor').classList.add('hidden');
     document.getElementById('admin-lesson-editor').classList.remove('hidden');
     
-    // Переключаем поля в форме на Markdown
-    document.getElementById('admin-content-source-type').value = 'markdown';
-    this.toggleSourceFields('content', 'markdown');
-    
-    console.log('Форма редактирования урока без дня открыта');
+    console.log('Форма создания урока без дня открыта');
   }
 
-
+  /**
+   * Сохранение урока без дня
+   */
   saveNoDayLesson() {
+    // Собираем данные из формы
     const lessonData = {
       id: document.getElementById('admin-lesson-id').value,
-      title: document.getElementById('admin-lesson-title').value,
-      contentSource: {
-        type: document.getElementById('admin-content-source-type').value,
-        content: document.getElementById('admin-content-markdown').value
-      }
+      title: document.getElementById('admin-lesson-title').value
     };
 
-    if (!lessonData.id || !lessonData.title) {
-      alert('ID и название урока обязательны!');
+    // Валидация
+    if (!lessonData.id) {
+      alert('ID урока обязателен!');
       return;
     }
 
+    if (!lessonData.title) {
+      alert('Название урока обязательно!');
+      return;
+    }
+
+    // Собираем данные об источнике контента
+    const contentSourceType = document.getElementById('admin-content-source-type').value;
+    if (contentSourceType !== 'none') {
+      lessonData.contentSource = {
+        type: contentSourceType
+      };
+
+      if (contentSourceType === 'webhook') {
+        lessonData.contentSource.url = document.getElementById('admin-content-webhook-url').value;
+        const fallbackType = document.getElementById('admin-content-fallback-type').value;
+        if (fallbackType !== 'none') {
+          lessonData.contentSource.fallbackType = fallbackType;
+          lessonData.contentSource.fallbackId = document.getElementById('admin-content-fallback-id').value;
+        }
+      } else if (contentSourceType === 'local') {
+        lessonData.contentSource.id = document.getElementById('admin-content-local-id').value;
+      } else if (contentSourceType === 'markdown') {
+        lessonData.contentSource.content = document.getElementById('admin-content-markdown').value;
+      }
+    }
+
+    // Собираем данные об источнике теста
+    const testSourceType = document.getElementById('admin-test-source-type').value;
+    if (testSourceType !== 'none') {
+      lessonData.testSource = {
+        type: testSourceType
+      };
+
+      if (testSourceType === 'webhook') {
+        lessonData.testSource.url = document.getElementById('admin-test-webhook-url').value;
+        const fallbackType = document.getElementById('admin-test-fallback-type').value;
+        if (fallbackType !== 'none') {
+          lessonData.testSource.fallbackType = fallbackType;
+          lessonData.testSource.fallbackId = document.getElementById('admin-test-fallback-id').value;
+        }
+      } else if (testSourceType === 'markdown') {
+        lessonData.testSource.id = document.getElementById('admin-test-markdown-id').value;
+        lessonData.testSource.content = document.getElementById('admin-test-markdown').value;
+      }
+    }
+
+    // Собираем данные о задании
+    const taskSourceType = document.getElementById('admin-task-source-type').value;
+    if (taskSourceType !== 'none') {
+      lessonData.taskSource = {
+        type: taskSourceType
+      };
+
+      if (taskSourceType === 'markdown') {
+        lessonData.taskSource.content = document.getElementById('admin-task-markdown').value;
+      }
+    }
+
+    // Собираем данные об аудио
+    const audioSourceType = document.getElementById('admin-audio-source-type').value;
+    if (audioSourceType !== 'none') {
+      lessonData.audioSource = {
+        type: audioSourceType
+      };
+
+      if (audioSourceType === 'soundcloud') {
+        lessonData.audioSource.url = document.getElementById('admin-audio-account-url').value;
+        lessonData.audioSource.trackUrl = document.getElementById('admin-audio-track-url').value;
+      } else if (audioSourceType === 'embed') {
+        lessonData.audioSource.embedCode = document.getElementById('admin-audio-embed-code').value;
+      }
+    }
+
+    // Убедимся, что массив noDayLessons существует
+    if (!this.currentEditing.course.noDayLessons) {
+      this.currentEditing.course.noDayLessons = [];
+    }
+
+    // Сохраняем урок без дня
     if (this.currentEditing.isNew) {
       this.currentEditing.course.noDayLessons.push(lessonData);
+      console.log('Создан новый урок без дня:', lessonData);
     } else {
       this.currentEditing.course.noDayLessons[this.currentEditing.lessonIndex] = lessonData;
+      console.log('Обновлен урок без дня:', lessonData);
     }
+
+    // Обновляем список уроков без дня
     this.loadNoDayLessonsList();
+    
+    // Сохраняем изменения в JSON
     this.saveCoursesToJSON();
+    
+    // Возвращаемся к редактору курса
     this.cancelLessonEdit();
-    alert('Урок успешно сохранен!');
+    
+    alert('Урок без дня успешно сохранен!');
   }
 }
 
