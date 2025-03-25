@@ -634,12 +634,19 @@ class CourseManager {
     
     // Затем ищем в уроках без дня
     if (this.courses[this.currentProfession] && this.courses[this.currentProfession].noDayLessons) {
-      const noDayLesson = this.courses[this.currentProfession].noDayLessons.find(l => l.id === lessonId);
-      if (noDayLesson) {
-        this.currentLesson = noDayLesson;
-        console.log(`Выбран урок без дня: ${noDayLesson.title} (ID: ${noDayLesson.id})`);
-        return noDayLesson;
+      const noDayLessons = this.courses[this.currentProfession].noDayLessons;
+      if (Array.isArray(noDayLessons)) {
+        const noDayLesson = noDayLessons.find(l => l.id === lessonId);
+        if (noDayLesson) {
+          this.currentLesson = noDayLesson;
+          console.log(`Выбран урок без дня: ${noDayLesson.title} (ID: ${noDayLesson.id})`);
+          return noDayLesson;
+        }
+      } else {
+        console.warn(`noDayLessons существует, но не является массивом:`, noDayLessons);
       }
+    } else {
+      console.log(`Отсутствуют уроки без дня для профессии ${this.currentProfession}`);
     }
 
     console.error(`Урок с ID ${lessonId} не найден ни в текущем дне, ни в специальных уроках, ни в уроках без дня`);
